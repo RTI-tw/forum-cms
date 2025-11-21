@@ -1,0 +1,381 @@
+diff --git a/node_modules/@keystone-6/core/dist/PageContainer-0d8d0d38.esm.js b/node_modules/@keystone-6/core/dist/PageContainer-0d8d0d38.esm.js
+index 0363854..a879b9a 100644
+--- a/node_modules/@keystone-6/core/dist/PageContainer-0d8d0d38.esm.js
++++ b/node_modules/@keystone-6/core/dist/PageContainer-0d8d0d38.esm.js
+@@ -1,14 +1,20 @@
+ import _extends from '@babel/runtime/helpers/esm/extends';
+-import { useTheme, jsx, H3, Text, Stack } from '@keystone-ui/core';
+-import { Fragment } from 'react';
++import { useTheme, jsx, H3, Text, Stack, Heading } from '@keystone-ui/core';
++import { Fragment, useState, useEffect } from 'react';
++import { MenuIcon, XCircleIcon } from '@keystone-ui/icons';
++import { AlertDialog } from '@keystone-ui/modals';
++import { TextInput } from '@keystone-ui/fields';
+ import { useRouter } from 'next/router';
+ import { Button } from '@keystone-ui/button';
+ import { Popover } from '@keystone-ui/popover';
+ import { Link } from './admin-ui/router/dist/keystone-6-core-admin-ui-router.esm.js';
+-import { useKeystone, useList } from './admin-ui/context/dist/keystone-6-core-admin-ui-context.esm.js';
++import { useKeystone } from './admin-ui/context/dist/keystone-6-core-admin-ui-context.esm.js';
++import { gql, useQuery, useMutation } from '@keystone-6/core/admin-ui/apollo';
++
++import { useToasts } from '@keystone-ui/toast';
+ 
+ const HEADER_HEIGHT = 80;
+-const Logo = () => {
++const Logo = () => { 
+   const {
+     adminMeta: {
+       listQueryName
+@@ -291,25 +297,58 @@ const PageWrapper = props => {
+     css: {
+       // background: colors.background,
+       display: 'grid',
+-      gridTemplateColumns: `minmax(300px, 1fr) 4fr`,
+-      gridTemplateRows: `${HEADER_HEIGHT}px auto`,
++      gridTemplateColumns: `minmax(300px, 1fr)`,
++      gridTemplateRows: `repeat(2,${HEADER_HEIGHT}px) auto`,
+       height: '100vh',
+-      isolation: 'isolate'
++      isolation: 'isolate',
++      '@media (min-width: 576px)': {
++        gridTemplateColumns: `minmax(300px, 1fr) 4fr`,
++        gridTemplateRows: `${HEADER_HEIGHT}px auto`
++      }
+     }
+   }, props)));
+ };
+-const Sidebar = props => {
++const Sidebar = _ref => {
++  let {
++    isSidebarOpen,
++    ...props
++  } = _ref;
+   // const { colors } = useTheme();
+ 
+-  return jsx("aside", _extends({
++  return jsx("div", {
++    css: {
++      gridColumn: '1/2',
++      gridRow: '1/4',
++      display: isSidebarOpen ? 'block' : 'none',
++      height: '100vh',
++      overflowY: 'auto',
++      '@media (min-width: 576px)': {
++        gridColumn: '1/2',
++        gridRow: '2/3',
++        display: 'block',
++        height: '100%'
++      }
++    }
++  }, jsx("div", {
++    onClick: () => {
++      props.setIsSidebarOpen(!isSidebarOpen);
++    },
++    css: {
++      float: 'right',
++      padding: '10px',
++      display: 'block',
++      '@media (min-width: 576px)': {
++        display: 'none'
++      }
++    }
++  }, jsx(XCircleIcon, null)), jsx("aside", _extends({
+     css: {
+       // borderRight: `1px solid ${colors.border}`,
+       minWidth: 0,
+       // resolves collapsing issues in children
+-      overflowY: 'auto',
+       WebkitOverflowScrolling: 'touch'
+     }
+-  }, props));
++  }, props)));
+ };
+ const Content = props => {
+   const {
+@@ -330,16 +369,17 @@ const Content = props => {
+     }
+   }, props));
+ };
+-const PageContainer = _ref => {
++const PageContainer = _ref2 => {
+   let {
+     children,
+     header,
+     title
+-  } = _ref;
++  } = _ref2;
+   const {
+     colors,
+     spacing
+   } = useTheme();
++  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
++
++  // Custom Logic: Check mustChangePassword
++  const { authenticatedItem } = useKeystone();
++  const [newPassword, setNewPassword] = useState('');
++  const [confirmPassword, setConfirmPassword] = useState('');
++  const [errorMsg, setErrorMsg] = useState('');
++  const toasts = useToasts();
++  const [isOpen, setIsOpen] = useState(false);
++
++  // Revert to using useQuery because sessionData might not propagate to Admin UI authenticatedItem automatically
++  // without rebuilding the Admin UI schema which is complex.
++  const USER_CHECK_QUERY = gql`
++    query CheckUser($id: ID!) {
++      user(where: { id: $id }) {
++        id
++        mustChangePassword
++      }
++    }
++  `;
++
++  // Helper function to get cookie value
++  const getCookie = (name) => {
++    const value = `; ${document.cookie}`;
++    const parts = value.split(`; ${name}=`);
++    if (parts.length === 2) return parts.pop().split(';').shift();
++    return null;
++  };
++
++  // Check cookie first (set during login)
++  const requirePasswordChangeCookie = getCookie('requirePasswordChange');
++  console.log('=== PageContainer PATCH IS LOADED ===');
++  console.log('PageContainer: Cookie check - requirePasswordChange:', requirePasswordChangeCookie);
++  console.log('PageContainer: All cookies:', document.cookie);
++  console.log('PageContainer: Rendering. Auth state:', authenticatedItem?.state);
++  console.log('PageContainer: Authenticated Item full:', JSON.stringify(authenticatedItem, null, 2));
++
++  const { data, error: queryError, loading: queryLoading } = useQuery(USER_CHECK_QUERY, {
++    variables: { id: authenticatedItem?.state === 'authenticated' ? authenticatedItem.id : '0' },
++    skip: !authenticatedItem || authenticatedItem.state !== 'authenticated',
++    fetchPolicy: 'network-only', // Ensure we get fresh data
++    onError: (e) => console.error('PageContainer: useQuery onError:', e),
++    onCompleted: (data) => console.log('PageContainer: Query completed:', data)
++  });
++
++  if (queryError) {
++      console.error('PageContainer: Error querying user:', queryError);
++      console.error('PageContainer: Error details:', JSON.stringify(queryError, null, 2));
++  }
++  if (queryLoading) {
++      console.log('PageContainer: Query loading...');
++  }
++
++  const needChangeFromQuery = data?.user?.mustChangePassword;
++  // Use cookie as primary check, fallback to query result
++  const needChange = requirePasswordChangeCookie === 'true' || needChangeFromQuery === true;
++  console.log('PageContainer: needChange value:', needChange, 'from cookie:', requirePasswordChangeCookie === 'true', 'from query:', needChangeFromQuery);
++
++  // Intercept GraphQL responses to check for requirePasswordChange
++  useEffect(() => {
++      console.log('=== PageContainer: Setting up GraphQL response interceptor ===');
++      
++      // Intercept fetch requests to /api/graphql
++      const originalFetch = window.fetch;
++      window.fetch = function(...args) {
++          const url = args[0];
++          if (typeof url === 'string' && url.includes('/api/graphql')) {
++              console.log('[Password Change] Intercepting GraphQL request:', url);
++              return originalFetch.apply(this, args).then(response => {
++                  // Clone response to read it
++                  const clonedResponse = response.clone();
++                  
++                  clonedResponse.json().then(data => {
++                      console.log('[Password Change] GraphQL response:', JSON.stringify(data, null, 2));
++                      
++                      // Check for requirePasswordChange in extensions (set by server middleware)
++                      if (data && data.extensions?.requirePasswordChange) {
++                          console.log('[Password Change] Extensions requirePasswordChange detected, setting cookie and opening modal');
++                          // Set cookie
++                          document.cookie = 'requirePasswordChange=true; path=/; max-age=3600';
++                          // Trigger modal by setting state
++                          setIsOpen(true);
++                          return;
++                      }
++                      
++                      // Check for requirePasswordChange in response data (set by login-logging plugin)
++                      if (data && data.data) {
++                          for (const key of Object.keys(data.data)) {
++                              const result = data.data[key];
++                              console.log('[Password Change] Checking result:', key, result);
++                              
++                              if (result && typeof result === 'object') {
++                                  // Check for UserAuthenticationWithPasswordSuccess
++                                  if (result.__typename === 'UserAuthenticationWithPasswordSuccess' && 
++                                      result.item?.requirePasswordChange === true) {
++                                      console.log('[Password Change] Login response requires password change, setting cookie and opening modal');
++                                      // Set cookie
++                                      document.cookie = 'requirePasswordChange=true; path=/; max-age=3600';
++                                      // Trigger modal by setting state
++                                      setIsOpen(true);
++                                      return;
++                                  }
++                              }
++                          }
++                      }
++                  }).catch(e => {
++                      console.error('[Password Change] Error parsing response:', e);
++                  });
++                  
++                  return response;
++              });
++          }
++          return originalFetch.apply(this, args);
++      };
++      
++      // Cleanup function
++      return () => {
++          window.fetch = originalFetch;
++      };
++  }, []);
++
++  useEffect(() => {
++      console.log('=== PageContainer useEffect triggered ===');
++      if (!authenticatedItem) {
++          console.log('PageContainer: No authenticatedItem, skipping');
++          return;
++      }
++      console.log('PageContainer: Effect. Auth:', authenticatedItem);
++      console.log('PageContainer: Effect. Data:', data);
++      console.log('PageContainer: Effect. NeedChange:', needChange);
++      console.log('PageContainer: Effect. Cookie:', requirePasswordChangeCookie);
++      console.log('PageContainer: Effect. isOpen state:', isOpen);
++      
++      if (needChange === true) {
++          console.log('PageContainer: needChange is TRUE, setting isOpen to true');
++          setIsOpen(true);
++      } else {
++          console.log('PageContainer: needChange is not true, setting isOpen to false. Value:', needChange);
++          setIsOpen(false);
++      }
++  }, [needChange, authenticatedItem, data, requirePasswordChangeCookie]);
++
++  console.log('PageContainer: Current isOpen state before render:', isOpen);
++
++  const UPDATE_PASSWORD_MUTATION = gql`
++    mutation UpdateUserPassword($id: ID!, $password: String!) {
++      updateUser(where: { id: $id }, data: { password: $password, mustChangePassword: false }) {
++        id
++        mustChangePassword
++      }
++    }
++  `;
++
++  const [updateUser, { loading: updating }] = useMutation(UPDATE_PASSWORD_MUTATION);
++
++  const handlePasswordChange = async () => {
++      if (newPassword !== confirmPassword) {
++          setErrorMsg('Passwords do not match');
++          return;
++      }
++      if (!newPassword) {
++          setErrorMsg('Password cannot be empty');
++          return;
++      }
++
++      try {
++          await updateUser({
++              variables: {
++                  id: authenticatedItem.id,
++                  password: newPassword
++              }
++          });
++          // Clear the cookie
++          document.cookie = 'requirePasswordChange=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
++          console.log('PageContainer: Password updated, cookie cleared');
++          toasts.addToast({ title: 'Password updated successfully', tone: 'positive' });
++          setIsOpen(false);
++          // Force a page reload to refresh
++          window.location.reload();
++      } catch (e) {
++          console.error(e);
++          setErrorMsg('Failed to update password: ' + e.message);
++      }
++  };
++
+   return jsx(PageWrapper, null, jsx("div", {
+     css: {
+       alignItems: 'center',
+@@ -350,7 +390,17 @@ const PageContainer = _ref => {
+       paddingLeft: spacing.xlarge,
+       paddingRight: spacing.xlarge
+     }
+-  }, jsx(Logo, null)), jsx("header", {
++  }, jsx(Logo, null), jsx("div", {
++    onClick: () => {
++      setIsSidebarOpen(!isSidebarOpen);
++    },
++    css: {
++      display: 'block',
++      '@media (min-width: 576px)': {
++        display: 'none'
++      }
++    }
++  }, jsx(MenuIcon, null))), jsx("header", {
+     css: {
+       alignItems: 'center',
+       backgroundColor: colors.background,
+@@ -362,7 +412,40 @@ const PageContainer = _ref => {
+       paddingLeft: spacing.xlarge,
+       paddingRight: spacing.xlarge
+     }
+-  }, jsx("title", null, title ? `Keystone - ${title}` : 'Keystone'), header), jsx(Sidebar, null, jsx(Navigation, null)), jsx(Content, null, children));
++  }, jsx("title", null, title ? `Keystone - ${title}` : 'Keystone'), jsx("meta", {
++    name: "viewport",
++    content: "width=device-width, initial-scale=1.0"
++  }), header), jsx(Sidebar, {
++    isSidebarOpen: isSidebarOpen,
++    setIsSidebarOpen: setIsSidebarOpen
++  }, jsx(Navigation, null)), jsx(Content, null, children),
++    isOpen && jsx(AlertDialog, {
++        isOpen: true,
++        title: "Change Password Required",
++        tone: "active",
++        actions: {
++            confirm: {
++                label: "Update Password",
++                action: handlePasswordChange,
++                loading: updating
++            }
++        }
++    }, 
++    jsx(Stack, { gap: "small" },
++        jsx(Text, null, "You are required to change your password before continuing."),
++        errorMsg && jsx(Text, { tone: "negative" }, errorMsg),
++        jsx(TextInput, { 
++            placeholder: "New Password", 
++            type: "password", 
++            value: newPassword, 
++            onChange: e => setNewPassword(e.target.value) 
++        }),
++        jsx(TextInput, { 
++            placeholder: "Confirm Password", 
++            type: "password", 
++            value: confirmPassword, 
++            onChange: e => setConfirmPassword(e.target.value) 
++        })
++    ))
++  );
+ };
+ 
+ export { HEADER_HEIGHT as H, Logo as L, Navigation as N, PageContainer as P, NavigationContainer as a, NavItem as b, ListNavItems as c, ListNavItem as d };
+diff --git a/node_modules/@keystone-6/core/dist/common-e0ed4d13.esm.js b/node_modules/@keystone-6/core/dist/common-e0ed4d13.esm.js
+index 94011de..c4dd106 100644
+--- a/node_modules/@keystone-6/core/dist/common-e0ed4d13.esm.js
++++ b/node_modules/@keystone-6/core/dist/common-e0ed4d13.esm.js
+@@ -87,8 +87,12 @@ function ColumnLayout(props) {
+       css: {
+         alignItems: 'start',
+         display: 'grid',
+-        gap: spacing.xlarge,
+-        gridTemplateColumns: `2fr 1fr`
++        gap: spacing.none,
++        gridTemplateColumns: `100vw`,
++        '@media (min-width: 576px)': {
++          gridTemplateColumns: `2fr 1fr`,
++          gap: spacing.xlarge
++        }
+       }
+     }, props)))
+   );
