@@ -10,6 +10,9 @@ type User {
   isProtected: Boolean
   passwordUpdatedAt: DateTime
   mustChangePassword: Boolean
+  loginFailedAttempts: Int
+  accountLockedUntil: DateTime
+  lastFailedLoginAt: DateTime
 }
 
 type PasswordState {
@@ -34,6 +37,9 @@ input UserWhereInput {
   isProtected: BooleanFilter
   passwordUpdatedAt: DateTimeNullableFilter
   mustChangePassword: BooleanFilter
+  loginFailedAttempts: IntNullableFilter
+  accountLockedUntil: DateTimeNullableFilter
+  lastFailedLoginAt: DateTimeNullableFilter
 }
 
 input IDFilter {
@@ -97,6 +103,17 @@ input DateTimeNullableFilter {
   not: DateTimeNullableFilter
 }
 
+input IntNullableFilter {
+  equals: Int
+  in: [Int!]
+  notIn: [Int!]
+  lt: Int
+  lte: Int
+  gt: Int
+  gte: Int
+  not: IntNullableFilter
+}
+
 input UserOrderByInput {
   id: OrderDirection
   name: OrderDirection
@@ -105,6 +122,9 @@ input UserOrderByInput {
   isProtected: OrderDirection
   passwordUpdatedAt: OrderDirection
   mustChangePassword: OrderDirection
+  loginFailedAttempts: OrderDirection
+  accountLockedUntil: OrderDirection
+  lastFailedLoginAt: OrderDirection
 }
 
 enum OrderDirection {
@@ -120,6 +140,9 @@ input UserUpdateInput {
   isProtected: Boolean
   passwordUpdatedAt: DateTime
   mustChangePassword: Boolean
+  loginFailedAttempts: Int
+  accountLockedUntil: DateTime
+  lastFailedLoginAt: DateTime
 }
 
 input UserUpdateArgs {
@@ -135,6 +158,9 @@ input UserCreateInput {
   isProtected: Boolean
   passwordUpdatedAt: DateTime
   mustChangePassword: Boolean
+  loginFailedAttempts: Int
+  accountLockedUntil: DateTime
+  lastFailedLoginAt: DateTime
 }
 
 type Category {

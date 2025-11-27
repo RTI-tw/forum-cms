@@ -8,6 +8,7 @@ import {
   select,
   checkbox,
   timestamp,
+  integer,
 } from '@keystone-6/core/fields'
 import { assertPasswordStrength } from '../utils/password-policy'
 
@@ -75,6 +76,33 @@ const listConfigurations = list({
       defaultValue: false,
       ui: {
         description: '勾選後，使用者下次登入會被要求先變更密碼',
+      },
+    }),
+    loginFailedAttempts: integer({
+      label: '登入失敗次數',
+      defaultValue: 0,
+      ui: {
+        createView: { fieldMode: 'hidden' },
+        itemView: { fieldMode: 'read' },
+        listView: { fieldMode: 'read' },
+      },
+    }),
+    accountLockedUntil: timestamp({
+      label: '帳號鎖定至',
+      db: { isNullable: true },
+      ui: {
+        createView: { fieldMode: 'hidden' },
+        itemView: { fieldMode: 'read' },
+        listView: { fieldMode: 'read' },
+      },
+    }),
+    lastFailedLoginAt: timestamp({
+      label: '最後登入失敗時間',
+      db: { isNullable: true },
+      ui: {
+        createView: { fieldMode: 'hidden' },
+        itemView: { fieldMode: 'read' },
+        listView: { fieldMode: 'read' },
       },
     }),
     // posts: relationship({ ref: 'Post.author', many: true }),

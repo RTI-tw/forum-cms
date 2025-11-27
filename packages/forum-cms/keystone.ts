@@ -14,6 +14,12 @@ import { GraphQLConfig, KeystoneContext } from '@keystone-6/core/types'
 import { utils } from '@mirrormedia/lilith-core'
 import { createLoginLoggingPlugin } from './utils/login-logging'
 import { assertPasswordStrength, isPasswordExpired, passwordPolicy } from './utils/password-policy'
+import {
+  isAccountLocked,
+  shouldResetFailedAttempts,
+  getAccountLockoutData,
+  getLoginFailureMessage,
+} from './utils/account-lockout'
 
 // 获取 createLoginLoggingPlugin 函数（兼容新旧版本）
 // const createLoginLoggingPlugin =
@@ -26,7 +32,7 @@ import { assertPasswordStrength, isPasswordExpired, passwordPolicy } from './uti
 const { withAuth } = createAuth({
   listKey: 'User',
   identityField: 'email',
-  sessionData: 'id name role passwordUpdatedAt mustChangePassword',
+  sessionData: 'id name role passwordUpdatedAt mustChangePassword accountLockedUntil',
   secretField: 'password',
   initFirstItem: {
     // If there are no items in the database, keystone will ask you to create
@@ -38,10 +44,12 @@ const { withAuth } = createAuth({
 const session = statelessSessions(envVar.session)
 
 const CHANGE_PASSWORD_PATH = '/change-password'
+const ACCOUNT_LOCKED_PATH = '/account-locked'
 const MIN_PASSWORD_LENGTH = passwordPolicy.minLength
 const PASSWORD_REQUIREMENT_MESSAGE = passwordPolicy.requirementsMessage
 
 const JS_BACKTICK = '`'
+const DOLLAR = '$'
 
 const ChangePasswordInput = graphql.inputObject({
   name: 'ChangeMyPasswordInput',
@@ -145,6 +153,241 @@ const passwordSchemaExtension = graphql.extend(() => ({
     }),
   },
 }))
+
+const accountLockedPageTemplate = String.raw`
+import { useEffect, useState } from 'react';
+import Head from 'next/head';
+
+export default function AccountLockedPage() {
+  const [remainingSeconds, setRemainingSeconds] = useState(0);
+  const [isChecking, setIsChecking] = useState(true);
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+
+    const checkLockStatus = async () => {
+      try {
+        const response = await fetch('/api/graphql', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/json',
+          },
+          credentials: 'include',
+          body: JSON.stringify({
+            query: ${JS_BACKTICK}
+              query CheckAccountLock {
+                authenticatedItem {
+                  __typename
+                  ... on User {
+                    id
+                    accountLockedUntil
+                  }
+                }
+              }
+            ${JS_BACKTICK},
+          }),
+        });
+
+        const result = await response.json();
+        const user = result.data?.authenticatedItem;
+
+        // If user is logged in and locked, use server data
+        if (user && user.__typename === 'User' && user.accountLockedUntil) {
+          const lockUntil = new Date(user.accountLockedUntil).getTime();
+          const now = Date.now();
+          const remaining = Math.max(0, Math.ceil((lockUntil - now) / 1000));
+          setRemainingSeconds(remaining);
+          setIsChecking(false);
+          
+          if (remaining === 0) {
+            window.location.replace('/signin');
+          }
+          return;
+        }
+
+        // If not logged in or not locked on server, check if we have local lockout state
+        // This is set by the login page interceptor when it receives the lockout error
+        const localLockout = localStorage.getItem('keystone-lockout-until');
+        if (localLockout) {
+          const lockUntil = parseInt(localLockout, 10);
+          const now = Date.now();
+          const remaining = Math.max(0, Math.ceil((lockUntil - now) / 1000));
+          
+          if (remaining > 0) {
+            setRemainingSeconds(remaining);
+            setIsChecking(false);
+            return;
+          } else {
+            // Expired
+            localStorage.removeItem('keystone-lockout-until');
+          }
+        }
+
+        // If we get here, we are neither locked on server nor locally
+        // Redirect to signin
+        window.location.replace('/signin');
+
+      } catch (error) {
+        console.error('Error checking lock status:', error);
+        setIsChecking(false);
+      }
+    };
+
+    checkLockStatus();
+    interval = setInterval(checkLockStatus, 1000);
+
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, []);
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return ${JS_BACKTICK}${DOLLAR}{mins}:${DOLLAR}{secs.toString().padStart(2, '0')}${JS_BACKTICK};
+  };
+
+  if (isChecking) {
+    return (
+      <>
+        <Head>
+          <title>檢查帳號狀態</title>
+        </Head>
+        <div
+          style={{
+            minHeight: '100vh',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: 'linear-gradient(135deg, #0f172a, #1e293b)',
+          }}
+        >
+          <div style={{ color: '#fff', fontSize: '18px' }}>檢查中...</div>
+        </div>
+      </>
+    );
+  }
+
+  return (
+    <>
+      <Head>
+        <title>帳號已被鎖定</title>
+      </Head>
+      <div
+        style={{
+          minHeight: '100vh',
+          margin: 0,
+          background: 'linear-gradient(135deg, #0f172a, #1e293b)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '24px',
+        }}
+      >
+        <div
+          style={{
+            width: '100%',
+            maxWidth: '480px',
+            background: '#ffffff',
+            borderRadius: '16px',
+            boxShadow: '0 20px 50px rgba(15, 23, 42, 0.2)',
+            padding: '40px',
+            textAlign: 'center',
+          }}
+        >
+          <div
+            style={{
+              width: '80px',
+              height: '80px',
+              margin: '0 auto 24px',
+              borderRadius: '50%',
+              background: '#fee2e2',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <svg
+              width="40"
+              height="40"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="#dc2626"
+              strokeWidth="2"
+            >
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+              <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+            </svg>
+          </div>
+
+          <h1 style={{ margin: '0 0 12px', fontSize: '28px', color: '#0f172a', fontWeight: 700 }}>
+            帳號已被鎖定
+          </h1>
+          
+          <p style={{ margin: '0 0 32px', color: '#64748b', fontSize: '16px', lineHeight: 1.6 }}>
+            由於多次登入失敗，您的帳號已被暫時鎖定以保護安全。
+          </p>
+
+          <div
+            style={{
+              background: '#f8fafc',
+              borderRadius: '12px',
+              padding: '24px',
+              marginBottom: '32px',
+            }}
+          >
+            <div style={{ color: '#475569', fontSize: '14px', marginBottom: '8px' }}>
+              剩餘鎖定時間
+            </div>
+            <div
+              style={{
+                fontSize: '48px',
+                fontWeight: 700,
+                color: '#dc2626',
+                fontFamily: 'monospace',
+              }}
+            >
+              {formatTime(remainingSeconds)}
+            </div>
+          </div>
+
+          <p style={{ margin: '0 0 24px', color: '#64748b', fontSize: '14px', lineHeight: 1.6 }}>
+            鎖定時間結束後，您將可以重新登入。為了帳號安全，請確保使用正確的密碼。
+          </p>
+
+          <button
+            type="button"
+            onClick={() => {
+              window.location.href = '/signin';
+            }}
+            style={{
+              width: '100%',
+              padding: '14px',
+              borderRadius: '12px',
+              border: '1px solid #cbd5e1',
+              background: 'transparent',
+              color: '#475569',
+              fontSize: '16px',
+              fontWeight: 600,
+              cursor: 'pointer',
+              transition: 'all 0.2s',
+            }}
+            onMouseOver={(e) => {
+              e.currentTarget.style.background = '#f8fafc';
+            }}
+            onMouseOut={(e) => {
+              e.currentTarget.style.background = 'transparent';
+            }}
+          >
+            返回登入頁面
+          </button>
+        </div>
+      </div>
+    </>
+  );
+}
+`
 
 const changePasswordPageTemplate = String.raw`
 import { FormEvent, useState } from 'react';
@@ -451,6 +694,10 @@ const passwordEnforcerClientScript = `
 
   function handlePayload(payload, headers) {
     try {
+      if (headers && headers.get && headers.get('X-Account-Locked') === 'true') {
+        redirectTo('${ACCOUNT_LOCKED_PATH}');
+        return;
+      }
       if (headers && headers.get && headers.get('X-Require-Password-Change') === 'true') {
         redirectTo(CHANGE_PATH);
         return;
@@ -459,6 +706,16 @@ const passwordEnforcerClientScript = `
 
     if (!payload) {
       return;
+    }
+
+    if (payload.errors && Array.isArray(payload.errors)) {
+      for (var i = 0; i < payload.errors.length; i++) {
+        var error = payload.errors[i];
+        if (error.extensions && error.extensions.code === 'ACCOUNT_LOCKED') {
+          redirectTo('${ACCOUNT_LOCKED_PATH}');
+          return;
+        }
+      }
     }
 
     if (payload.extensions && payload.extensions.requirePasswordChange) {
@@ -553,20 +810,47 @@ const passwordEnforcerClientScript = `
       if (typeof url === 'string' && url.indexOf('/api/graphql') !== -1) {
         result
           .then(function (response) {
+            // Check headers immediately - this is more reliable than cloning the response
+            // as Apollo Client might consume the body before we can clone it
+            if (response.headers && response.headers.get && response.headers.get('X-Account-Locked') === 'true') {
+
+              // Store lockout time in localStorage (15 minutes from now)
+              // Since we can't get the exact time from header, we estimate
+              localStorage.setItem('keystone-lockout-until', (Date.now() + 15 * 60 * 1000).toString());
+              redirectTo('${ACCOUNT_LOCKED_PATH}');
+              return response;
+            }
+
             try {
-              var clone = response.clone();
-              clone
-                .json()
-                .then(function (payload) {
-                  handlePayload(payload, response.headers);
-                })
-                .catch(function () {});
-            } catch (err) {}
+              // Only try to clone if we haven't redirected yet
+              // Check if body is already used to avoid errors
+              if (!response.bodyUsed) {
+                var clone = response.clone();
+                clone
+                  .json()
+                  .then(function (payload) {
+
+                    if (payload.errors) {
+
+                    }
+                    handlePayload(payload, response.headers);
+                  })
+                  .catch(function (e) {
+                    // Ignore JSON parse errors (e.g. if request was aborted)
+                  });
+              }
+            } catch (err) {
+
+            }
             return response;
           })
-          .catch(function () {});
+          .catch(function (e) {
+
+          });
       }
-    } catch (err) {}
+    } catch (err) {
+
+    }
     return result;
   };
 
@@ -629,24 +913,24 @@ const graphqlConfig = {
       createLoginLoggingPlugin(),
       ...(envVar.accessControlStrategy === 'gql' && envVar.cache.isEnabled
         ? [
-            responseCachePlugin(),
-            ApolloServerPluginCacheControl({
-              defaultMaxAge: envVar.cache.maxAge,
-            }),
-          ]
+          responseCachePlugin(),
+          ApolloServerPluginCacheControl({
+            defaultMaxAge: envVar.cache.maxAge,
+          }),
+        ]
         : []),
     ],
     ...(envVar.accessControlStrategy === 'gql' && envVar.cache.isEnabled
       ? {
-          cache: new KeyvAdapter(
-            new Keyv(envVar.cache.url, {
-              lazyConnect: true,
-              namespace: envVar.cache.identifier,
-              connectionName: envVar.cache.identifier,
-              connectTimeout: envVar.cache.connectTimeOut,
-            })
-          ),
-        }
+        cache: new KeyvAdapter(
+          new Keyv(envVar.cache.url, {
+            lazyConnect: true,
+            namespace: envVar.cache.identifier,
+            connectionName: envVar.cache.identifier,
+            connectTimeout: envVar.cache.connectTimeOut,
+          })
+        ),
+      }
       : {}),
   } as any,
 } as GraphQLConfig
@@ -664,11 +948,34 @@ export default withAuth(
       // If `isDisabled` is set to `true` then the Admin UI will be completely disabled.
       isDisabled: envVar.isUIDisabled,
       // For our starter, we check that someone has session data before letting them see the Admin UI.
-      isAccessAllowed: async (context) => {
-        if (!context.session?.data) {
-          return false
+      isAccessAllowed: (context) => {
+        const { session, req } = context;
+        const path = req?.url || '';
+
+        // Allow access to change password page if user needs to change password
+        if (path === CHANGE_PASSWORD_PATH || path.indexOf(CHANGE_PASSWORD_PATH) === 0) {
+          return !!session;
         }
-        return true
+
+        // Allow access to account locked page without session
+        if (path === ACCOUNT_LOCKED_PATH || path.indexOf(ACCOUNT_LOCKED_PATH) === 0) {
+          return true;
+        }
+
+        // Check if user needs to change password
+        if (session?.data) {
+          if (
+            session.data.mustChangePassword ||
+            (session.data.passwordUpdatedAt &&
+              isPasswordExpired({ passwordUpdatedAt: session.data.passwordUpdatedAt }))
+          ) {
+            // If accessing API or other pages, might want to block or allow
+            // For now, we rely on the client-side script to redirect
+            // But for the Admin UI, we might want to restrict access
+          }
+        }
+
+        return !!session;
       },
       getAdditionalFiles: [
         async () => [
@@ -676,6 +983,11 @@ export default withAuth(
             mode: 'write' as const,
             outputPath: 'pages/change-password.tsx',
             src: changePasswordPageTemplate,
+          },
+          {
+            mode: 'write' as const,
+            outputPath: 'pages/account-locked.tsx',
+            src: accountLockedPageTemplate,
           },
           {
             mode: 'write' as const,
@@ -723,8 +1035,9 @@ export default withAuth(
             const path = req.path || ''
 
             const shouldSkip =
-            req.method !== 'GET' ||
+              req.method !== 'GET' ||
               path === CHANGE_PASSWORD_PATH ||
+              path === ACCOUNT_LOCKED_PATH ||
               path === '/signin' ||
               path === '/init' ||
               path === '/health_check' ||
@@ -736,9 +1049,9 @@ export default withAuth(
               /\.[a-zA-Z0-9]+$/.test(path)
 
             if (shouldSkip) {
-            return next()
-          }
-            
+              return next()
+            }
+
             const keystoneContext = await context.withRequest(req, res)
             const sessionData = keystoneContext.session?.data
 
@@ -768,8 +1081,8 @@ export default withAuth(
 
             if (!requiresChange && path === CHANGE_PASSWORD_PATH) {
               return res.redirect('/')
-                                  }
-                                } catch (error) {
+            }
+          } catch (error) {
             console.error(
               JSON.stringify({
                 severity: 'ERROR',
@@ -779,7 +1092,7 @@ export default withAuth(
                 timestamp: new Date().toISOString(),
               })
             )
-            }
+          }
 
           next()
         })

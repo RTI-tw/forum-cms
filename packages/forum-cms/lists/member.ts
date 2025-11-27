@@ -119,13 +119,20 @@ const listConfigurations = list({
   },
   hooks: {
     resolveInput: ({ resolvedData, item }) => {
-      if (item?.is_active === true && resolvedData.is_active === false) {
-        resolvedData.email = `inactive: ${item?.email}  ${item?.firebaseId}`
-        resolvedData.firebaseId = `inactive: ${item?.firebaseId}`
-      } else if (item?.is_active === false && resolvedData.is_active === true) {
-        const newId = item?.firebaseId?.replace(/^inactive: /, '')
+      const typedItem = item as any
+      if (
+        typedItem?.is_active === true &&
+        resolvedData.is_active === false
+      ) {
+        resolvedData.email = `inactive: ${typedItem?.email}  ${typedItem?.firebaseId}`
+        resolvedData.firebaseId = `inactive: ${typedItem?.firebaseId}`
+      } else if (
+        typedItem?.is_active === false &&
+        resolvedData.is_active === true
+      ) {
+        const newId = typedItem?.firebaseId?.replace(/^inactive: /, '')
         resolvedData.firebaseId = newId
-        resolvedData.email = item?.email
+        resolvedData.email = typedItem?.email
           ?.replace(/^inactive: /, '')
           .replace(`  ${newId}`, '')
       }

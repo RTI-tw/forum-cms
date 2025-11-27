@@ -20,6 +20,9 @@ model User {
   isProtected             Boolean    @default(false)
   passwordUpdatedAt       DateTime?  @default(now())
   mustChangePassword      Boolean    @default(false)
+  loginFailedAttempts     Int?       @default(0)
+  accountLockedUntil      DateTime?
+  lastFailedLoginAt       DateTime?
   from_Category_createdBy Category[] @relation("Category_createdBy")
   from_Category_updatedBy Category[] @relation("Category_updatedBy")
   from_Comment_createdBy  Comment[]  @relation("Comment_createdBy")
