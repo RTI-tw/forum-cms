@@ -196,11 +196,11 @@ model Reaction {
 model Photo {
   id                       Int       @id @default(autoincrement())
   name                     String    @default("")
+  file_id                  String?
   file_filesize            Int?
-  file_extension           String?
   file_width               Int?
   file_height              Int?
-  file_id                  String?
+  file_extension           String?
   urlOriginal              String    @default("")
   createdAt                DateTime?
   updatedAt                DateTime?
