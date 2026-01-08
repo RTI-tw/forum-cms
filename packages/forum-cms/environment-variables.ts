@@ -19,11 +19,13 @@ const {
   CACHE_MAXAGE,
   CACHE_CONNECT_TIMEOUT,
   INVALID_CDN_CACHE_SERVER_URL,
+  MAILER_PROVIDER,
   SMTP_HOST,
   SMTP_PORT,
   SMTP_USERNAME,
   SMTP_PASSWORD,
   SMTP_SECURE,
+  AWS_SES_REGION,
   PASSWORD_RESET_EMAIL_FROM,
   PASSWORD_RESET_LINK_BASE_URL,
   PASSWORD_RESET_TOKEN_TTL_MINUTES,
@@ -83,6 +85,9 @@ export default {
     maxAge: Number.isNaN(cacheMaxAge) ? 60 : cacheMaxAge, // unit: second
   },
   invalidateCDNCacheServerURL: INVALID_CDN_CACHE_SERVER_URL,
+  mailer: {
+    provider: (MAILER_PROVIDER === 'ses' ? 'ses' : 'smtp') as 'smtp' | 'ses',
+  },
   email: {
     smtpHost: SMTP_HOST || '',
     smtpPort: Number.isNaN(smtpPort) ? 587 : smtpPort,
@@ -90,6 +95,9 @@ export default {
     smtpUser: SMTP_USERNAME || '',
     smtpPassword: SMTP_PASSWORD || '',
     from: PASSWORD_RESET_EMAIL_FROM || 'no-reply@example.com',
+  },
+  ses: {
+    region: AWS_SES_REGION || 'ap-northeast-1',
   },
   passwordReset: {
     baseUrl: PASSWORD_RESET_LINK_BASE_URL || 'http://localhost:3000',
