@@ -27,6 +27,11 @@ const {
   PASSWORD_RESET_EMAIL_FROM,
   PASSWORD_RESET_LINK_BASE_URL,
   PASSWORD_RESET_TOKEN_TTL_MINUTES,
+  FIREBASE_PROJECT_ID,
+  FIREBASE_SERVICE_ACCOUNT_JSON,
+  FIREBASE_SERVICE_ACCOUNT_BASE64,
+  MEMBER_SESSION_SECRET,
+  MEMBER_SESSION_MAX_AGE,
 } = process.env
 
 enum DatabaseProvider {
@@ -38,6 +43,7 @@ const cacheMaxAge = Number(CACHE_MAXAGE)
 const cacheConnectTimeout = Number(CACHE_CONNECT_TIMEOUT)
 const smtpPort = Number(SMTP_PORT)
 const passwordResetTokenTtl = Number(PASSWORD_RESET_TOKEN_TTL_MINUTES)
+const memberSessionMaxAge = Number(MEMBER_SESSION_MAX_AGE)
 
 export default {
   isUIDisabled: IS_UI_DISABLED === 'true',
@@ -94,5 +100,16 @@ export default {
   passwordReset: {
     baseUrl: PASSWORD_RESET_LINK_BASE_URL || 'http://localhost:3000',
     tokensValidForMins: Number.isNaN(passwordResetTokenTtl) ? 30 : passwordResetTokenTtl,
+  },
+  firebase: {
+    projectId: FIREBASE_PROJECT_ID || '',
+    serviceAccountJson: FIREBASE_SERVICE_ACCOUNT_JSON || '',
+    serviceAccountBase64: FIREBASE_SERVICE_ACCOUNT_BASE64 || '',
+  },
+  memberSession: {
+    secret: MEMBER_SESSION_SECRET || '',
+    maxAgeSeconds: Number.isNaN(memberSessionMaxAge)
+      ? 60 * 60 * 24 * 7
+      : memberSessionMaxAge,
   },
 }

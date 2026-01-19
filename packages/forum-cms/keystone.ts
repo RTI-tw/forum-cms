@@ -21,6 +21,12 @@ import {
   getLoginFailureMessage,
 } from './utils/account-lockout'
 import { sendPasswordResetEmail } from './utils/password-reset'
+import { verifyFirebaseIdToken } from './utils/firebase'
+import {
+  getMemberSessionExpiresAt,
+  signMemberSession,
+  verifyMemberSession,
+} from './utils/member-session'
 
 // 获取 createLoginLoggingPlugin 函数（兼容新旧版本）
 // const createLoginLoggingPlugin =
@@ -91,87 +97,332 @@ const ChangePasswordResult = graphql.object<{ success: boolean; message?: string
   },
 })
 
-const passwordSchemaExtension = graphql.extend(() => ({
+const changeMyPasswordMutation = graphql.field({
+  type: graphql.nonNull(ChangePasswordResult),
+  args: {
+    data: graphql.arg({ type: graphql.nonNull(ChangePasswordInput) }),
+  },
+  async resolve(
+    _root: unknown,
+    { data }: { data: { password: string; confirmPassword: string } },
+    context: KeystoneContext
+  ) {
+    const session = context.session
+
+    if (!session?.itemId) {
+      return {
+        success: false,
+        message: '尚未登入，請重新登入後再試一次。',
+      }
+    }
+
+    const password =
+      typeof data?.password === 'string' ? data.password.trim() : ''
+    const confirmPassword =
+      typeof data?.confirmPassword === 'string'
+        ? data.confirmPassword.trim()
+        : ''
+
+    if (!password) {
+      return {
+        success: false,
+        message: '請輸入新密碼',
+      }
+    }
+
+    if (password !== confirmPassword) {
+      return {
+        success: false,
+        message: '兩次輸入的密碼不一致',
+      }
+    }
+
+    try {
+      assertPasswordStrength(password)
+    } catch (validationError) {
+      return {
+        success: false,
+        message:
+          validationError instanceof Error
+            ? validationError.message
+            : PASSWORD_REQUIREMENT_MESSAGE,
+      }
+    }
+
+    try {
+      const userId = String(session.itemId)
+      const updatedUser = await context.sudo().db.User.updateOne({
+        where: { id: userId },
+        data: {
+          password,
+          passwordUpdatedAt: new Date().toISOString(),
+          mustChangePassword: false,
+        },
+      })
+
+      if (!updatedUser) {
+        return {
+          success: false,
+          message: '找不到使用者資料',
+        }
+      }
+
+      return {
+        success: true,
+        message: '密碼更新成功！',
+      }
+    } catch (error) {
+      return {
+        success: false,
+        message: '更新密碼失敗，請稍後再試。',
+      }
+    }
+  },
+})
+
+const AuthenticateMemberWithFirebaseInput = graphql.inputObject({
+  name: 'AuthenticateMemberWithFirebaseInput',
+  fields: {
+    idToken: graphql.arg({ type: graphql.nonNull(graphql.String) }),
+    name: graphql.arg({ type: graphql.String }),
+    nickname: graphql.arg({ type: graphql.String }),
+    customId: graphql.arg({ type: graphql.String }),
+  },
+})
+
+const MemberSessionMember = graphql.object<{
+  id: string
+  firebaseId: string
+  customId: string
+  name: string
+  nickname: string
+  email?: string | null
+}>()({
+  name: 'MemberSessionMember',
+  fields: {
+    id: graphql.field({ type: graphql.nonNull(graphql.ID) }),
+    firebaseId: graphql.field({ type: graphql.nonNull(graphql.String) }),
+    customId: graphql.field({ type: graphql.nonNull(graphql.String) }),
+    name: graphql.field({ type: graphql.nonNull(graphql.String) }),
+    nickname: graphql.field({ type: graphql.nonNull(graphql.String) }),
+    email: graphql.field({ type: graphql.String }),
+  },
+})
+
+const AuthenticateMemberWithFirebaseResult = graphql.object<{
+  sessionToken: string
+  expiresAt: string
+  member: {
+    id: string
+    firebaseId: string
+    customId: string
+    name: string
+    nickname: string
+    email?: string | null
+  }
+}>()({
+  name: 'AuthenticateMemberWithFirebaseResult',
+  fields: {
+    sessionToken: graphql.field({ type: graphql.nonNull(graphql.String) }),
+    expiresAt: graphql.field({ type: graphql.nonNull(graphql.String) }),
+    member: graphql.field({ type: graphql.nonNull(MemberSessionMember) }),
+  },
+})
+
+function normalizeMemberMemberField(value?: string | null) {
+  const normalized = typeof value === 'string' ? value.trim() : ''
+  return normalized.length > 0 ? normalized : undefined
+}
+
+function resolveMemberDisplayName(options: {
+  name?: string | null
+  nickname?: string | null
+  firebaseName?: string | null
+  email?: string | null
+  firebaseId: string
+}) {
+  const emailLocalPart = options.email?.split('@')[0]
+  const name =
+    normalizeMemberMemberField(options.name) ||
+    normalizeMemberMemberField(options.firebaseName) ||
+    normalizeMemberMemberField(emailLocalPart) ||
+    options.firebaseId
+  const nickname =
+    normalizeMemberMemberField(options.nickname) ||
+    normalizeMemberMemberField(options.name) ||
+    normalizeMemberMemberField(options.firebaseName) ||
+    normalizeMemberMemberField(emailLocalPart) ||
+    options.firebaseId
+
+  return { name, nickname }
+}
+
+function mapMemberSessionMember(member: any) {
+  return {
+    id: String(member.id),
+    firebaseId: member.firebaseId,
+    customId: member.customId,
+    name: member.name,
+    nickname: member.nickname,
+    email: member.email ?? null,
+  }
+}
+
+function getBearerToken(context: KeystoneContext) {
+  const authHeader = context.req?.headers?.authorization
+  if (typeof authHeader !== 'string') {
+    return null
+  }
+
+  if (!authHeader.toLowerCase().startsWith('bearer ')) {
+    return null
+  }
+
+  const token = authHeader.slice('bearer '.length).trim()
+  return token.length > 0 ? token : null
+}
+
+const memberAuthSchemaExtension = graphql.extend(() => ({
+  query: {
+    authenticatedMember: graphql.field({
+      type: MemberSessionMember,
+      async resolve(_root: unknown, _args: unknown, context: KeystoneContext) {
+        const token = getBearerToken(context)
+        if (!token) {
+          return null
+        }
+
+        try {
+          const payload = verifyMemberSession(token)
+          const member = await context.sudo().db.Member.findOne({
+            where: { id: payload.memberId },
+          })
+
+          if (!member) {
+            return null
+          }
+
+          return mapMemberSessionMember(member)
+        } catch (error) {
+          return null
+        }
+      },
+    }),
+  },
   mutation: {
-    changeMyPassword: graphql.field({
-      type: graphql.nonNull(ChangePasswordResult),
+    changeMyPassword: changeMyPasswordMutation,
+    authenticateMemberWithFirebase: graphql.field({
+      type: graphql.nonNull(AuthenticateMemberWithFirebaseResult),
       args: {
-        data: graphql.arg({ type: graphql.nonNull(ChangePasswordInput) }),
+        data: graphql.arg({ type: graphql.nonNull(AuthenticateMemberWithFirebaseInput) }),
       },
       async resolve(
         _root: unknown,
-        { data }: { data: { password: string; confirmPassword: string } },
+        {
+          data,
+        }: {
+          data: {
+            idToken: string
+            name?: string | null
+            nickname?: string | null
+            customId?: string | null
+          }
+        },
         context: KeystoneContext
       ) {
-        const session = context.session
+        const idToken = normalizeMemberMemberField(data?.idToken)
+        if (!idToken) {
+          throw new Error('Firebase ID token is required')
+        }
 
-        if (!session?.itemId) {
-          return {
-            success: false,
-            message: '尚未登入，請重新登入後再試一次。',
+        const decoded = await verifyFirebaseIdToken(idToken)
+        const firebaseId = decoded.uid
+        const firebaseEmail = normalizeMemberMemberField(decoded.email ?? undefined)
+        const firebaseName = normalizeMemberMemberField((decoded as any).name ?? undefined)
+
+        const customIdInput = normalizeMemberMemberField(data?.customId)
+        const nameInput = normalizeMemberMemberField(data?.name)
+        const nicknameInput = normalizeMemberMemberField(data?.nickname)
+        const display = resolveMemberDisplayName({
+          name: nameInput,
+          nickname: nicknameInput,
+          firebaseName,
+          email: firebaseEmail,
+          firebaseId,
+        })
+
+        if (customIdInput) {
+          const existingByCustomId = await context.sudo().db.Member.findOne({
+            where: { customId: customIdInput },
+          })
+          if (existingByCustomId && existingByCustomId.firebaseId !== firebaseId) {
+            throw new Error('Custom ID already exists')
           }
         }
 
-        const password =
-          typeof data?.password === 'string' ? data.password.trim() : ''
-        const confirmPassword =
-          typeof data?.confirmPassword === 'string'
-            ? data.confirmPassword.trim()
-            : ''
-
-        if (!password) {
-          return {
-            success: false,
-            message: '請輸入新密碼',
+        if (firebaseEmail) {
+          const existingByEmail = await context.sudo().db.Member.findOne({
+            where: { email: firebaseEmail },
+          })
+          if (existingByEmail && existingByEmail.firebaseId !== firebaseId) {
+            throw new Error('Email already exists')
           }
         }
 
-        if (password !== confirmPassword) {
-          return {
-            success: false,
-            message: '兩次輸入的密碼不一致',
-          }
-        }
+        const existingMember = await context.sudo().db.Member.findOne({
+          where: { firebaseId },
+        })
 
-        try {
-          assertPasswordStrength(password)
-        } catch (validationError) {
-          return {
-            success: false,
-            message:
-              validationError instanceof Error
-                ? validationError.message
-                : PASSWORD_REQUIREMENT_MESSAGE,
-          }
-        }
+        let member
 
-        try {
-          const userId = String(session.itemId)
-          const updatedUser = await context.sudo().db.User.updateOne({
-            where: { id: userId },
+        if (existingMember) {
+          const updateData: Record<string, any> = {}
+          if (nameInput) {
+            updateData.name = display.name
+          }
+          if (nicknameInput) {
+            updateData.nickname = display.nickname
+          }
+          if (customIdInput) {
+            updateData.customId = customIdInput
+          }
+          if (firebaseEmail && (!existingMember.email || existingMember.email === firebaseEmail)) {
+            updateData.email = firebaseEmail
+          }
+
+          member = Object.keys(updateData).length
+            ? await context.sudo().db.Member.updateOne({
+                where: { id: String(existingMember.id) },
+                data: updateData,
+              })
+            : existingMember
+        } else {
+          member = await context.sudo().db.Member.createOne({
             data: {
-              password,
-              passwordUpdatedAt: new Date().toISOString(),
-              mustChangePassword: false,
+              firebaseId,
+              customId: customIdInput || firebaseId,
+              name: display.name,
+              nickname: display.nickname,
+              email: firebaseEmail ?? undefined,
+              is_active: true,
+              verified: Boolean(decoded.email_verified),
             },
           })
+        }
 
-          if (!updatedUser) {
-            return {
-              success: false,
-              message: '找不到使用者資料',
-            }
-          }
+        if (!member) {
+          throw new Error('Failed to create member')
+        }
 
-          return {
-            success: true,
-            message: '密碼更新成功！',
-          }
-        } catch (error) {
-          return {
-            success: false,
-            message: '更新密碼失敗，請稍後再試。',
-          }
+        const sessionToken = signMemberSession({
+          memberId: String(member.id),
+          firebaseId,
+        })
+
+        return {
+          sessionToken,
+          expiresAt: getMemberSessionExpiresAt(),
+          member: mapMemberSessionMember(member),
         }
       },
     }),
@@ -1719,7 +1970,7 @@ const graphqlConfig = {
       }
       : {}),
   } as any,
-  extendGraphqlSchema: passwordSchemaExtension,
+  extendGraphqlSchema: memberAuthSchemaExtension,
 }
 
 const baseKeystoneConfig = config({

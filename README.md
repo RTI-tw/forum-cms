@@ -43,5 +43,76 @@ A2: 因為 `yarn workspace` 與個別 package 的 `postinstall` script 在 Windo
 1. 在 root 底下執行 `set WINDOWS_ONLY=true && yarn install`
 2. 到目標 package 底下執行 `set WINDOWS_ONLY=false && yarn postinstall`
 
+## 前端會員登入 API（Firebase）
 
+以下 API 用於前端會員登入（對應 `packages/forum-cms/lists/member.ts`），與 Admin UI 的 User 登入不同。
 
+### GraphQL Endpoint
+- `POST /api/graphql`
+
+### 驗證流程（Firebase -> Keystone）
+1. 前端用 Firebase Client SDK 登入，取得 `idToken`。
+2. 呼叫 `authenticateMemberWithFirebase` 取得會員資料與後端 session token。
+3. 後續請求帶 `Authorization: Bearer <sessionToken>`。
+
+### Mutation：authenticateMemberWithFirebase
+- 功能：驗證 Firebase ID token、建立/更新 Member、回傳後端 session token。
+
+```
+mutation AuthenticateMemberWithFirebase($data: AuthenticateMemberWithFirebaseInput!) {
+  authenticateMemberWithFirebase(data: $data) {
+    sessionToken
+    expiresAt
+    member {
+      id
+      firebaseId
+      customId
+      name
+      nickname
+      email
+    }
+  }
+}
+```
+
+#### Variables 範例
+```
+{
+  "data": {
+    "idToken": "FIREBASE_ID_TOKEN",
+    "name": "使用者名稱",
+    "nickname": "暱稱",
+    "customId": "自訂ID"
+  }
+}
+```
+
+#### 欄位規則（重要）
+- `firebaseId` 由 Firebase token 的 `uid` 而來，為唯一鍵。
+- `customId` 若未提供，預設為 `uid`。
+- `name` / `nickname` 若未提供，依序使用 `Firebase displayName` / `email local-part` / `uid`。
+- 若 `customId` 或 `email` 與其他 Firebase 帳號重複，會回錯誤。
+
+### Query：authenticatedMember
+- 功能：用後端 session token 取得目前登入會員。
+- Header：`Authorization: Bearer <sessionToken>`
+
+```
+query AuthenticatedMember {
+  authenticatedMember {
+    id
+    firebaseId
+    customId
+    name
+    nickname
+    email
+  }
+}
+```
+
+### 需要的環境變數（後端）
+在 `packages/forum-cms` 的環境設定中請提供：
+- `FIREBASE_PROJECT_ID`
+- `FIREBASE_SERVICE_ACCOUNT_JSON` 或 `FIREBASE_SERVICE_ACCOUNT_BASE64`
+- `MEMBER_SESSION_SECRET`
+- `MEMBER_SESSION_MAX_AGE`（秒）
