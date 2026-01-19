@@ -474,7 +474,7 @@ export default function AccountLockedPage() {
           const remaining = Math.max(0, Math.ceil((lockUntil - now) / 1000));
           setRemainingSeconds(remaining);
           setIsChecking(false);
-          
+
           if (remaining === 0) {
             window.location.replace('/signin');
           }
@@ -488,7 +488,7 @@ export default function AccountLockedPage() {
           const lockUntil = parseInt(localLockout, 10);
           const now = Date.now();
           const remaining = Math.max(0, Math.ceil((lockUntil - now) / 1000));
-          
+
           if (remaining > 0) {
             setRemainingSeconds(remaining);
             setIsChecking(false);
@@ -599,7 +599,7 @@ export default function AccountLockedPage() {
           <h1 style={{ margin: '0 0 12px', fontSize: '28px', color: '#0f172a', fontWeight: 700 }}>
             帳號已被鎖定
           </h1>
-          
+
           <p style={{ margin: '0 0 32px', color: '#64748b', fontSize: '16px', lineHeight: 1.6 }}>
             由於多次登入失敗，您的帳號已被暫時鎖定以保護安全。
           </p>
@@ -737,7 +737,7 @@ export default function ChangePasswordPage() {
           },
         }),
                                   });
-                                  
+
                                   const result = await response.json();
 
       if (!response.ok || result.errors?.length) {

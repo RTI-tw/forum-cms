@@ -15,7 +15,7 @@ function parseServiceAccount() {
     return JSON.parse(decoded)
   }
 
-  throw new Error('Firebase service account is not configured')
+  return null
 }
 
 function getFirebaseApp() {
@@ -30,10 +30,19 @@ function getFirebaseApp() {
 
   const serviceAccount = parseServiceAccount()
 
-  firebaseApp = admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount),
-    projectId: envVar.firebase.projectId || serviceAccount.project_id,
-  })
+  // If service account JSON is provided, use it (for local development)
+  if (serviceAccount) {
+    firebaseApp = admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount),
+      projectId: envVar.firebase.projectId || serviceAccount.project_id,
+    })
+  } else {
+  // Otherwise, use Application Default Credentials (for Cloud Run)
+    firebaseApp = admin.initializeApp({
+      credential: admin.credential.applicationDefault(),
+      projectId: envVar.firebase.projectId,
+    })
+  }
 
   return firebaseApp
 }
