@@ -1,32 +1,38 @@
-import 'dotenv/config'
-import { config, graphql } from '@keystone-6/core'
-import { listDefinition as lists } from './lists'
-import envVar from './environment-variables'
-import express from 'express'
-import { createAuth } from '@keystone-6/auth'
-import { statelessSessions } from '@keystone-6/core/session'
-import { createPreviewMiniApp } from './express-mini-apps/preview/app'
-import Keyv from 'keyv'
-import { KeyvAdapter } from '@apollo/utils.keyvadapter'
-import { ApolloServerPluginCacheControl } from '@apollo/server/plugin/cacheControl'
-import responseCachePlugin from '@apollo/server-plugin-response-cache'
-import { KeystoneContext } from '@keystone-6/core/types'
-import { utils } from '@mirrormedia/lilith-core'
-import { createLoginLoggingPlugin } from './utils/login-logging'
-import { assertPasswordStrength, isPasswordExpired, passwordPolicy } from './utils/password-policy'
+import "dotenv/config";
+import { config, graphql } from "@keystone-6/core";
+import { listDefinition as lists } from "./lists";
+import envVar from "./environment-variables";
+import express from "express";
+import { createAuth } from "@keystone-6/auth";
+import { statelessSessions } from "@keystone-6/core/session";
+import { createPreviewMiniApp } from "./express-mini-apps/preview/app";
+import Keyv from "keyv";
+import { KeyvAdapter } from "@apollo/utils.keyvadapter";
+import { ApolloServerPluginCacheControl } from "@apollo/server/plugin/cacheControl";
+import responseCachePlugin from "@apollo/server-plugin-response-cache";
+import { KeystoneContext } from "@keystone-6/core/types";
+import { utils } from "@mirrormedia/lilith-core";
+import { createLoginLoggingPlugin } from "./utils/login-logging";
 import {
-  isAccountLocked,
-  shouldResetFailedAttempts,
-  getAccountLockoutData,
-  getLoginFailureMessage,
-} from './utils/account-lockout'
-import { sendPasswordResetEmail } from './utils/password-reset'
-import { verifyFirebaseIdToken } from './utils/firebase'
+    assertPasswordStrength,
+    isPasswordExpired,
+    passwordPolicy,
+    checkPasswordHistory,
+    addToPasswordHistory,
+} from "./utils/password-policy";
 import {
-  getMemberSessionExpiresAt,
-  signMemberSession,
-  verifyMemberSession,
-} from './utils/member-session'
+    isAccountLocked,
+    shouldResetFailedAttempts,
+    getAccountLockoutData,
+    getLoginFailureMessage,
+} from "./utils/account-lockout";
+import { sendPasswordResetEmail } from "./utils/password-reset";
+import { verifyFirebaseIdToken } from "./utils/firebase";
+import {
+    getMemberSessionExpiresAt,
+    signMemberSession,
+    verifyMemberSession,
+} from "./utils/member-session";
 
 // 获取 createLoginLoggingPlugin 函数（兼容新旧版本）
 // const createLoginLoggingPlugin =
@@ -37,397 +43,493 @@ import {
 //   })
 
 const { withAuth } = createAuth({
-  listKey: 'User',
-  identityField: 'email',
-  sessionData: 'id name role passwordUpdatedAt mustChangePassword accountLockedUntil',
-  secretField: 'password',
-  passwordResetLink: {
-    async sendToken({ identity, token }) {
-      if (typeof identity !== 'string' || identity.length === 0) {
-        return
-      }
+    listKey: "User",
+    identityField: "email",
+    sessionData:
+        "id name role passwordUpdatedAt mustChangePassword accountLockedUntil",
+    secretField: "password",
+    passwordResetLink: {
+        async sendToken({ identity, token }) {
+            if (typeof identity !== "string" || identity.length === 0) {
+                return;
+            }
 
-      try {
-        await sendPasswordResetEmail({ email: identity, token })
-      } catch (error) {
-        console.error(
-          JSON.stringify({
-            severity: 'ERROR',
-            message: 'Failed to send password reset email',
-            error: error instanceof Error ? error.message : String(error),
-            timestamp: new Date().toISOString(),
-          })
-        )
-      }
+            try {
+                await sendPasswordResetEmail({ email: identity, token });
+            } catch (error) {
+                console.error(
+                    JSON.stringify({
+                        severity: "ERROR",
+                        message: "Failed to send password reset email",
+                        error:
+                            error instanceof Error
+                                ? error.message
+                                : String(error),
+                        timestamp: new Date().toISOString(),
+                    }),
+                );
+            }
+        },
+        tokensValidForMins: envVar.passwordReset.tokensValidForMins,
     },
-    tokensValidForMins: envVar.passwordReset.tokensValidForMins,
-  },
-  initFirstItem: {
-    // If there are no items in the database, keystone will ask you to create
-    // a new user, filling in these fields.
-    fields: ['name', 'email', 'password', 'role'],
-  },
-})
+    initFirstItem: {
+        // If there are no items in the database, keystone will ask you to create
+        // a new user, filling in these fields.
+        fields: ["name", "email", "password", "role"],
+    },
+});
 
-const session = statelessSessions(envVar.session)
+const session = statelessSessions(envVar.session);
 
-const CHANGE_PASSWORD_PATH = '/change-password'
-const ACCOUNT_LOCKED_PATH = '/account-locked'
-const FORGOT_PASSWORD_PATH = '/forgot-password'
-const RESET_PASSWORD_PATH = '/reset-password'
-const MIN_PASSWORD_LENGTH = passwordPolicy.minLength
-const PASSWORD_REQUIREMENT_MESSAGE = passwordPolicy.requirementsMessage
+const CHANGE_PASSWORD_PATH = "/change-password";
+const ACCOUNT_LOCKED_PATH = "/account-locked";
+const FORGOT_PASSWORD_PATH = "/forgot-password";
+const RESET_PASSWORD_PATH = "/reset-password";
+const MIN_PASSWORD_LENGTH = passwordPolicy.minLength;
+const PASSWORD_REQUIREMENT_MESSAGE = passwordPolicy.requirementsMessage;
 
-const JS_BACKTICK = '`'
-const DOLLAR = '$'
+const JS_BACKTICK = "`";
+const DOLLAR = "$";
+
+// reCAPTCHA configuration
+const RECAPTCHA_ENABLED = envVar.recaptcha.enabled;
+const RECAPTCHA_SITE_KEY = envVar.recaptcha.siteKey;
 
 const ChangePasswordInput = graphql.inputObject({
-  name: 'ChangeMyPasswordInput',
-  fields: {
-    password: graphql.arg({ type: graphql.nonNull(graphql.String) }),
-    confirmPassword: graphql.arg({ type: graphql.nonNull(graphql.String) }),
-  },
-})
+    name: "ChangeMyPasswordInput",
+    fields: {
+        password: graphql.arg({ type: graphql.nonNull(graphql.String) }),
+        confirmPassword: graphql.arg({ type: graphql.nonNull(graphql.String) }),
+    },
+});
 
-const ChangePasswordResult = graphql.object<{ success: boolean; message?: string }>()({
-  name: 'ChangeMyPasswordResult',
-  fields: {
-    success: graphql.field({ type: graphql.nonNull(graphql.Boolean) }),
-    message: graphql.field({ type: graphql.String }),
-  },
-})
+const ChangePasswordResult = graphql.object<{
+    success: boolean;
+    message?: string;
+}>()({
+    name: "ChangeMyPasswordResult",
+    fields: {
+        success: graphql.field({ type: graphql.nonNull(graphql.Boolean) }),
+        message: graphql.field({ type: graphql.String }),
+    },
+});
 
-const changeMyPasswordMutation = graphql.field({
-  type: graphql.nonNull(ChangePasswordResult),
-  args: {
-    data: graphql.arg({ type: graphql.nonNull(ChangePasswordInput) }),
-  },
-  async resolve(
-    _root: unknown,
-    { data }: { data: { password: string; confirmPassword: string } },
-    context: KeystoneContext
-  ) {
-    const session = context.session
+const passwordSchemaExtension = graphql.extend(() => ({
+    mutation: {
+        changeMyPassword: graphql.field({
+            type: graphql.nonNull(ChangePasswordResult),
+            args: {
+                data: graphql.arg({
+                    type: graphql.nonNull(ChangePasswordInput),
+                }),
+            },
+            async resolve(
+                _root: unknown,
+                {
+                    data,
+                }: { data: { password: string; confirmPassword: string } },
+                context: KeystoneContext,
+            ) {
+                const session = context.session;
 
-    if (!session?.itemId) {
-      return {
-        success: false,
-        message: '尚未登入，請重新登入後再試一次。',
-      }
-    }
+                if (!session?.itemId) {
+                    return {
+                        success: false,
+                        message: "尚未登入，請重新登入後再試一次。",
+                    };
+                }
 
-    const password =
-      typeof data?.password === 'string' ? data.password.trim() : ''
-    const confirmPassword =
-      typeof data?.confirmPassword === 'string'
-        ? data.confirmPassword.trim()
-        : ''
+                const password =
+                    typeof data?.password === "string"
+                        ? data.password.trim()
+                        : "";
+                const confirmPassword =
+                    typeof data?.confirmPassword === "string"
+                        ? data.confirmPassword.trim()
+                        : "";
 
-    if (!password) {
-      return {
-        success: false,
-        message: '請輸入新密碼',
-      }
-    }
+                if (!password) {
+                    return {
+                        success: false,
+                        message: "請輸入新密碼",
+                    };
+                }
 
-    if (password !== confirmPassword) {
-      return {
-        success: false,
-        message: '兩次輸入的密碼不一致',
-      }
-    }
+                if (password !== confirmPassword) {
+                    return {
+                        success: false,
+                        message: "兩次輸入的密碼不一致",
+                    };
+                }
 
-    try {
-      assertPasswordStrength(password)
-    } catch (validationError) {
-      return {
-        success: false,
-        message:
-          validationError instanceof Error
-            ? validationError.message
-            : PASSWORD_REQUIREMENT_MESSAGE,
-      }
-    }
+                try {
+                    assertPasswordStrength(password);
+                } catch (validationError) {
+                    return {
+                        success: false,
+                        message:
+                            validationError instanceof Error
+                                ? validationError.message
+                                : PASSWORD_REQUIREMENT_MESSAGE,
+                    };
+                }
 
-    try {
-      const userId = String(session.itemId)
-      const updatedUser = await context.sudo().db.User.updateOne({
-        where: { id: userId },
-        data: {
-          password,
-          passwordUpdatedAt: new Date().toISOString(),
-          mustChangePassword: false,
-        },
-      })
+                try {
+                    const userId = String(session.itemId);
+                    const currentUser = await context.sudo().db.User.findOne({
+                        where: { id: parseInt(userId, 10) },
+                    });
 
-      if (!updatedUser) {
-        return {
-          success: false,
-          message: '找不到使用者資料',
-        }
-      }
+                    if (!currentUser) {
+                        return {
+                            success: false,
+                            message: "找不到使用者資料",
+                        };
+                    }
 
-      return {
-        success: true,
-        message: '密碼更新成功！',
-      }
-    } catch (error) {
-      return {
-        success: false,
-        message: '更新密碼失敗，請稍後再試。',
-      }
-    }
-  },
-})
+                    // First, check if new password matches current password
+                    const bcrypt = await import("bcryptjs");
+                    const currentPasswordHash = String(currentUser.password);
+                    const matchesCurrentPassword = await bcrypt.compare(
+                        password,
+                        currentPasswordHash,
+                    );
 
+                    if (matchesCurrentPassword) {
+                        return {
+                            success: false,
+                            message: "密碼不可與前3次使用過的密碼相同",
+                        };
+                    }
+
+                    // Then check password history
+                    const passwordHistory = currentUser.passwordHistory as
+                        | string[]
+                        | null
+                        | undefined;
+                    const isDuplicate = await checkPasswordHistory(
+                        password,
+                        passwordHistory,
+                    );
+
+                    if (isDuplicate) {
+                        return {
+                            success: false,
+                            message: "密碼不可與前3次使用過的密碼相同",
+                        };
+                    }
+                    // Update password (KeystoneJS will automatically hash it)
+                    // Also update passwordHistory with the current password hash
+                    const updatedPasswordHistory = addToPasswordHistory(
+                        currentPasswordHash,
+                        passwordHistory,
+                    );
+
+                    const updatedUser = await context.sudo().db.User.updateOne({
+                        where: { id: parseInt(userId, 10) },
+                        data: {
+                            password,
+                            passwordUpdatedAt: new Date().toISOString(),
+                            mustChangePassword: false,
+                            passwordHistory: updatedPasswordHistory,
+                        },
+                    });
+
+                    if (!updatedUser) {
+                        return {
+                            success: false,
+                            message: "找不到使用者資料",
+                        };
+                    }
+
+                    return {
+                        success: true,
+                        message: "密碼更新成功！",
+                    };
+                } catch (error) {
+                    console.error("Password update error:", error);
+                    return {
+                        success: false,
+                        message: "更新密碼失敗，請稍後再試。",
+                    };
+                }
+            },
+        }),
+    },
+}));
+
+// Firebase Member Authentication
 const AuthenticateMemberWithFirebaseInput = graphql.inputObject({
-  name: 'AuthenticateMemberWithFirebaseInput',
-  fields: {
-    idToken: graphql.arg({ type: graphql.nonNull(graphql.String) }),
-    name: graphql.arg({ type: graphql.String }),
-    nickname: graphql.arg({ type: graphql.String }),
-    customId: graphql.arg({ type: graphql.String }),
-  },
-})
+    name: "AuthenticateMemberWithFirebaseInput",
+    fields: {
+        idToken: graphql.arg({ type: graphql.nonNull(graphql.String) }),
+        name: graphql.arg({ type: graphql.String }),
+        nickname: graphql.arg({ type: graphql.String }),
+        customId: graphql.arg({ type: graphql.String }),
+    },
+});
 
 const MemberSessionMember = graphql.object<{
-  id: string
-  firebaseId: string
-  customId: string
-  name: string
-  nickname: string
-  email?: string | null
+    id: string;
+    firebaseId: string;
+    customId: string;
+    name: string;
+    nickname: string;
+    email?: string | null;
 }>()({
-  name: 'MemberSessionMember',
-  fields: {
-    id: graphql.field({ type: graphql.nonNull(graphql.ID) }),
-    firebaseId: graphql.field({ type: graphql.nonNull(graphql.String) }),
-    customId: graphql.field({ type: graphql.nonNull(graphql.String) }),
-    name: graphql.field({ type: graphql.nonNull(graphql.String) }),
-    nickname: graphql.field({ type: graphql.nonNull(graphql.String) }),
-    email: graphql.field({ type: graphql.String }),
-  },
-})
+    name: "MemberSessionMember",
+    fields: {
+        id: graphql.field({ type: graphql.nonNull(graphql.ID) }),
+        firebaseId: graphql.field({ type: graphql.nonNull(graphql.String) }),
+        customId: graphql.field({ type: graphql.nonNull(graphql.String) }),
+        name: graphql.field({ type: graphql.nonNull(graphql.String) }),
+        nickname: graphql.field({ type: graphql.nonNull(graphql.String) }),
+        email: graphql.field({ type: graphql.String }),
+    },
+});
 
 const AuthenticateMemberWithFirebaseResult = graphql.object<{
-  sessionToken: string
-  expiresAt: string
-  member: {
-    id: string
-    firebaseId: string
-    customId: string
-    name: string
-    nickname: string
-    email?: string | null
-  }
+    sessionToken: string;
+    expiresAt: string;
+    member: {
+        id: string;
+        firebaseId: string;
+        customId: string;
+        name: string;
+        nickname: string;
+        email?: string | null;
+    };
 }>()({
-  name: 'AuthenticateMemberWithFirebaseResult',
-  fields: {
-    sessionToken: graphql.field({ type: graphql.nonNull(graphql.String) }),
-    expiresAt: graphql.field({ type: graphql.nonNull(graphql.String) }),
-    member: graphql.field({ type: graphql.nonNull(MemberSessionMember) }),
-  },
-})
+    name: "AuthenticateMemberWithFirebaseResult",
+    fields: {
+        sessionToken: graphql.field({ type: graphql.nonNull(graphql.String) }),
+        expiresAt: graphql.field({ type: graphql.nonNull(graphql.String) }),
+        member: graphql.field({ type: graphql.nonNull(MemberSessionMember) }),
+    },
+});
 
 function normalizeMemberMemberField(value?: string | null) {
-  const normalized = typeof value === 'string' ? value.trim() : ''
-  return normalized.length > 0 ? normalized : undefined
+    const normalized = typeof value === "string" ? value.trim() : "";
+    return normalized.length > 0 ? normalized : undefined;
 }
 
 function resolveMemberDisplayName(options: {
-  name?: string | null
-  nickname?: string | null
-  firebaseName?: string | null
-  email?: string | null
-  firebaseId: string
+    name?: string | null;
+    nickname?: string | null;
+    firebaseName?: string | null;
+    email?: string | null;
+    firebaseId: string;
 }) {
-  const emailLocalPart = options.email?.split('@')[0]
-  const name =
-    normalizeMemberMemberField(options.name) ||
-    normalizeMemberMemberField(options.firebaseName) ||
-    normalizeMemberMemberField(emailLocalPart) ||
-    options.firebaseId
-  const nickname =
-    normalizeMemberMemberField(options.nickname) ||
-    normalizeMemberMemberField(options.name) ||
-    normalizeMemberMemberField(options.firebaseName) ||
-    normalizeMemberMemberField(emailLocalPart) ||
-    options.firebaseId
+    const emailLocalPart = options.email?.split("@")[0];
+    const name =
+        normalizeMemberMemberField(options.name) ||
+        normalizeMemberMemberField(options.firebaseName) ||
+        normalizeMemberMemberField(emailLocalPart) ||
+        options.firebaseId;
+    const nickname =
+        normalizeMemberMemberField(options.nickname) ||
+        normalizeMemberMemberField(options.name) ||
+        normalizeMemberMemberField(options.firebaseName) ||
+        normalizeMemberMemberField(emailLocalPart) ||
+        options.firebaseId;
 
-  return { name, nickname }
+    return { name, nickname };
 }
 
 function mapMemberSessionMember(member: any) {
-  return {
-    id: String(member.id),
-    firebaseId: member.firebaseId,
-    customId: member.customId,
-    name: member.name,
-    nickname: member.nickname,
-    email: member.email ?? null,
-  }
+    return {
+        id: String(member.id),
+        firebaseId: member.firebaseId,
+        customId: member.customId,
+        name: member.name,
+        nickname: member.nickname,
+        email: member.email ?? null,
+    };
 }
 
 function getBearerToken(context: KeystoneContext) {
-  const authHeader = context.req?.headers?.authorization
-  if (typeof authHeader !== 'string') {
-    return null
-  }
+    const authHeader = context.req?.headers?.authorization;
+    if (typeof authHeader !== "string") {
+        return null;
+    }
 
-  if (!authHeader.toLowerCase().startsWith('bearer ')) {
-    return null
-  }
+    if (!authHeader.toLowerCase().startsWith("bearer ")) {
+        return null;
+    }
 
-  const token = authHeader.slice('bearer '.length).trim()
-  return token.length > 0 ? token : null
+    const token = authHeader.slice("bearer ".length).trim();
+    return token.length > 0 ? token : null;
 }
 
 const memberAuthSchemaExtension = graphql.extend(() => ({
-  query: {
-    authenticatedMember: graphql.field({
-      type: MemberSessionMember,
-      async resolve(_root: unknown, _args: unknown, context: KeystoneContext) {
-        const token = getBearerToken(context)
-        if (!token) {
-          return null
-        }
+    query: {
+        authenticatedMember: graphql.field({
+            type: MemberSessionMember,
+            async resolve(
+                _root: unknown,
+                _args: unknown,
+                context: KeystoneContext,
+            ) {
+                const token = getBearerToken(context);
+                if (!token) {
+                    return null;
+                }
 
-        try {
-          const payload = verifyMemberSession(token)
-          const member = await context.sudo().db.Member.findOne({
-            where: { id: payload.memberId },
-          })
+                try {
+                    const payload = verifyMemberSession(token);
+                    const member = await context.sudo().db.Member.findOne({
+                        where: { id: payload.memberId },
+                    });
 
-          if (!member) {
-            return null
-          }
+                    if (!member) {
+                        return null;
+                    }
 
-          return mapMemberSessionMember(member)
-        } catch (error) {
-          return null
-        }
-      },
-    }),
-  },
-  mutation: {
-    changeMyPassword: changeMyPasswordMutation,
-    authenticateMemberWithFirebase: graphql.field({
-      type: graphql.nonNull(AuthenticateMemberWithFirebaseResult),
-      args: {
-        data: graphql.arg({ type: graphql.nonNull(AuthenticateMemberWithFirebaseInput) }),
-      },
-      async resolve(
-        _root: unknown,
-        {
-          data,
-        }: {
-          data: {
-            idToken: string
-            name?: string | null
-            nickname?: string | null
-            customId?: string | null
-          }
-        },
-        context: KeystoneContext
-      ) {
-        const idToken = normalizeMemberMemberField(data?.idToken)
-        if (!idToken) {
-          throw new Error('Firebase ID token is required')
-        }
-
-        const decoded = await verifyFirebaseIdToken(idToken)
-        const firebaseId = decoded.uid
-        const firebaseEmail = normalizeMemberMemberField(decoded.email ?? undefined)
-        const firebaseName = normalizeMemberMemberField((decoded as any).name ?? undefined)
-
-        const customIdInput = normalizeMemberMemberField(data?.customId)
-        const nameInput = normalizeMemberMemberField(data?.name)
-        const nicknameInput = normalizeMemberMemberField(data?.nickname)
-        const display = resolveMemberDisplayName({
-          name: nameInput,
-          nickname: nicknameInput,
-          firebaseName,
-          email: firebaseEmail,
-          firebaseId,
-        })
-
-        if (customIdInput) {
-          const existingByCustomId = await context.sudo().db.Member.findOne({
-            where: { customId: customIdInput },
-          })
-          if (existingByCustomId && existingByCustomId.firebaseId !== firebaseId) {
-            throw new Error('Custom ID already exists')
-          }
-        }
-
-        if (firebaseEmail) {
-          const existingByEmail = await context.sudo().db.Member.findOne({
-            where: { email: firebaseEmail },
-          })
-          if (existingByEmail && existingByEmail.firebaseId !== firebaseId) {
-            throw new Error('Email already exists')
-          }
-        }
-
-        const existingMember = await context.sudo().db.Member.findOne({
-          where: { firebaseId },
-        })
-
-        let member
-
-        if (existingMember) {
-          const updateData: Record<string, any> = {}
-          if (nameInput) {
-            updateData.name = display.name
-          }
-          if (nicknameInput) {
-            updateData.nickname = display.nickname
-          }
-          if (customIdInput) {
-            updateData.customId = customIdInput
-          }
-          if (firebaseEmail && (!existingMember.email || existingMember.email === firebaseEmail)) {
-            updateData.email = firebaseEmail
-          }
-
-          member = Object.keys(updateData).length
-            ? await context.sudo().db.Member.updateOne({
-                where: { id: String(existingMember.id) },
-                data: updateData,
-              })
-            : existingMember
-        } else {
-          member = await context.sudo().db.Member.createOne({
-            data: {
-              firebaseId,
-              customId: customIdInput || firebaseId,
-              name: display.name,
-              nickname: display.nickname,
-              email: firebaseEmail ?? undefined,
-              is_active: true,
-              verified: Boolean(decoded.email_verified),
+                    return mapMemberSessionMember(member);
+                } catch (error) {
+                    return null;
+                }
             },
-          })
-        }
+        }),
+    },
+    mutation: {
+        authenticateMemberWithFirebase: graphql.field({
+            type: graphql.nonNull(AuthenticateMemberWithFirebaseResult),
+            args: {
+                data: graphql.arg({
+                    type: graphql.nonNull(AuthenticateMemberWithFirebaseInput),
+                }),
+            },
+            async resolve(
+                _root: unknown,
+                {
+                    data,
+                }: {
+                    data: {
+                        idToken: string;
+                        name?: string | null;
+                        nickname?: string | null;
+                        customId?: string | null;
+                    };
+                },
+                context: KeystoneContext,
+            ) {
+                const idToken = normalizeMemberMemberField(data?.idToken);
+                if (!idToken) {
+                    throw new Error("Firebase ID token is required");
+                }
 
-        if (!member) {
-          throw new Error('Failed to create member')
-        }
+                const decoded = await verifyFirebaseIdToken(idToken);
+                const firebaseId = decoded.uid;
+                const firebaseEmail = normalizeMemberMemberField(
+                    decoded.email ?? undefined,
+                );
+                const firebaseName = normalizeMemberMemberField(
+                    (decoded as any).name ?? undefined,
+                );
 
-        const sessionToken = signMemberSession({
-          memberId: String(member.id),
-          firebaseId,
-        })
+                const customIdInput = normalizeMemberMemberField(data?.customId);
+                const nameInput = normalizeMemberMemberField(data?.name);
+                const nicknameInput = normalizeMemberMemberField(data?.nickname);
+                const display = resolveMemberDisplayName({
+                    name: nameInput,
+                    nickname: nicknameInput,
+                    firebaseName,
+                    email: firebaseEmail,
+                    firebaseId,
+                });
 
-        return {
-          sessionToken,
-          expiresAt: getMemberSessionExpiresAt(),
-          member: mapMemberSessionMember(member),
-        }
-      },
-    }),
-  },
-}))
+                if (customIdInput) {
+                    const existingByCustomId = await context
+                        .sudo()
+                        .db.Member.findOne({
+                            where: { customId: customIdInput },
+                        });
+                    if (
+                        existingByCustomId &&
+                        existingByCustomId.firebaseId !== firebaseId
+                    ) {
+                        throw new Error("Custom ID already exists");
+                    }
+                }
+
+                if (firebaseEmail) {
+                    const existingByEmail = await context
+                        .sudo()
+                        .db.Member.findOne({
+                            where: { email: firebaseEmail },
+                        });
+                    if (
+                        existingByEmail &&
+                        existingByEmail.firebaseId !== firebaseId
+                    ) {
+                        throw new Error("Email already exists");
+                    }
+                }
+
+                const existingMember = await context.sudo().db.Member.findOne({
+                    where: { firebaseId },
+                });
+
+                let member;
+
+                if (existingMember) {
+                    const updateData: Record<string, any> = {};
+                    if (nameInput) {
+                        updateData.name = display.name;
+                    }
+                    if (nicknameInput) {
+                        updateData.nickname = display.nickname;
+                    }
+                    if (customIdInput) {
+                        updateData.customId = customIdInput;
+                    }
+                    if (
+                        firebaseEmail &&
+                        (!existingMember.email ||
+                            existingMember.email === firebaseEmail)
+                    ) {
+                        updateData.email = firebaseEmail;
+                    }
+
+                    member = Object.keys(updateData).length
+                        ? await context.sudo().db.Member.updateOne({
+                              where: { id: String(existingMember.id) },
+                              data: updateData,
+                          })
+                        : existingMember;
+                } else {
+                    member = await context.sudo().db.Member.createOne({
+                        data: {
+                            firebaseId,
+                            customId: customIdInput || firebaseId,
+                            name: display.name,
+                            nickname: display.nickname,
+                            email: firebaseEmail ?? undefined,
+                            is_active: true,
+                            verified: Boolean(decoded.email_verified),
+                        },
+                    });
+                }
+
+                if (!member) {
+                    throw new Error("Failed to create member");
+                }
+
+                const sessionToken = signMemberSession({
+                    memberId: String(member.id),
+                    firebaseId,
+                });
+
+                return {
+                    sessionToken,
+                    expiresAt: getMemberSessionExpiresAt(),
+                    member: mapMemberSessionMember(member),
+                };
+            },
+        }),
+    },
+}));
 
 const accountLockedPageTemplate = String.raw`
 import { useEffect, useState } from 'react';
@@ -662,7 +764,7 @@ export default function AccountLockedPage() {
     </>
   );
 }
-`
+`;
 
 const changePasswordPageTemplate = String.raw`
 import { FormEvent, useState } from 'react';
@@ -893,11 +995,23 @@ export default function ChangePasswordPage() {
     </>
   );
 }
-`
+`;
 
-const forgotPasswordPageTemplate = String.raw`
-import { FormEvent, useState } from 'react';
+const forgotPasswordPageTemplate = `
+import { FormEvent, useState, useEffect } from 'react';
 import Head from 'next/head';
+
+declare global {
+  interface Window {
+    grecaptcha: {
+      ready: (callback: () => void) => void;
+      execute: (siteKey: string, options: { action: string }) => Promise<string>;
+    };
+  }
+}
+
+const RECAPTCHA_ENABLED = ${RECAPTCHA_ENABLED};
+const RECAPTCHA_SITE_KEY = '${RECAPTCHA_SITE_KEY}';
 
 const REQUEST_PASSWORD_RESET_MUTATION = ${JS_BACKTICK}
   mutation SendUserPasswordResetLink($email: String!) {
@@ -905,11 +1019,66 @@ const REQUEST_PASSWORD_RESET_MUTATION = ${JS_BACKTICK}
   }
 ${JS_BACKTICK};
 
+async function getRecaptchaToken(): Promise<string | null> {
+  if (!RECAPTCHA_ENABLED || !RECAPTCHA_SITE_KEY) {
+    return null;
+  }
+
+  try {
+    if (typeof window !== 'undefined' && window.grecaptcha) {
+      return await new Promise((resolve) => {
+        window.grecaptcha.ready(async () => {
+          try {
+            const token = await window.grecaptcha.execute(RECAPTCHA_SITE_KEY, { action: 'forgot_password' });
+            resolve(token);
+          } catch (error) {
+            console.error('reCAPTCHA execute error:', error);
+            resolve(null);
+          }
+        });
+      });
+    }
+  } catch (error) {
+    console.error('reCAPTCHA error:', error);
+  }
+  return null;
+}
+
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
   const [status, setStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [message, setMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [recaptchaLoaded, setRecaptchaLoaded] = useState(!RECAPTCHA_ENABLED);
+
+  useEffect(() => {
+    if (!RECAPTCHA_ENABLED || !RECAPTCHA_SITE_KEY) {
+      setRecaptchaLoaded(true);
+      return;
+    }
+
+    // Check if script is already loaded
+    if (window.grecaptcha) {
+      setRecaptchaLoaded(true);
+      return;
+    }
+
+    // Load reCAPTCHA script
+    const script = document.createElement('script');
+    script.src = ${JS_BACKTICK}https://www.google.com/recaptcha/api.js?render=${DOLLAR}{RECAPTCHA_SITE_KEY}${JS_BACKTICK};
+    script.async = true;
+    script.defer = true;
+    script.onload = () => {
+      window.grecaptcha.ready(() => {
+        setRecaptchaLoaded(true);
+      });
+    };
+    script.onerror = () => {
+      console.error('Failed to load reCAPTCHA script');
+      setRecaptchaLoaded(true);
+    };
+    document.head.appendChild(script);
+  }, []);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -926,12 +1095,20 @@ export default function ForgotPasswordPage() {
     setMessage('');
 
     try {
+      // Get reCAPTCHA token if enabled
+      const recaptchaToken = await getRecaptchaToken();
+
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      };
+      if (recaptchaToken) {
+        headers['X-Recaptcha-Token'] = recaptchaToken;
+      }
+
       const response = await fetch('/api/graphql', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Accept: 'application/json',
-        },
+        headers,
         body: JSON.stringify({
           query: REQUEST_PASSWORD_RESET_MUTATION,
           variables: { email: trimmedEmail },
@@ -939,6 +1116,16 @@ export default function ForgotPasswordPage() {
       });
 
       const result = await response.json();
+
+      // Check for reCAPTCHA errors
+      const recaptchaError = result.errors?.find(
+        (e: any) => e?.extensions?.code === 'RECAPTCHA_FAILED'
+      );
+      if (recaptchaError) {
+        setStatus('error');
+        setMessage(recaptchaError.message || '人機驗證失敗，請重新整理頁面後再試');
+        return;
+      }
 
       if (result.errors) {
         throw new Error(result.errors[0]?.message ?? '送出失敗');
@@ -1024,7 +1211,7 @@ export default function ForgotPasswordPage() {
             )}
             <button
               type="submit"
-              disabled={isSubmitting}
+              disabled={isSubmitting || !recaptchaLoaded}
               style={{
                 width: '100%',
                 padding: '14px',
@@ -1034,12 +1221,12 @@ export default function ForgotPasswordPage() {
                 color: '#ffffff',
                 fontSize: '16px',
                 fontWeight: 600,
-                cursor: isSubmitting ? 'not-allowed' : 'pointer',
-                opacity: isSubmitting ? 0.7 : 1,
+                cursor: (isSubmitting || !recaptchaLoaded) ? 'not-allowed' : 'pointer',
+                opacity: (isSubmitting || !recaptchaLoaded) ? 0.7 : 1,
                 transition: 'opacity 0.2s',
               }}
             >
-              {isSubmitting ? '寄送中...' : '寄送重設連結'}
+              {!recaptchaLoaded ? '載入中...' : isSubmitting ? '寄送中...' : '寄送重設連結'}
             </button>
           </form>
           <button
@@ -1062,12 +1249,43 @@ export default function ForgotPasswordPage() {
           >
             返回登入頁
           </button>
+          {RECAPTCHA_ENABLED && (
+            <div
+              style={{
+                marginTop: '16px',
+                fontSize: '12px',
+                color: '#94a3b8',
+                textAlign: 'center',
+                lineHeight: 1.5,
+              }}
+            >
+              此網站受 reCAPTCHA 保護，適用 Google{' '}
+              <a
+                href="https://policies.google.com/privacy"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ color: '#64748b' }}
+              >
+                隱私權政策
+              </a>
+              {' '}和{' '}
+              <a
+                href="https://policies.google.com/terms"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ color: '#64748b' }}
+              >
+                服務條款
+              </a>
+              。
+            </div>
+          )}
         </div>
       </div>
     </>
   );
 }
-`
+`;
 
 const resetPasswordPageTemplate = String.raw`
 import { FormEvent, useEffect, useState } from 'react';
@@ -1354,11 +1572,23 @@ export default function ResetPasswordPage() {
     </>
   );
 }
-`
+`;
 
-const signinPageTemplate = String.raw`
-import { FormEvent, useState } from 'react';
+const signinPageTemplate = `
+import { FormEvent, useState, useEffect } from 'react';
 import Head from 'next/head';
+
+declare global {
+  interface Window {
+    grecaptcha: {
+      ready: (callback: () => void) => void;
+      execute: (siteKey: string, options: { action: string }) => Promise<string>;
+    };
+  }
+}
+
+const RECAPTCHA_ENABLED = ${RECAPTCHA_ENABLED};
+const RECAPTCHA_SITE_KEY = '${RECAPTCHA_SITE_KEY}';
 
 const AUTHENTICATE_MUTATION = ${JS_BACKTICK}
   mutation AuthenticateUserWithPassword($identity: String!, $password: String!) {
@@ -1406,12 +1636,81 @@ function hasAccountLockedError(result: any) {
   return false;
 }
 
+function hasRecaptchaError(result: any) {
+  if (!result) return false;
+  if (Array.isArray(result.errors)) {
+    return result.errors.some(
+      (error: any) => error?.extensions?.code === 'RECAPTCHA_FAILED'
+    );
+  }
+  return false;
+}
+
+async function getRecaptchaToken(): Promise<string | null> {
+  if (!RECAPTCHA_ENABLED || !RECAPTCHA_SITE_KEY) {
+    return null;
+  }
+
+  try {
+    if (typeof window !== 'undefined' && window.grecaptcha) {
+      return await new Promise((resolve) => {
+        window.grecaptcha.ready(async () => {
+          try {
+            const token = await window.grecaptcha.execute(RECAPTCHA_SITE_KEY, { action: 'login' });
+            resolve(token);
+          } catch (error) {
+            console.error('reCAPTCHA execute error:', error);
+            resolve(null);
+          }
+        });
+      });
+    }
+  } catch (error) {
+    console.error('reCAPTCHA error:', error);
+  }
+  return null;
+}
+
 export default function SigninPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [status, setStatus] = useState<'idle' | 'error'>('idle');
   const [message, setMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [recaptchaLoaded, setRecaptchaLoaded] = useState(!RECAPTCHA_ENABLED);
+
+  useEffect(() => {
+    if (!RECAPTCHA_ENABLED || !RECAPTCHA_SITE_KEY) {
+      setRecaptchaLoaded(true);
+      return;
+    }
+
+    // Check if script is already loaded
+    if (window.grecaptcha) {
+      setRecaptchaLoaded(true);
+      return;
+    }
+
+    // Load reCAPTCHA script
+    const script = document.createElement('script');
+    script.src = ${JS_BACKTICK}https://www.google.com/recaptcha/api.js?render=${DOLLAR}{RECAPTCHA_SITE_KEY}${JS_BACKTICK};
+    script.async = true;
+    script.defer = true;
+    script.onload = () => {
+      window.grecaptcha.ready(() => {
+        setRecaptchaLoaded(true);
+      });
+    };
+    script.onerror = () => {
+      console.error('Failed to load reCAPTCHA script');
+      setRecaptchaLoaded(true); // Allow form submission even if reCAPTCHA fails to load
+    };
+    document.head.appendChild(script);
+
+    return () => {
+      // Cleanup is not needed as script should persist
+    };
+  }, []);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -1430,12 +1729,20 @@ export default function SigninPage() {
     setMessage('');
 
     try {
+      // Get reCAPTCHA token if enabled
+      const recaptchaToken = await getRecaptchaToken();
+
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      };
+      if (recaptchaToken) {
+        headers['X-Recaptcha-Token'] = recaptchaToken;
+      }
+
       const response = await fetch('/api/graphql', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Accept: 'application/json',
-        },
+        headers,
         credentials: 'include',
         body: JSON.stringify({
           query: AUTHENTICATE_MUTATION,
@@ -1447,8 +1754,18 @@ export default function SigninPage() {
       const headerLocked = response.headers?.get('X-Account-Locked') === 'true';
       const requirePasswordChange = response.headers?.get('X-Require-Password-Change') === 'true';
       const failureHeader = response.headers?.get('X-Login-Failure-Message');
+      const recaptchaFailed = response.headers?.get('X-Recaptcha-Failed') === 'true';
 
       const result = await response.json();
+
+      if (recaptchaFailed || hasRecaptchaError(result)) {
+        const recaptchaMessage = result.errors?.find(
+          (e: any) => e?.extensions?.code === 'RECAPTCHA_FAILED'
+        )?.message || '人機驗證失敗，請重新整理頁面後再試';
+        setStatus('error');
+        setMessage(recaptchaMessage);
+        return;
+      }
 
       if (headerLocked || hasAccountLockedError(result)) {
         redirectToAccountLocked();
@@ -1593,7 +1910,7 @@ export default function SigninPage() {
             )}
             <button
               type="submit"
-              disabled={isSubmitting}
+              disabled={isSubmitting || !recaptchaLoaded}
               style={{
                 width: '100%',
                 padding: '14px',
@@ -1603,14 +1920,45 @@ export default function SigninPage() {
                 color: '#ffffff',
                 fontSize: '16px',
                 fontWeight: 600,
-                cursor: isSubmitting ? 'not-allowed' : 'pointer',
-                opacity: isSubmitting ? 0.7 : 1,
+                cursor: (isSubmitting || !recaptchaLoaded) ? 'not-allowed' : 'pointer',
+                opacity: (isSubmitting || !recaptchaLoaded) ? 0.7 : 1,
                 transition: 'opacity 0.2s',
               }}
             >
-              {isSubmitting ? '登入中...' : '登入'}
+              {!recaptchaLoaded ? '載入中...' : isSubmitting ? '登入中...' : '登入'}
             </button>
           </form>
+          {RECAPTCHA_ENABLED && (
+            <div
+              style={{
+                marginTop: '16px',
+                fontSize: '12px',
+                color: '#94a3b8',
+                textAlign: 'center',
+                lineHeight: 1.5,
+              }}
+            >
+              此網站受 reCAPTCHA 保護，適用 Google{' '}
+              <a
+                href="https://policies.google.com/privacy"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ color: '#64748b' }}
+              >
+                隱私權政策
+              </a>
+              {' '}和{' '}
+              <a
+                href="https://policies.google.com/terms"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ color: '#64748b' }}
+              >
+                服務條款
+              </a>
+              。
+            </div>
+          )}
           <div
             style={{
               marginTop: '16px',
@@ -1655,7 +2003,7 @@ export default function SigninPage() {
     </>
   );
 }
-`
+`;
 
 const passwordEnforcerClientScript = `
 (function () {
@@ -1942,246 +2290,274 @@ export default class CustomDocument extends Document {
     );
   }
 }
-`
+`;
 
 const graphqlConfig = {
-  apolloConfig: {
-    plugins: [
-      createLoginLoggingPlugin(),
-      ...(envVar.accessControlStrategy === 'gql' && envVar.cache.isEnabled
-        ? [
-          responseCachePlugin(),
-          ApolloServerPluginCacheControl({
-            defaultMaxAge: envVar.cache.maxAge,
-          }),
-        ]
-        : []),
-    ],
-    ...(envVar.accessControlStrategy === 'gql' && envVar.cache.isEnabled
-      ? {
-        cache: new KeyvAdapter(
-          new Keyv(envVar.cache.url, {
-            lazyConnect: true,
-            namespace: envVar.cache.identifier,
-            connectionName: envVar.cache.identifier,
-            connectTimeout: envVar.cache.connectTimeOut,
-          })
-        ),
-      }
-      : {}),
-  } as any,
-  extendGraphqlSchema: memberAuthSchemaExtension,
-}
+    apolloConfig: {
+        plugins: [
+            createLoginLoggingPlugin(),
+            ...(envVar.accessControlStrategy === "gql" && envVar.cache.isEnabled
+                ? [
+                      responseCachePlugin(),
+                      ApolloServerPluginCacheControl({
+                          defaultMaxAge: envVar.cache.maxAge,
+                      }),
+                  ]
+                : []),
+        ],
+        ...(envVar.accessControlStrategy === "gql" && envVar.cache.isEnabled
+            ? {
+                  cache: new KeyvAdapter(
+                      new Keyv(envVar.cache.url, {
+                          lazyConnect: true,
+                          namespace: envVar.cache.identifier,
+                          connectionName: envVar.cache.identifier,
+                          connectTimeout: envVar.cache.connectTimeOut,
+                      }),
+                  ),
+              }
+            : {}),
+    } as any,
+    extendGraphqlSchema: (schema: any) => {
+        // Apply both schema extensions
+        schema = passwordSchemaExtension(schema);
+        schema = memberAuthSchemaExtension(schema);
+        return schema;
+    },
+};
 
 const baseKeystoneConfig = config({
     db: {
-      provider: envVar.database.provider,
-      url: envVar.database.url,
-      idField: {
-        kind: 'autoincrement',
-      },
+        provider: envVar.database.provider,
+        url: envVar.database.url,
+        idField: {
+            kind: "autoincrement",
+        },
     },
     ui: {
-      // If `isDisabled` is set to `true` then the Admin UI will be completely disabled.
-      isDisabled: envVar.isUIDisabled,
-      // For our starter, we check that someone has session data before letting them see the Admin UI.
-      isAccessAllowed: (context) => {
-        const { session, req } = context;
-        const path = req?.url || '';
+        // If `isDisabled` is set to `true` then the Admin UI will be completely disabled.
+        isDisabled: envVar.isUIDisabled,
+        // For our starter, we check that someone has session data before letting them see the Admin UI.
+        isAccessAllowed: (context) => {
+            const { session, req } = context;
+            const path = req?.url || "";
 
-        // Allow access to change password page if user needs to change password
-        if (path === CHANGE_PASSWORD_PATH || path.indexOf(CHANGE_PASSWORD_PATH) === 0) {
-          return !!session;
-        }
+            // Allow access to change password page if user needs to change password
+            if (
+                path === CHANGE_PASSWORD_PATH ||
+                path.indexOf(CHANGE_PASSWORD_PATH) === 0
+            ) {
+                return !!session;
+            }
 
-        // Allow access to account locked page without session
-        if (path === ACCOUNT_LOCKED_PATH || path.indexOf(ACCOUNT_LOCKED_PATH) === 0) {
-          return true;
-        }
+            // Allow access to account locked page without session
+            if (
+                path === ACCOUNT_LOCKED_PATH ||
+                path.indexOf(ACCOUNT_LOCKED_PATH) === 0
+            ) {
+                return true;
+            }
 
-        if (path === FORGOT_PASSWORD_PATH || path.indexOf(FORGOT_PASSWORD_PATH) === 0) {
-          return true;
-        }
+            if (
+                path === FORGOT_PASSWORD_PATH ||
+                path.indexOf(FORGOT_PASSWORD_PATH) === 0
+            ) {
+                return true;
+            }
 
-        if (path === RESET_PASSWORD_PATH || path.indexOf(RESET_PASSWORD_PATH) === 0) {
-          return true;
-        }
+            if (
+                path === RESET_PASSWORD_PATH ||
+                path.indexOf(RESET_PASSWORD_PATH) === 0
+            ) {
+                return true;
+            }
 
-        // Check if user needs to change password
-        if (session?.data) {
-          if (
-            session.data.mustChangePassword ||
-            (session.data.passwordUpdatedAt &&
-              isPasswordExpired({ passwordUpdatedAt: session.data.passwordUpdatedAt }))
-          ) {
-            // If accessing API or other pages, might want to block or allow
-            // For now, we rely on the client-side script to redirect
-            // But for the Admin UI, we might want to restrict access
-          }
-        }
+            // Check if user needs to change password
+            if (session?.data) {
+                if (
+                    session.data.mustChangePassword ||
+                    (session.data.passwordUpdatedAt &&
+                        isPasswordExpired({
+                            passwordUpdatedAt: session.data.passwordUpdatedAt,
+                        }))
+                ) {
+                    // If accessing API or other pages, might want to block or allow
+                    // For now, we rely on the client-side script to redirect
+                    // But for the Admin UI, we might want to restrict access
+                }
+            }
 
-        return !!session;
-      },
-      getAdditionalFiles: [
-        async () => [
-          {
-            mode: 'write' as const,
-            outputPath: 'pages/change-password.tsx',
-            src: changePasswordPageTemplate,
-          },
-          {
-            mode: 'write' as const,
-            outputPath: 'pages/signin.tsx',
-            src: signinPageTemplate,
-          },
-          {
-            mode: 'write' as const,
-            outputPath: 'pages/forgot-password.tsx',
-            src: forgotPasswordPageTemplate,
-          },
-          {
-            mode: 'write' as const,
-            outputPath: 'pages/reset-password.tsx',
-            src: resetPasswordPageTemplate,
-          },
-          {
-            mode: 'write' as const,
-            outputPath: 'pages/account-locked.tsx',
-            src: accountLockedPageTemplate,
-          },
-          {
-            mode: 'write' as const,
-            outputPath: 'pages/_document.tsx',
-            src: adminDocumentTemplate,
-          },
+            return !!session;
+        },
+        getAdditionalFiles: [
+            async () => [
+                {
+                    mode: "write" as const,
+                    outputPath: "pages/change-password.tsx",
+                    src: changePasswordPageTemplate,
+                },
+                {
+                    mode: "write" as const,
+                    outputPath: "pages/signin.tsx",
+                    src: signinPageTemplate,
+                },
+                {
+                    mode: "write" as const,
+                    outputPath: "pages/forgot-password.tsx",
+                    src: forgotPasswordPageTemplate,
+                },
+                {
+                    mode: "write" as const,
+                    outputPath: "pages/reset-password.tsx",
+                    src: resetPasswordPageTemplate,
+                },
+                {
+                    mode: "write" as const,
+                    outputPath: "pages/account-locked.tsx",
+                    src: accountLockedPageTemplate,
+                },
+                {
+                    mode: "write" as const,
+                    outputPath: "pages/_document.tsx",
+                    src: adminDocumentTemplate,
+                },
+            ],
         ],
-      ],
     },
     graphql: graphqlConfig as any,
     lists,
     session,
     storage: {
-      files: {
-        kind: 'local',
-        type: 'file',
-        storagePath: envVar.files.storagePath,
-        serverRoute: {
-          path: '/files',
+        files: {
+            kind: "local",
+            type: "file",
+            storagePath: envVar.files.storagePath,
+            serverRoute: {
+                path: "/files",
+            },
+            generateUrl: (path) => `${envVar.files.baseUrl}${path}`,
         },
-        generateUrl: (path) => `${envVar.files.baseUrl}${path}`,
-      },
-      images: {
-        kind: 'local',
-        type: 'image',
-        storagePath: envVar.images.storagePath,
-        serverRoute: {
-          path: '/images',
+        images: {
+            kind: "local",
+            type: "image",
+            storagePath: envVar.images.storagePath,
+            serverRoute: {
+                path: "/images",
+            },
+            generateUrl: (path) => `${envVar.images.baseUrl}${path}`,
         },
-        generateUrl: (path) => `${envVar.images.baseUrl}${path}`,
-      },
     },
     server: {
-      maxFileSize: 2000 * 1024 * 1024,
-      extendExpressApp: (app, context) => {
-        app.use(express.json({ limit: '500mb' }))
+        maxFileSize: 2000 * 1024 * 1024,
+        extendExpressApp: (app, context) => {
+            app.use(express.json({ limit: "500mb" }));
 
-        app.get('/health_check', (_req, res) => {
-          res.status(200).json({ status: 'healthy' })
-        })
+            app.get("/health_check", (_req, res) => {
+                res.status(200).json({ status: "healthy" });
+            });
 
-        app.use(async (req, res, next) => {
-          try {
-            const path = req.path || ''
+            app.use(async (req, res, next) => {
+                try {
+                    const path = req.path || "";
 
-            const shouldSkip =
-              req.method !== 'GET' ||
-              path === CHANGE_PASSWORD_PATH ||
-              path === ACCOUNT_LOCKED_PATH ||
-              path === FORGOT_PASSWORD_PATH ||
-              path === RESET_PASSWORD_PATH ||
-              path === '/signin' ||
-              path === '/init' ||
-              path === '/health_check' ||
-              path.startsWith('/api') ||
-              path.startsWith('/_next') ||
-              path.startsWith('/static') ||
-              path.startsWith('/files') ||
-              path.startsWith('/images') ||
-              /\.[a-zA-Z0-9]+$/.test(path)
+                    const shouldSkip =
+                        req.method !== "GET" ||
+                        path === CHANGE_PASSWORD_PATH ||
+                        path === ACCOUNT_LOCKED_PATH ||
+                        path === FORGOT_PASSWORD_PATH ||
+                        path === RESET_PASSWORD_PATH ||
+                        path === "/signin" ||
+                        path === "/init" ||
+                        path === "/health_check" ||
+                        path.startsWith("/api") ||
+                        path.startsWith("/_next") ||
+                        path.startsWith("/static") ||
+                        path.startsWith("/files") ||
+                        path.startsWith("/images") ||
+                        /\.[a-zA-Z0-9]+$/.test(path);
 
-            if (shouldSkip) {
-              return next()
-            }
+                    if (shouldSkip) {
+                        return next();
+                    }
 
-            const keystoneContext = await context.withRequest(req, res)
-            const sessionData = keystoneContext.session?.data
+                    const keystoneContext = await context.withRequest(req, res);
+                    const sessionData = keystoneContext.session?.data;
 
-            if (!sessionData?.id) {
-              if (path === CHANGE_PASSWORD_PATH) {
-                return res.redirect('/signin')
-              }
-              return next()
-            }
+                    if (!sessionData?.id) {
+                        if (path === CHANGE_PASSWORD_PATH) {
+                            return res.redirect("/signin");
+                        }
+                        return next();
+                    }
 
-            let requiresChange = isPasswordExpired({
-              passwordUpdatedAt: sessionData.passwordUpdatedAt,
-              mustChangePassword: sessionData.mustChangePassword,
-            })
+                    let requiresChange = isPasswordExpired({
+                        passwordUpdatedAt: sessionData.passwordUpdatedAt,
+                        mustChangePassword: sessionData.mustChangePassword,
+                    });
 
-            if (!requiresChange) {
-              const fresh = await keystoneContext.sudo().query.User.findOne({
-                where: { id: sessionData.id },
-                query: 'passwordUpdatedAt mustChangePassword',
-              })
-              requiresChange = isPasswordExpired(fresh)
-            }
+                    if (!requiresChange) {
+                        const fresh = await keystoneContext
+                            .sudo()
+                            .query.User.findOne({
+                                where: { id: sessionData.id },
+                                query: "passwordUpdatedAt mustChangePassword",
+                            });
+                        requiresChange = isPasswordExpired(fresh);
+                    }
 
-            if (requiresChange && path !== CHANGE_PASSWORD_PATH) {
-              return res.redirect(CHANGE_PASSWORD_PATH)
-            }
+                    if (requiresChange && path !== CHANGE_PASSWORD_PATH) {
+                        return res.redirect(CHANGE_PASSWORD_PATH);
+                    }
 
-            if (!requiresChange && path === CHANGE_PASSWORD_PATH) {
-              return res.redirect('/')
-            }
-          } catch (error) {
-            console.error(
-              JSON.stringify({
-                severity: 'ERROR',
-                message: 'Password enforcement middleware error',
-                type: 'EXPRESS_PASSWORD_POLICY',
-                error: error instanceof Error ? error.message : String(error),
-                timestamp: new Date().toISOString(),
-              })
-            )
-          }
+                    if (!requiresChange && path === CHANGE_PASSWORD_PATH) {
+                        return res.redirect("/");
+                    }
+                } catch (error) {
+                    console.error(
+                        JSON.stringify({
+                            severity: "ERROR",
+                            message: "Password enforcement middleware error",
+                            type: "EXPRESS_PASSWORD_POLICY",
+                            error:
+                                error instanceof Error
+                                    ? error.message
+                                    : String(error),
+                            timestamp: new Date().toISOString(),
+                        }),
+                    );
+                }
 
-          next()
-        })
+                next();
+            });
 
-        //if (envVar.accessControlStrategy === 'cms') {
-        //  app.use(
-        //    createPreviewMiniApp({
-        //      previewServer: envVar.previewServer,
-        //      keystoneContext: context,
-        //    })
-        //  )
-        //}
-      },
+            //if (envVar.accessControlStrategy === 'cms') {
+            //  app.use(
+            //    createPreviewMiniApp({
+            //      previewServer: envVar.previewServer,
+            //      keystoneContext: context,
+            //    })
+            //  )
+            //}
+        },
     },
-  })
+});
 
-const keystone = withAuth(baseKeystoneConfig)
+const keystone = withAuth(baseKeystoneConfig);
 
 if (keystone.ui?.getAdditionalFiles?.length) {
-  keystone.ui.getAdditionalFiles = keystone.ui.getAdditionalFiles.map((getFiles) => {
-    return async () => {
-      const files = await getFiles()
-      if (!Array.isArray(files)) {
-        return files
-      }
-      return files.filter((file) => file.outputPath !== 'pages/signin.js')
-    }
-  })
+    keystone.ui.getAdditionalFiles = keystone.ui.getAdditionalFiles.map(
+        (getFiles) => {
+            return async () => {
+                const files = await getFiles();
+                if (!Array.isArray(files)) {
+                    return files;
+                }
+                return files.filter(
+                    (file) => file.outputPath !== "pages/signin.js",
+                );
+            };
+        },
+    );
 }
 
-export default keystone
+export default keystone;
