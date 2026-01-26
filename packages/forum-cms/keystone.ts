@@ -17,6 +17,8 @@ import {
     assertPasswordStrength,
     isPasswordExpired,
     passwordPolicy,
+    checkPasswordHistory,
+    addToPasswordHistory,
 } from "./utils/password-policy";
 import {
     isAccountLocked,
@@ -58,7 +60,7 @@ const { withAuth } = createAuth({
                                 ? error.message
                                 : String(error),
                         timestamp: new Date().toISOString(),
-                    })
+                    }),
                 );
             }
         },
@@ -120,7 +122,7 @@ const passwordSchemaExtension = graphql.extend(() => ({
                 {
                     data,
                 }: { data: { password: string; confirmPassword: string } },
-                context: KeystoneContext
+                context: KeystoneContext,
             ) {
                 const session = context.session;
 
@@ -168,12 +170,62 @@ const passwordSchemaExtension = graphql.extend(() => ({
 
                 try {
                     const userId = String(session.itemId);
+                    const currentUser = await context.sudo().db.User.findOne({
+                        where: { id: parseInt(userId, 10) },
+                    });
+
+                    if (!currentUser) {
+                        return {
+                            success: false,
+                            message: "找不到使用者資料",
+                        };
+                    }
+
+                    // First, check if new password matches current password
+                    const bcrypt = await import("bcryptjs");
+                    const currentPasswordHash = String(currentUser.password);
+                    const matchesCurrentPassword = await bcrypt.compare(
+                        password,
+                        currentPasswordHash,
+                    );
+
+                    if (matchesCurrentPassword) {
+                        return {
+                            success: false,
+                            message: "密碼不可與前3次使用過的密碼相同",
+                        };
+                    }
+
+                    // Then check password history
+                    const passwordHistory = currentUser.passwordHistory as
+                        | string[]
+                        | null
+                        | undefined;
+                    const isDuplicate = await checkPasswordHistory(
+                        password,
+                        passwordHistory,
+                    );
+
+                    if (isDuplicate) {
+                        return {
+                            success: false,
+                            message: "密碼不可與前3次使用過的密碼相同",
+                        };
+                    }
+                    // Update password (KeystoneJS will automatically hash it)
+                    // Also update passwordHistory with the current password hash
+                    const updatedPasswordHistory = addToPasswordHistory(
+                        currentPasswordHash,
+                        passwordHistory,
+                    );
+
                     const updatedUser = await context.sudo().db.User.updateOne({
-                        where: { id: userId },
+                        where: { id: parseInt(userId, 10) },
                         data: {
                             password,
                             passwordUpdatedAt: new Date().toISOString(),
                             mustChangePassword: false,
+                            passwordHistory: updatedPasswordHistory,
                         },
                     });
 
@@ -189,6 +241,7 @@ const passwordSchemaExtension = graphql.extend(() => ({
                         message: "密碼更新成功！",
                     };
                 } catch (error) {
+                    console.error("Password update error:", error);
                     return {
                         success: false,
                         message: "更新密碼失敗，請稍後再試。",
@@ -1981,7 +2034,7 @@ const graphqlConfig = {
                           namespace: envVar.cache.identifier,
                           connectionName: envVar.cache.identifier,
                           connectTimeout: envVar.cache.connectTimeOut,
-                      })
+                      }),
                   ),
               }
             : {}),
@@ -2186,7 +2239,7 @@ const baseKeystoneConfig = config({
                                     ? error.message
                                     : String(error),
                             timestamp: new Date().toISOString(),
-                        })
+                        }),
                     );
                 }
 
@@ -2216,10 +2269,10 @@ if (keystone.ui?.getAdditionalFiles?.length) {
                     return files;
                 }
                 return files.filter(
-                    (file) => file.outputPath !== "pages/signin.js"
+                    (file) => file.outputPath !== "pages/signin.js",
                 );
             };
-        }
+        },
     );
 }
 
