@@ -7,6 +7,8 @@ type User {
   email: String
   password: PasswordState
   role: String
+  officialAccounts(where: OfficialMappingWhereInput! = {}, orderBy: [OfficialMappingOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: OfficialMappingWhereUniqueInput): [OfficialMapping!]
+  officialAccountsCount(where: OfficialMappingWhereInput! = {}): Int
   isProtected: Boolean
   passwordUpdatedAt: DateTime
   mustChangePassword: Boolean
@@ -38,6 +40,7 @@ input UserWhereInput {
   name: StringFilter
   email: StringFilter
   role: StringFilter
+  officialAccounts: OfficialMappingManyRelationFilter
   isProtected: BooleanFilter
   passwordUpdatedAt: DateTimeNullableFilter
   mustChangePassword: BooleanFilter
@@ -92,6 +95,12 @@ input NestedStringFilter {
   startsWith: String
   endsWith: String
   not: NestedStringFilter
+}
+
+input OfficialMappingManyRelationFilter {
+  every: OfficialMappingWhereInput
+  some: OfficialMappingWhereInput
+  none: OfficialMappingWhereInput
 }
 
 input BooleanFilter {
@@ -150,6 +159,7 @@ input UserUpdateInput {
   email: String
   password: String
   role: String
+  officialAccounts: OfficialMappingRelateToManyForUpdateInput
   isProtected: Boolean
   passwordUpdatedAt: DateTime
   mustChangePassword: Boolean
@@ -160,6 +170,13 @@ input UserUpdateInput {
   passwordResetToken: String
   passwordResetIssuedAt: DateTime
   passwordResetRedeemedAt: DateTime
+}
+
+input OfficialMappingRelateToManyForUpdateInput {
+  disconnect: [OfficialMappingWhereUniqueInput!]
+  set: [OfficialMappingWhereUniqueInput!]
+  create: [OfficialMappingCreateInput!]
+  connect: [OfficialMappingWhereUniqueInput!]
 }
 
 input UserUpdateArgs {
@@ -172,6 +189,7 @@ input UserCreateInput {
   email: String
   password: String
   role: String
+  officialAccounts: OfficialMappingRelateToManyForCreateInput
   isProtected: Boolean
   passwordUpdatedAt: DateTime
   mustChangePassword: Boolean
@@ -182,6 +200,1860 @@ input UserCreateInput {
   passwordResetToken: String
   passwordResetIssuedAt: DateTime
   passwordResetRedeemedAt: DateTime
+}
+
+input OfficialMappingRelateToManyForCreateInput {
+  create: [OfficialMappingCreateInput!]
+  connect: [OfficialMappingWhereUniqueInput!]
+}
+
+type Member {
+  id: ID!
+  firebaseId: String
+  customId: String
+  name: String
+  nickname: String
+  avatar: String
+  intro: String
+  avatar_image: Photo
+  email: String
+  is_active: Boolean
+  verified: Boolean
+  comment(where: CommentWhereInput! = {}, orderBy: [CommentOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: CommentWhereUniqueInput): [Comment!]
+  commentCount(where: CommentWhereInput! = {}): Int
+  member_like(where: CommentWhereInput! = {}, orderBy: [CommentOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: CommentWhereUniqueInput): [Comment!]
+  member_likeCount(where: CommentWhereInput! = {}): Int
+  posts(where: PostWhereInput! = {}, orderBy: [PostOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: PostWhereUniqueInput): [Post!]
+  postsCount(where: PostWhereInput! = {}): Int
+  reactions(where: ReactionWhereInput! = {}, orderBy: [ReactionOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: ReactionWhereUniqueInput): [Reaction!]
+  reactionsCount(where: ReactionWhereInput! = {}): Int
+  follower(where: MemberWhereInput! = {}, orderBy: [MemberOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: MemberWhereUniqueInput): [Member!]
+  followerCount(where: MemberWhereInput! = {}): Int
+  following(where: MemberWhereInput! = {}, orderBy: [MemberOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: MemberWhereUniqueInput): [Member!]
+  followingCount(where: MemberWhereInput! = {}): Int
+  block(where: MemberWhereInput! = {}, orderBy: [MemberOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: MemberWhereUniqueInput): [Member!]
+  blockCount(where: MemberWhereInput! = {}): Int
+  blocked(where: MemberWhereInput! = {}, orderBy: [MemberOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: MemberWhereUniqueInput): [Member!]
+  blockedCount(where: MemberWhereInput! = {}): Int
+  following_category(where: CategoryWhereInput! = {}, orderBy: [CategoryOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: CategoryWhereUniqueInput): [Category!]
+  following_categoryCount(where: CategoryWhereInput! = {}): Int
+  isOfficial: Boolean
+  status: MemberStatusType
+  joinDate: DateTime
+  language: MemberLanguageType
+  createdAt: DateTime
+  updatedAt: DateTime
+  createdBy: User
+  updatedBy: User
+}
+
+enum MemberStatusType {
+  active
+  banned
+}
+
+enum MemberLanguageType {
+  zh
+  en
+  vi
+  id
+  th
+}
+
+input MemberWhereUniqueInput {
+  id: ID
+  firebaseId: String
+  customId: String
+  email: String
+}
+
+input MemberWhereInput {
+  AND: [MemberWhereInput!]
+  OR: [MemberWhereInput!]
+  NOT: [MemberWhereInput!]
+  id: IDFilter
+  firebaseId: StringFilter
+  customId: StringFilter
+  name: StringFilter
+  nickname: StringFilter
+  avatar: StringFilter
+  intro: StringFilter
+  avatar_image: PhotoWhereInput
+  email: StringFilter
+  is_active: BooleanFilter
+  verified: BooleanFilter
+  comment: CommentManyRelationFilter
+  member_like: CommentManyRelationFilter
+  posts: PostManyRelationFilter
+  reactions: ReactionManyRelationFilter
+  follower: MemberManyRelationFilter
+  following: MemberManyRelationFilter
+  block: MemberManyRelationFilter
+  blocked: MemberManyRelationFilter
+  following_category: CategoryManyRelationFilter
+  isOfficial: BooleanFilter
+  status: MemberStatusTypeNullableFilter
+  joinDate: DateTimeNullableFilter
+  language: MemberLanguageTypeNullableFilter
+  createdAt: DateTimeNullableFilter
+  updatedAt: DateTimeNullableFilter
+  createdBy: UserWhereInput
+  updatedBy: UserWhereInput
+}
+
+input CommentManyRelationFilter {
+  every: CommentWhereInput
+  some: CommentWhereInput
+  none: CommentWhereInput
+}
+
+input PostManyRelationFilter {
+  every: PostWhereInput
+  some: PostWhereInput
+  none: PostWhereInput
+}
+
+input ReactionManyRelationFilter {
+  every: ReactionWhereInput
+  some: ReactionWhereInput
+  none: ReactionWhereInput
+}
+
+input MemberManyRelationFilter {
+  every: MemberWhereInput
+  some: MemberWhereInput
+  none: MemberWhereInput
+}
+
+input CategoryManyRelationFilter {
+  every: CategoryWhereInput
+  some: CategoryWhereInput
+  none: CategoryWhereInput
+}
+
+input MemberStatusTypeNullableFilter {
+  equals: MemberStatusType
+  in: [MemberStatusType!]
+  notIn: [MemberStatusType!]
+  not: MemberStatusTypeNullableFilter
+}
+
+input MemberLanguageTypeNullableFilter {
+  equals: MemberLanguageType
+  in: [MemberLanguageType!]
+  notIn: [MemberLanguageType!]
+  not: MemberLanguageTypeNullableFilter
+}
+
+input MemberOrderByInput {
+  id: OrderDirection
+  firebaseId: OrderDirection
+  customId: OrderDirection
+  name: OrderDirection
+  nickname: OrderDirection
+  avatar: OrderDirection
+  intro: OrderDirection
+  email: OrderDirection
+  is_active: OrderDirection
+  verified: OrderDirection
+  isOfficial: OrderDirection
+  status: OrderDirection
+  joinDate: OrderDirection
+  language: OrderDirection
+  createdAt: OrderDirection
+  updatedAt: OrderDirection
+}
+
+input MemberUpdateInput {
+  firebaseId: String
+  customId: String
+  name: String
+  nickname: String
+  avatar: String
+  intro: String
+  avatar_image: PhotoRelateToOneForUpdateInput
+  email: String
+  is_active: Boolean
+  verified: Boolean
+  comment: CommentRelateToManyForUpdateInput
+  member_like: CommentRelateToManyForUpdateInput
+  posts: PostRelateToManyForUpdateInput
+  reactions: ReactionRelateToManyForUpdateInput
+  follower: MemberRelateToManyForUpdateInput
+  following: MemberRelateToManyForUpdateInput
+  block: MemberRelateToManyForUpdateInput
+  blocked: MemberRelateToManyForUpdateInput
+  following_category: CategoryRelateToManyForUpdateInput
+  isOfficial: Boolean
+  status: MemberStatusType
+  joinDate: DateTime
+  language: MemberLanguageType
+  createdAt: DateTime
+  updatedAt: DateTime
+  createdBy: UserRelateToOneForUpdateInput
+  updatedBy: UserRelateToOneForUpdateInput
+}
+
+input PhotoRelateToOneForUpdateInput {
+  create: PhotoCreateInput
+  connect: PhotoWhereUniqueInput
+  disconnect: Boolean
+}
+
+input CommentRelateToManyForUpdateInput {
+  disconnect: [CommentWhereUniqueInput!]
+  set: [CommentWhereUniqueInput!]
+  create: [CommentCreateInput!]
+  connect: [CommentWhereUniqueInput!]
+}
+
+input PostRelateToManyForUpdateInput {
+  disconnect: [PostWhereUniqueInput!]
+  set: [PostWhereUniqueInput!]
+  create: [PostCreateInput!]
+  connect: [PostWhereUniqueInput!]
+}
+
+input ReactionRelateToManyForUpdateInput {
+  disconnect: [ReactionWhereUniqueInput!]
+  set: [ReactionWhereUniqueInput!]
+  create: [ReactionCreateInput!]
+  connect: [ReactionWhereUniqueInput!]
+}
+
+input MemberRelateToManyForUpdateInput {
+  disconnect: [MemberWhereUniqueInput!]
+  set: [MemberWhereUniqueInput!]
+  create: [MemberCreateInput!]
+  connect: [MemberWhereUniqueInput!]
+}
+
+input CategoryRelateToManyForUpdateInput {
+  disconnect: [CategoryWhereUniqueInput!]
+  set: [CategoryWhereUniqueInput!]
+  create: [CategoryCreateInput!]
+  connect: [CategoryWhereUniqueInput!]
+}
+
+input UserRelateToOneForUpdateInput {
+  create: UserCreateInput
+  connect: UserWhereUniqueInput
+  disconnect: Boolean
+}
+
+input MemberUpdateArgs {
+  where: MemberWhereUniqueInput!
+  data: MemberUpdateInput!
+}
+
+input MemberCreateInput {
+  firebaseId: String
+  customId: String
+  name: String
+  nickname: String
+  avatar: String
+  intro: String
+  avatar_image: PhotoRelateToOneForCreateInput
+  email: String
+  is_active: Boolean
+  verified: Boolean
+  comment: CommentRelateToManyForCreateInput
+  member_like: CommentRelateToManyForCreateInput
+  posts: PostRelateToManyForCreateInput
+  reactions: ReactionRelateToManyForCreateInput
+  follower: MemberRelateToManyForCreateInput
+  following: MemberRelateToManyForCreateInput
+  block: MemberRelateToManyForCreateInput
+  blocked: MemberRelateToManyForCreateInput
+  following_category: CategoryRelateToManyForCreateInput
+  isOfficial: Boolean
+  status: MemberStatusType
+  joinDate: DateTime
+  language: MemberLanguageType
+  createdAt: DateTime
+  updatedAt: DateTime
+  createdBy: UserRelateToOneForCreateInput
+  updatedBy: UserRelateToOneForCreateInput
+}
+
+input PhotoRelateToOneForCreateInput {
+  create: PhotoCreateInput
+  connect: PhotoWhereUniqueInput
+}
+
+input CommentRelateToManyForCreateInput {
+  create: [CommentCreateInput!]
+  connect: [CommentWhereUniqueInput!]
+}
+
+input PostRelateToManyForCreateInput {
+  create: [PostCreateInput!]
+  connect: [PostWhereUniqueInput!]
+}
+
+input ReactionRelateToManyForCreateInput {
+  create: [ReactionCreateInput!]
+  connect: [ReactionWhereUniqueInput!]
+}
+
+input MemberRelateToManyForCreateInput {
+  create: [MemberCreateInput!]
+  connect: [MemberWhereUniqueInput!]
+}
+
+input CategoryRelateToManyForCreateInput {
+  create: [CategoryCreateInput!]
+  connect: [CategoryWhereUniqueInput!]
+}
+
+input UserRelateToOneForCreateInput {
+  create: UserCreateInput
+  connect: UserWhereUniqueInput
+}
+
+type OfficialMapping {
+  id: ID!
+  cmsUser: User
+  officialMember: Member
+  note: String
+  createdAt: DateTime
+  updatedAt: DateTime
+  createdBy: User
+  updatedBy: User
+}
+
+input OfficialMappingWhereUniqueInput {
+  id: ID
+}
+
+input OfficialMappingWhereInput {
+  AND: [OfficialMappingWhereInput!]
+  OR: [OfficialMappingWhereInput!]
+  NOT: [OfficialMappingWhereInput!]
+  id: IDFilter
+  cmsUser: UserWhereInput
+  officialMember: MemberWhereInput
+  note: StringFilter
+  createdAt: DateTimeNullableFilter
+  updatedAt: DateTimeNullableFilter
+  createdBy: UserWhereInput
+  updatedBy: UserWhereInput
+}
+
+input OfficialMappingOrderByInput {
+  id: OrderDirection
+  note: OrderDirection
+  createdAt: OrderDirection
+  updatedAt: OrderDirection
+}
+
+input OfficialMappingUpdateInput {
+  cmsUser: UserRelateToOneForUpdateInput
+  officialMember: MemberRelateToOneForUpdateInput
+  note: String
+  createdAt: DateTime
+  updatedAt: DateTime
+  createdBy: UserRelateToOneForUpdateInput
+  updatedBy: UserRelateToOneForUpdateInput
+}
+
+input MemberRelateToOneForUpdateInput {
+  create: MemberCreateInput
+  connect: MemberWhereUniqueInput
+  disconnect: Boolean
+}
+
+input OfficialMappingUpdateArgs {
+  where: OfficialMappingWhereUniqueInput!
+  data: OfficialMappingUpdateInput!
+}
+
+input OfficialMappingCreateInput {
+  cmsUser: UserRelateToOneForCreateInput
+  officialMember: MemberRelateToOneForCreateInput
+  note: String
+  createdAt: DateTime
+  updatedAt: DateTime
+  createdBy: UserRelateToOneForCreateInput
+  updatedBy: UserRelateToOneForCreateInput
+}
+
+input MemberRelateToOneForCreateInput {
+  create: MemberCreateInput
+  connect: MemberWhereUniqueInput
+}
+
+type Post {
+  id: ID!
+  title: String
+  content: String
+  language: PostLanguageType
+  content_zh: String
+  content_en: String
+  content_vi: String
+  content_id: String
+  content_th: String
+  author: Member
+  ip: String
+  topic: Topic
+  status: PostStatusType
+  heroImage: Photo
+  comments(where: CommentWhereInput! = {}, orderBy: [CommentOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: CommentWhereUniqueInput): [Comment!]
+  commentsCount(where: CommentWhereInput! = {}): Int
+  reactions(where: ReactionWhereInput! = {}, orderBy: [ReactionOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: ReactionWhereUniqueInput): [Reaction!]
+  reactionsCount(where: ReactionWhereInput! = {}): Int
+  reports(where: ReportWhereInput! = {}, orderBy: [ReportOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: ReportWhereUniqueInput): [Report!]
+  reportsCount(where: ReportWhereInput! = {}): Int
+  createdAt: DateTime
+  updatedAt: DateTime
+  createdBy: User
+  updatedBy: User
+}
+
+enum PostLanguageType {
+  zh
+  en
+  vi
+  id
+  th
+}
+
+enum PostStatusType {
+  published
+  draft
+  archived
+  hidden
+}
+
+input PostWhereUniqueInput {
+  id: ID
+}
+
+input PostWhereInput {
+  AND: [PostWhereInput!]
+  OR: [PostWhereInput!]
+  NOT: [PostWhereInput!]
+  id: IDFilter
+  title: StringFilter
+  content: StringFilter
+  language: PostLanguageTypeNullableFilter
+  content_zh: StringFilter
+  content_en: StringFilter
+  content_vi: StringFilter
+  content_id: StringFilter
+  content_th: StringFilter
+  author: MemberWhereInput
+  ip: StringFilter
+  topic: TopicWhereInput
+  status: PostStatusTypeNullableFilter
+  heroImage: PhotoWhereInput
+  comments: CommentManyRelationFilter
+  reactions: ReactionManyRelationFilter
+  reports: ReportManyRelationFilter
+  createdAt: DateTimeNullableFilter
+  updatedAt: DateTimeNullableFilter
+  createdBy: UserWhereInput
+  updatedBy: UserWhereInput
+}
+
+input PostLanguageTypeNullableFilter {
+  equals: PostLanguageType
+  in: [PostLanguageType!]
+  notIn: [PostLanguageType!]
+  not: PostLanguageTypeNullableFilter
+}
+
+input PostStatusTypeNullableFilter {
+  equals: PostStatusType
+  in: [PostStatusType!]
+  notIn: [PostStatusType!]
+  not: PostStatusTypeNullableFilter
+}
+
+input ReportManyRelationFilter {
+  every: ReportWhereInput
+  some: ReportWhereInput
+  none: ReportWhereInput
+}
+
+input PostOrderByInput {
+  id: OrderDirection
+  title: OrderDirection
+  content: OrderDirection
+  language: OrderDirection
+  content_zh: OrderDirection
+  content_en: OrderDirection
+  content_vi: OrderDirection
+  content_id: OrderDirection
+  content_th: OrderDirection
+  ip: OrderDirection
+  status: OrderDirection
+  createdAt: OrderDirection
+  updatedAt: OrderDirection
+}
+
+input PostUpdateInput {
+  title: String
+  content: String
+  language: PostLanguageType
+  content_zh: String
+  content_en: String
+  content_vi: String
+  content_id: String
+  content_th: String
+  author: MemberRelateToOneForUpdateInput
+  ip: String
+  topic: TopicRelateToOneForUpdateInput
+  status: PostStatusType
+  heroImage: PhotoRelateToOneForUpdateInput
+  comments: CommentRelateToManyForUpdateInput
+  reactions: ReactionRelateToManyForUpdateInput
+  reports: ReportRelateToManyForUpdateInput
+  createdAt: DateTime
+  updatedAt: DateTime
+  createdBy: UserRelateToOneForUpdateInput
+  updatedBy: UserRelateToOneForUpdateInput
+}
+
+input TopicRelateToOneForUpdateInput {
+  create: TopicCreateInput
+  connect: TopicWhereUniqueInput
+  disconnect: Boolean
+}
+
+input ReportRelateToManyForUpdateInput {
+  disconnect: [ReportWhereUniqueInput!]
+  set: [ReportWhereUniqueInput!]
+  create: [ReportCreateInput!]
+  connect: [ReportWhereUniqueInput!]
+}
+
+input PostUpdateArgs {
+  where: PostWhereUniqueInput!
+  data: PostUpdateInput!
+}
+
+input PostCreateInput {
+  title: String
+  content: String
+  language: PostLanguageType
+  content_zh: String
+  content_en: String
+  content_vi: String
+  content_id: String
+  content_th: String
+  author: MemberRelateToOneForCreateInput
+  ip: String
+  topic: TopicRelateToOneForCreateInput
+  status: PostStatusType
+  heroImage: PhotoRelateToOneForCreateInput
+  comments: CommentRelateToManyForCreateInput
+  reactions: ReactionRelateToManyForCreateInput
+  reports: ReportRelateToManyForCreateInput
+  createdAt: DateTime
+  updatedAt: DateTime
+  createdBy: UserRelateToOneForCreateInput
+  updatedBy: UserRelateToOneForCreateInput
+}
+
+input TopicRelateToOneForCreateInput {
+  create: TopicCreateInput
+  connect: TopicWhereUniqueInput
+}
+
+input ReportRelateToManyForCreateInput {
+  create: [ReportCreateInput!]
+  connect: [ReportWhereUniqueInput!]
+}
+
+type Topic {
+  id: ID!
+  name: String
+  language: TopicLanguageType
+  name_zh: String
+  name_en: String
+  name_vi: String
+  name_id: String
+  name_th: String
+  slug: String
+  sortOrder: Int
+  description: String
+  posts(where: PostWhereInput! = {}, orderBy: [PostOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: PostWhereUniqueInput): [Post!]
+  postsCount(where: PostWhereInput! = {}): Int
+  createdAt: DateTime
+  updatedAt: DateTime
+  createdBy: User
+  updatedBy: User
+}
+
+enum TopicLanguageType {
+  zh
+  en
+  vi
+  id
+  th
+}
+
+input TopicWhereUniqueInput {
+  id: ID
+  slug: String
+}
+
+input TopicWhereInput {
+  AND: [TopicWhereInput!]
+  OR: [TopicWhereInput!]
+  NOT: [TopicWhereInput!]
+  id: IDFilter
+  name: StringFilter
+  language: TopicLanguageTypeNullableFilter
+  name_zh: StringFilter
+  name_en: StringFilter
+  name_vi: StringFilter
+  name_id: StringFilter
+  name_th: StringFilter
+  slug: StringFilter
+  sortOrder: IntNullableFilter
+  description: StringFilter
+  posts: PostManyRelationFilter
+  createdAt: DateTimeNullableFilter
+  updatedAt: DateTimeNullableFilter
+  createdBy: UserWhereInput
+  updatedBy: UserWhereInput
+}
+
+input TopicLanguageTypeNullableFilter {
+  equals: TopicLanguageType
+  in: [TopicLanguageType!]
+  notIn: [TopicLanguageType!]
+  not: TopicLanguageTypeNullableFilter
+}
+
+input TopicOrderByInput {
+  id: OrderDirection
+  name: OrderDirection
+  language: OrderDirection
+  name_zh: OrderDirection
+  name_en: OrderDirection
+  name_vi: OrderDirection
+  name_id: OrderDirection
+  name_th: OrderDirection
+  slug: OrderDirection
+  sortOrder: OrderDirection
+  description: OrderDirection
+  createdAt: OrderDirection
+  updatedAt: OrderDirection
+}
+
+input TopicUpdateInput {
+  name: String
+  language: TopicLanguageType
+  name_zh: String
+  name_en: String
+  name_vi: String
+  name_id: String
+  name_th: String
+  slug: String
+  sortOrder: Int
+  description: String
+  posts: PostRelateToManyForUpdateInput
+  createdAt: DateTime
+  updatedAt: DateTime
+  createdBy: UserRelateToOneForUpdateInput
+  updatedBy: UserRelateToOneForUpdateInput
+}
+
+input TopicUpdateArgs {
+  where: TopicWhereUniqueInput!
+  data: TopicUpdateInput!
+}
+
+input TopicCreateInput {
+  name: String
+  language: TopicLanguageType
+  name_zh: String
+  name_en: String
+  name_vi: String
+  name_id: String
+  name_th: String
+  slug: String
+  sortOrder: Int
+  description: String
+  posts: PostRelateToManyForCreateInput
+  createdAt: DateTime
+  updatedAt: DateTime
+  createdBy: UserRelateToOneForCreateInput
+  updatedBy: UserRelateToOneForCreateInput
+}
+
+type EditorChoice {
+  id: ID!
+  post: Post
+  sortOrder: Int
+  createdAt: DateTime
+  updatedAt: DateTime
+  createdBy: User
+  updatedBy: User
+}
+
+input EditorChoiceWhereUniqueInput {
+  id: ID
+}
+
+input EditorChoiceWhereInput {
+  AND: [EditorChoiceWhereInput!]
+  OR: [EditorChoiceWhereInput!]
+  NOT: [EditorChoiceWhereInput!]
+  id: IDFilter
+  post: PostWhereInput
+  sortOrder: IntNullableFilter
+  createdAt: DateTimeNullableFilter
+  updatedAt: DateTimeNullableFilter
+  createdBy: UserWhereInput
+  updatedBy: UserWhereInput
+}
+
+input EditorChoiceOrderByInput {
+  id: OrderDirection
+  sortOrder: OrderDirection
+  createdAt: OrderDirection
+  updatedAt: OrderDirection
+}
+
+input EditorChoiceUpdateInput {
+  post: PostRelateToOneForUpdateInput
+  sortOrder: Int
+  createdAt: DateTime
+  updatedAt: DateTime
+  createdBy: UserRelateToOneForUpdateInput
+  updatedBy: UserRelateToOneForUpdateInput
+}
+
+input PostRelateToOneForUpdateInput {
+  create: PostCreateInput
+  connect: PostWhereUniqueInput
+  disconnect: Boolean
+}
+
+input EditorChoiceUpdateArgs {
+  where: EditorChoiceWhereUniqueInput!
+  data: EditorChoiceUpdateInput!
+}
+
+input EditorChoiceCreateInput {
+  post: PostRelateToOneForCreateInput
+  sortOrder: Int
+  createdAt: DateTime
+  updatedAt: DateTime
+  createdBy: UserRelateToOneForCreateInput
+  updatedBy: UserRelateToOneForCreateInput
+}
+
+input PostRelateToOneForCreateInput {
+  create: PostCreateInput
+  connect: PostWhereUniqueInput
+}
+
+type LifeGuide {
+  id: ID!
+  post: Post
+  sortOrder: Int
+  createdAt: DateTime
+  updatedAt: DateTime
+  createdBy: User
+  updatedBy: User
+}
+
+input LifeGuideWhereUniqueInput {
+  id: ID
+}
+
+input LifeGuideWhereInput {
+  AND: [LifeGuideWhereInput!]
+  OR: [LifeGuideWhereInput!]
+  NOT: [LifeGuideWhereInput!]
+  id: IDFilter
+  post: PostWhereInput
+  sortOrder: IntNullableFilter
+  createdAt: DateTimeNullableFilter
+  updatedAt: DateTimeNullableFilter
+  createdBy: UserWhereInput
+  updatedBy: UserWhereInput
+}
+
+input LifeGuideOrderByInput {
+  id: OrderDirection
+  sortOrder: OrderDirection
+  createdAt: OrderDirection
+  updatedAt: OrderDirection
+}
+
+input LifeGuideUpdateInput {
+  post: PostRelateToOneForUpdateInput
+  sortOrder: Int
+  createdAt: DateTime
+  updatedAt: DateTime
+  createdBy: UserRelateToOneForUpdateInput
+  updatedBy: UserRelateToOneForUpdateInput
+}
+
+input LifeGuideUpdateArgs {
+  where: LifeGuideWhereUniqueInput!
+  data: LifeGuideUpdateInput!
+}
+
+input LifeGuideCreateInput {
+  post: PostRelateToOneForCreateInput
+  sortOrder: Int
+  createdAt: DateTime
+  updatedAt: DateTime
+  createdBy: UserRelateToOneForCreateInput
+  updatedBy: UserRelateToOneForCreateInput
+}
+
+type Comment {
+  id: ID!
+  content: String
+  language: CommentLanguageType
+  content_zh: String
+  content_en: String
+  content_vi: String
+  content_id: String
+  content_th: String
+  post: Post
+  member: Member
+  ip: String
+  status: CommentStatusType
+  reactions(where: ReactionWhereInput! = {}, orderBy: [ReactionOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: ReactionWhereUniqueInput): [Reaction!]
+  reactionsCount(where: ReactionWhereInput! = {}): Int
+  reports(where: ReportWhereInput! = {}, orderBy: [ReportOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: ReportWhereUniqueInput): [Report!]
+  reportsCount(where: ReportWhereInput! = {}): Int
+  parent: Comment
+  root: Comment
+  like(where: MemberWhereInput! = {}, orderBy: [MemberOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: MemberWhereUniqueInput): [Member!]
+  likeCount(where: MemberWhereInput! = {}): Int
+  published_date: DateTime
+  is_edited: Boolean
+  is_active: Boolean
+  createdAt: DateTime
+  updatedAt: DateTime
+  createdBy: User
+  updatedBy: User
+}
+
+enum CommentLanguageType {
+  zh
+  en
+  vi
+  id
+  th
+}
+
+enum CommentStatusType {
+  published
+  hidden
+}
+
+input CommentWhereUniqueInput {
+  id: ID
+}
+
+input CommentWhereInput {
+  AND: [CommentWhereInput!]
+  OR: [CommentWhereInput!]
+  NOT: [CommentWhereInput!]
+  id: IDFilter
+  content: StringFilter
+  language: CommentLanguageTypeNullableFilter
+  content_zh: StringFilter
+  content_en: StringFilter
+  content_vi: StringFilter
+  content_id: StringFilter
+  content_th: StringFilter
+  post: PostWhereInput
+  member: MemberWhereInput
+  ip: StringFilter
+  status: CommentStatusTypeNullableFilter
+  reactions: ReactionManyRelationFilter
+  reports: ReportManyRelationFilter
+  parent: CommentWhereInput
+  root: CommentWhereInput
+  like: MemberManyRelationFilter
+  published_date: DateTimeNullableFilter
+  is_edited: BooleanFilter
+  is_active: BooleanFilter
+  createdAt: DateTimeNullableFilter
+  updatedAt: DateTimeNullableFilter
+  createdBy: UserWhereInput
+  updatedBy: UserWhereInput
+}
+
+input CommentLanguageTypeNullableFilter {
+  equals: CommentLanguageType
+  in: [CommentLanguageType!]
+  notIn: [CommentLanguageType!]
+  not: CommentLanguageTypeNullableFilter
+}
+
+input CommentStatusTypeNullableFilter {
+  equals: CommentStatusType
+  in: [CommentStatusType!]
+  notIn: [CommentStatusType!]
+  not: CommentStatusTypeNullableFilter
+}
+
+input CommentOrderByInput {
+  id: OrderDirection
+  content: OrderDirection
+  language: OrderDirection
+  content_zh: OrderDirection
+  content_en: OrderDirection
+  content_vi: OrderDirection
+  content_id: OrderDirection
+  content_th: OrderDirection
+  ip: OrderDirection
+  status: OrderDirection
+  published_date: OrderDirection
+  is_edited: OrderDirection
+  is_active: OrderDirection
+  createdAt: OrderDirection
+  updatedAt: OrderDirection
+}
+
+input CommentUpdateInput {
+  content: String
+  language: CommentLanguageType
+  content_zh: String
+  content_en: String
+  content_vi: String
+  content_id: String
+  content_th: String
+  post: PostRelateToOneForUpdateInput
+  member: MemberRelateToOneForUpdateInput
+  ip: String
+  status: CommentStatusType
+  reactions: ReactionRelateToManyForUpdateInput
+  reports: ReportRelateToManyForUpdateInput
+  parent: CommentRelateToOneForUpdateInput
+  root: CommentRelateToOneForUpdateInput
+  like: MemberRelateToManyForUpdateInput
+  published_date: DateTime
+  is_edited: Boolean
+  is_active: Boolean
+  createdAt: DateTime
+  updatedAt: DateTime
+  createdBy: UserRelateToOneForUpdateInput
+  updatedBy: UserRelateToOneForUpdateInput
+}
+
+input CommentRelateToOneForUpdateInput {
+  create: CommentCreateInput
+  connect: CommentWhereUniqueInput
+  disconnect: Boolean
+}
+
+input CommentUpdateArgs {
+  where: CommentWhereUniqueInput!
+  data: CommentUpdateInput!
+}
+
+input CommentCreateInput {
+  content: String
+  language: CommentLanguageType
+  content_zh: String
+  content_en: String
+  content_vi: String
+  content_id: String
+  content_th: String
+  post: PostRelateToOneForCreateInput
+  member: MemberRelateToOneForCreateInput
+  ip: String
+  status: CommentStatusType
+  reactions: ReactionRelateToManyForCreateInput
+  reports: ReportRelateToManyForCreateInput
+  parent: CommentRelateToOneForCreateInput
+  root: CommentRelateToOneForCreateInput
+  like: MemberRelateToManyForCreateInput
+  published_date: DateTime
+  is_edited: Boolean
+  is_active: Boolean
+  createdAt: DateTime
+  updatedAt: DateTime
+  createdBy: UserRelateToOneForCreateInput
+  updatedBy: UserRelateToOneForCreateInput
+}
+
+input CommentRelateToOneForCreateInput {
+  create: CommentCreateInput
+  connect: CommentWhereUniqueInput
+}
+
+type Reaction {
+  id: ID!
+  member: Member
+  post: Post
+  comment: Comment
+  type: ReactionTypeType
+  createdAt: DateTime
+  updatedAt: DateTime
+  createdBy: User
+  updatedBy: User
+}
+
+enum ReactionTypeType {
+  love
+  like
+  haha
+  sad
+  angry
+  scared
+  wow
+}
+
+input ReactionWhereUniqueInput {
+  id: ID
+}
+
+input ReactionWhereInput {
+  AND: [ReactionWhereInput!]
+  OR: [ReactionWhereInput!]
+  NOT: [ReactionWhereInput!]
+  id: IDFilter
+  member: MemberWhereInput
+  post: PostWhereInput
+  comment: CommentWhereInput
+  type: ReactionTypeTypeNullableFilter
+  createdAt: DateTimeNullableFilter
+  updatedAt: DateTimeNullableFilter
+  createdBy: UserWhereInput
+  updatedBy: UserWhereInput
+}
+
+input ReactionTypeTypeNullableFilter {
+  equals: ReactionTypeType
+  in: [ReactionTypeType!]
+  notIn: [ReactionTypeType!]
+  not: ReactionTypeTypeNullableFilter
+}
+
+input ReactionOrderByInput {
+  id: OrderDirection
+  type: OrderDirection
+  createdAt: OrderDirection
+  updatedAt: OrderDirection
+}
+
+input ReactionUpdateInput {
+  member: MemberRelateToOneForUpdateInput
+  post: PostRelateToOneForUpdateInput
+  comment: CommentRelateToOneForUpdateInput
+  type: ReactionTypeType
+  createdAt: DateTime
+  updatedAt: DateTime
+  createdBy: UserRelateToOneForUpdateInput
+  updatedBy: UserRelateToOneForUpdateInput
+}
+
+input ReactionUpdateArgs {
+  where: ReactionWhereUniqueInput!
+  data: ReactionUpdateInput!
+}
+
+input ReactionCreateInput {
+  member: MemberRelateToOneForCreateInput
+  post: PostRelateToOneForCreateInput
+  comment: CommentRelateToOneForCreateInput
+  type: ReactionTypeType
+  createdAt: DateTime
+  updatedAt: DateTime
+  createdBy: UserRelateToOneForCreateInput
+  updatedBy: UserRelateToOneForCreateInput
+}
+
+type Bookmark {
+  id: ID!
+  post: Post
+  member: Member
+  createdAt: DateTime
+  updatedAt: DateTime
+  createdBy: User
+  updatedBy: User
+}
+
+input BookmarkWhereUniqueInput {
+  id: ID
+}
+
+input BookmarkWhereInput {
+  AND: [BookmarkWhereInput!]
+  OR: [BookmarkWhereInput!]
+  NOT: [BookmarkWhereInput!]
+  id: IDFilter
+  post: PostWhereInput
+  member: MemberWhereInput
+  createdAt: DateTimeNullableFilter
+  updatedAt: DateTimeNullableFilter
+  createdBy: UserWhereInput
+  updatedBy: UserWhereInput
+}
+
+input BookmarkOrderByInput {
+  id: OrderDirection
+  createdAt: OrderDirection
+  updatedAt: OrderDirection
+}
+
+input BookmarkUpdateInput {
+  post: PostRelateToOneForUpdateInput
+  member: MemberRelateToOneForUpdateInput
+  createdAt: DateTime
+  updatedAt: DateTime
+  createdBy: UserRelateToOneForUpdateInput
+  updatedBy: UserRelateToOneForUpdateInput
+}
+
+input BookmarkUpdateArgs {
+  where: BookmarkWhereUniqueInput!
+  data: BookmarkUpdateInput!
+}
+
+input BookmarkCreateInput {
+  post: PostRelateToOneForCreateInput
+  member: MemberRelateToOneForCreateInput
+  createdAt: DateTime
+  updatedAt: DateTime
+  createdBy: UserRelateToOneForCreateInput
+  updatedBy: UserRelateToOneForCreateInput
+}
+
+type Poll {
+  id: ID!
+  title: String
+  title_zh: String
+  title_en: String
+  title_vi: String
+  title_id: String
+  title_th: String
+  post: Post
+  expiresAt: DateTime
+  options(where: PollOptionWhereInput! = {}, orderBy: [PollOptionOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: PollOptionWhereUniqueInput): [PollOption!]
+  optionsCount(where: PollOptionWhereInput! = {}): Int
+  totalVotes: Int
+  createdAt: DateTime
+  updatedAt: DateTime
+  createdBy: User
+  updatedBy: User
+}
+
+input PollWhereUniqueInput {
+  id: ID
+}
+
+input PollWhereInput {
+  AND: [PollWhereInput!]
+  OR: [PollWhereInput!]
+  NOT: [PollWhereInput!]
+  id: IDFilter
+  title: StringFilter
+  title_zh: StringFilter
+  title_en: StringFilter
+  title_vi: StringFilter
+  title_id: StringFilter
+  title_th: StringFilter
+  post: PostWhereInput
+  expiresAt: DateTimeNullableFilter
+  options: PollOptionManyRelationFilter
+  totalVotes: IntNullableFilter
+  createdAt: DateTimeNullableFilter
+  updatedAt: DateTimeNullableFilter
+  createdBy: UserWhereInput
+  updatedBy: UserWhereInput
+}
+
+input PollOptionManyRelationFilter {
+  every: PollOptionWhereInput
+  some: PollOptionWhereInput
+  none: PollOptionWhereInput
+}
+
+input PollOrderByInput {
+  id: OrderDirection
+  title: OrderDirection
+  title_zh: OrderDirection
+  title_en: OrderDirection
+  title_vi: OrderDirection
+  title_id: OrderDirection
+  title_th: OrderDirection
+  expiresAt: OrderDirection
+  totalVotes: OrderDirection
+  createdAt: OrderDirection
+  updatedAt: OrderDirection
+}
+
+input PollUpdateInput {
+  title: String
+  title_zh: String
+  title_en: String
+  title_vi: String
+  title_id: String
+  title_th: String
+  post: PostRelateToOneForUpdateInput
+  expiresAt: DateTime
+  options: PollOptionRelateToManyForUpdateInput
+  totalVotes: Int
+  createdAt: DateTime
+  updatedAt: DateTime
+  createdBy: UserRelateToOneForUpdateInput
+  updatedBy: UserRelateToOneForUpdateInput
+}
+
+input PollOptionRelateToManyForUpdateInput {
+  disconnect: [PollOptionWhereUniqueInput!]
+  set: [PollOptionWhereUniqueInput!]
+  create: [PollOptionCreateInput!]
+  connect: [PollOptionWhereUniqueInput!]
+}
+
+input PollUpdateArgs {
+  where: PollWhereUniqueInput!
+  data: PollUpdateInput!
+}
+
+input PollCreateInput {
+  title: String
+  title_zh: String
+  title_en: String
+  title_vi: String
+  title_id: String
+  title_th: String
+  post: PostRelateToOneForCreateInput
+  expiresAt: DateTime
+  options: PollOptionRelateToManyForCreateInput
+  totalVotes: Int
+  createdAt: DateTime
+  updatedAt: DateTime
+  createdBy: UserRelateToOneForCreateInput
+  updatedBy: UserRelateToOneForCreateInput
+}
+
+input PollOptionRelateToManyForCreateInput {
+  create: [PollOptionCreateInput!]
+  connect: [PollOptionWhereUniqueInput!]
+}
+
+type PollOption {
+  id: ID!
+  text: String
+  text_zh: String
+  text_en: String
+  text_vi: String
+  text_id: String
+  text_th: String
+  poll: Poll
+  voteCount: Int
+  createdAt: DateTime
+  updatedAt: DateTime
+  createdBy: User
+  updatedBy: User
+}
+
+input PollOptionWhereUniqueInput {
+  id: ID
+}
+
+input PollOptionWhereInput {
+  AND: [PollOptionWhereInput!]
+  OR: [PollOptionWhereInput!]
+  NOT: [PollOptionWhereInput!]
+  id: IDFilter
+  text: StringFilter
+  text_zh: StringFilter
+  text_en: StringFilter
+  text_vi: StringFilter
+  text_id: StringFilter
+  text_th: StringFilter
+  poll: PollWhereInput
+  voteCount: IntNullableFilter
+  createdAt: DateTimeNullableFilter
+  updatedAt: DateTimeNullableFilter
+  createdBy: UserWhereInput
+  updatedBy: UserWhereInput
+}
+
+input PollOptionOrderByInput {
+  id: OrderDirection
+  text: OrderDirection
+  text_zh: OrderDirection
+  text_en: OrderDirection
+  text_vi: OrderDirection
+  text_id: OrderDirection
+  text_th: OrderDirection
+  voteCount: OrderDirection
+  createdAt: OrderDirection
+  updatedAt: OrderDirection
+}
+
+input PollOptionUpdateInput {
+  text: String
+  text_zh: String
+  text_en: String
+  text_vi: String
+  text_id: String
+  text_th: String
+  poll: PollRelateToOneForUpdateInput
+  voteCount: Int
+  createdAt: DateTime
+  updatedAt: DateTime
+  createdBy: UserRelateToOneForUpdateInput
+  updatedBy: UserRelateToOneForUpdateInput
+}
+
+input PollRelateToOneForUpdateInput {
+  create: PollCreateInput
+  connect: PollWhereUniqueInput
+  disconnect: Boolean
+}
+
+input PollOptionUpdateArgs {
+  where: PollOptionWhereUniqueInput!
+  data: PollOptionUpdateInput!
+}
+
+input PollOptionCreateInput {
+  text: String
+  text_zh: String
+  text_en: String
+  text_vi: String
+  text_id: String
+  text_th: String
+  poll: PollRelateToOneForCreateInput
+  voteCount: Int
+  createdAt: DateTime
+  updatedAt: DateTime
+  createdBy: UserRelateToOneForCreateInput
+  updatedBy: UserRelateToOneForCreateInput
+}
+
+input PollRelateToOneForCreateInput {
+  create: PollCreateInput
+  connect: PollWhereUniqueInput
+}
+
+type PollVote {
+  id: ID!
+  poll: Poll
+  option: PollOption
+  member: Member
+  createdAt: DateTime
+  updatedAt: DateTime
+  createdBy: User
+  updatedBy: User
+}
+
+input PollVoteWhereUniqueInput {
+  id: ID
+}
+
+input PollVoteWhereInput {
+  AND: [PollVoteWhereInput!]
+  OR: [PollVoteWhereInput!]
+  NOT: [PollVoteWhereInput!]
+  id: IDFilter
+  poll: PollWhereInput
+  option: PollOptionWhereInput
+  member: MemberWhereInput
+  createdAt: DateTimeNullableFilter
+  updatedAt: DateTimeNullableFilter
+  createdBy: UserWhereInput
+  updatedBy: UserWhereInput
+}
+
+input PollVoteOrderByInput {
+  id: OrderDirection
+  createdAt: OrderDirection
+  updatedAt: OrderDirection
+}
+
+input PollVoteUpdateInput {
+  poll: PollRelateToOneForUpdateInput
+  option: PollOptionRelateToOneForUpdateInput
+  member: MemberRelateToOneForUpdateInput
+  createdAt: DateTime
+  updatedAt: DateTime
+  createdBy: UserRelateToOneForUpdateInput
+  updatedBy: UserRelateToOneForUpdateInput
+}
+
+input PollOptionRelateToOneForUpdateInput {
+  create: PollOptionCreateInput
+  connect: PollOptionWhereUniqueInput
+  disconnect: Boolean
+}
+
+input PollVoteUpdateArgs {
+  where: PollVoteWhereUniqueInput!
+  data: PollVoteUpdateInput!
+}
+
+input PollVoteCreateInput {
+  poll: PollRelateToOneForCreateInput
+  option: PollOptionRelateToOneForCreateInput
+  member: MemberRelateToOneForCreateInput
+  createdAt: DateTime
+  updatedAt: DateTime
+  createdBy: UserRelateToOneForCreateInput
+  updatedBy: UserRelateToOneForCreateInput
+}
+
+input PollOptionRelateToOneForCreateInput {
+  create: PollOptionCreateInput
+  connect: PollOptionWhereUniqueInput
+}
+
+type Content {
+  id: ID!
+  identifier: String
+  content: String
+  language: ContentLanguageType
+  content_zh: String
+  content_en: String
+  content_vi: String
+  content_id: String
+  content_th: String
+  createdAt: DateTime
+  updatedAt: DateTime
+  createdBy: User
+  updatedBy: User
+}
+
+enum ContentLanguageType {
+  zh
+  en
+  vi
+  id
+  th
+}
+
+input ContentWhereUniqueInput {
+  id: ID
+  identifier: String
+}
+
+input ContentWhereInput {
+  AND: [ContentWhereInput!]
+  OR: [ContentWhereInput!]
+  NOT: [ContentWhereInput!]
+  id: IDFilter
+  identifier: StringFilter
+  content: StringFilter
+  language: ContentLanguageTypeNullableFilter
+  content_zh: StringFilter
+  content_en: StringFilter
+  content_vi: StringFilter
+  content_id: StringFilter
+  content_th: StringFilter
+  createdAt: DateTimeNullableFilter
+  updatedAt: DateTimeNullableFilter
+  createdBy: UserWhereInput
+  updatedBy: UserWhereInput
+}
+
+input ContentLanguageTypeNullableFilter {
+  equals: ContentLanguageType
+  in: [ContentLanguageType!]
+  notIn: [ContentLanguageType!]
+  not: ContentLanguageTypeNullableFilter
+}
+
+input ContentOrderByInput {
+  id: OrderDirection
+  identifier: OrderDirection
+  content: OrderDirection
+  language: OrderDirection
+  content_zh: OrderDirection
+  content_en: OrderDirection
+  content_vi: OrderDirection
+  content_id: OrderDirection
+  content_th: OrderDirection
+  createdAt: OrderDirection
+  updatedAt: OrderDirection
+}
+
+input ContentUpdateInput {
+  identifier: String
+  content: String
+  language: ContentLanguageType
+  content_zh: String
+  content_en: String
+  content_vi: String
+  content_id: String
+  content_th: String
+  createdAt: DateTime
+  updatedAt: DateTime
+  createdBy: UserRelateToOneForUpdateInput
+  updatedBy: UserRelateToOneForUpdateInput
+}
+
+input ContentUpdateArgs {
+  where: ContentWhereUniqueInput!
+  data: ContentUpdateInput!
+}
+
+input ContentCreateInput {
+  identifier: String
+  content: String
+  language: ContentLanguageType
+  content_zh: String
+  content_en: String
+  content_vi: String
+  content_id: String
+  content_th: String
+  createdAt: DateTime
+  updatedAt: DateTime
+  createdBy: UserRelateToOneForCreateInput
+  updatedBy: UserRelateToOneForCreateInput
+}
+
+type Report {
+  id: ID!
+  post: Post
+  comment: Comment
+  reporter: Member
+  ip: String
+  reason: String
+  status: ReportStatusType
+  adminNotes: String
+  createdAt: DateTime
+  updatedAt: DateTime
+  createdBy: User
+  updatedBy: User
+}
+
+enum ReportStatusType {
+  pending
+  resolved
+  dismissed
+}
+
+input ReportWhereUniqueInput {
+  id: ID
+}
+
+input ReportWhereInput {
+  AND: [ReportWhereInput!]
+  OR: [ReportWhereInput!]
+  NOT: [ReportWhereInput!]
+  id: IDFilter
+  post: PostWhereInput
+  comment: CommentWhereInput
+  reporter: MemberWhereInput
+  ip: StringFilter
+  reason: StringFilter
+  status: ReportStatusTypeNullableFilter
+  adminNotes: StringFilter
+  createdAt: DateTimeNullableFilter
+  updatedAt: DateTimeNullableFilter
+  createdBy: UserWhereInput
+  updatedBy: UserWhereInput
+}
+
+input ReportStatusTypeNullableFilter {
+  equals: ReportStatusType
+  in: [ReportStatusType!]
+  notIn: [ReportStatusType!]
+  not: ReportStatusTypeNullableFilter
+}
+
+input ReportOrderByInput {
+  id: OrderDirection
+  ip: OrderDirection
+  reason: OrderDirection
+  status: OrderDirection
+  adminNotes: OrderDirection
+  createdAt: OrderDirection
+  updatedAt: OrderDirection
+}
+
+input ReportUpdateInput {
+  post: PostRelateToOneForUpdateInput
+  comment: CommentRelateToOneForUpdateInput
+  reporter: MemberRelateToOneForUpdateInput
+  ip: String
+  reason: String
+  status: ReportStatusType
+  adminNotes: String
+  createdAt: DateTime
+  updatedAt: DateTime
+  createdBy: UserRelateToOneForUpdateInput
+  updatedBy: UserRelateToOneForUpdateInput
+}
+
+input ReportUpdateArgs {
+  where: ReportWhereUniqueInput!
+  data: ReportUpdateInput!
+}
+
+input ReportCreateInput {
+  post: PostRelateToOneForCreateInput
+  comment: CommentRelateToOneForCreateInput
+  reporter: MemberRelateToOneForCreateInput
+  ip: String
+  reason: String
+  status: ReportStatusType
+  adminNotes: String
+  createdAt: DateTime
+  updatedAt: DateTime
+  createdBy: UserRelateToOneForCreateInput
+  updatedBy: UserRelateToOneForCreateInput
+}
+
+type ForbiddenKeyword {
+  id: ID!
+  word: String
+  note: String
+  isEnabled: Boolean
+  createdAt: DateTime
+  updatedAt: DateTime
+  createdBy: User
+  updatedBy: User
+}
+
+input ForbiddenKeywordWhereUniqueInput {
+  id: ID
+  word: String
+}
+
+input ForbiddenKeywordWhereInput {
+  AND: [ForbiddenKeywordWhereInput!]
+  OR: [ForbiddenKeywordWhereInput!]
+  NOT: [ForbiddenKeywordWhereInput!]
+  id: IDFilter
+  word: StringFilter
+  note: StringFilter
+  isEnabled: BooleanFilter
+  createdAt: DateTimeNullableFilter
+  updatedAt: DateTimeNullableFilter
+  createdBy: UserWhereInput
+  updatedBy: UserWhereInput
+}
+
+input ForbiddenKeywordOrderByInput {
+  id: OrderDirection
+  word: OrderDirection
+  note: OrderDirection
+  isEnabled: OrderDirection
+  createdAt: OrderDirection
+  updatedAt: OrderDirection
+}
+
+input ForbiddenKeywordUpdateInput {
+  word: String
+  note: String
+  isEnabled: Boolean
+  createdAt: DateTime
+  updatedAt: DateTime
+  createdBy: UserRelateToOneForUpdateInput
+  updatedBy: UserRelateToOneForUpdateInput
+}
+
+input ForbiddenKeywordUpdateArgs {
+  where: ForbiddenKeywordWhereUniqueInput!
+  data: ForbiddenKeywordUpdateInput!
+}
+
+input ForbiddenKeywordCreateInput {
+  word: String
+  note: String
+  isEnabled: Boolean
+  createdAt: DateTime
+  updatedAt: DateTime
+  createdBy: UserRelateToOneForCreateInput
+  updatedBy: UserRelateToOneForCreateInput
+}
+
+type Video {
+  id: ID!
+  url: String
+  coverImage: String
+  createdAt: DateTime
+  updatedAt: DateTime
+  createdBy: User
+  updatedBy: User
+}
+
+input VideoWhereUniqueInput {
+  id: ID
+}
+
+input VideoWhereInput {
+  AND: [VideoWhereInput!]
+  OR: [VideoWhereInput!]
+  NOT: [VideoWhereInput!]
+  id: IDFilter
+  url: StringFilter
+  coverImage: StringFilter
+  createdAt: DateTimeNullableFilter
+  updatedAt: DateTimeNullableFilter
+  createdBy: UserWhereInput
+  updatedBy: UserWhereInput
+}
+
+input VideoOrderByInput {
+  id: OrderDirection
+  url: OrderDirection
+  coverImage: OrderDirection
+  createdAt: OrderDirection
+  updatedAt: OrderDirection
+}
+
+input VideoUpdateInput {
+  url: String
+  coverImage: String
+  createdAt: DateTime
+  updatedAt: DateTime
+  createdBy: UserRelateToOneForUpdateInput
+  updatedBy: UserRelateToOneForUpdateInput
+}
+
+input VideoUpdateArgs {
+  where: VideoWhereUniqueInput!
+  data: VideoUpdateInput!
+}
+
+input VideoCreateInput {
+  url: String
+  coverImage: String
+  createdAt: DateTime
+  updatedAt: DateTime
+  createdBy: UserRelateToOneForCreateInput
+  updatedBy: UserRelateToOneForCreateInput
+}
+
+type Photo {
+  id: ID!
+  name: String
+  file: ImageFieldOutput
+  resized: ResizedImages
+  resizedWebp: ResizedWebPImages
+  urlOriginal: String
+  altText: String
+  caption: String
+  width: Int
+  height: Int
+  uploadedBy: Member
+  createdAt: DateTime
+  updatedAt: DateTime
+  createdBy: User
+  updatedBy: User
+}
+
+type ImageFieldOutput {
+  id: ID!
+  filesize: Int!
+  width: Int!
+  height: Int!
+  extension: ImageExtension!
+  url: String!
+}
+
+enum ImageExtension {
+  jpg
+  png
+  webp
+  gif
+}
+
+type ResizedImages {
+  original: String
+  w480: String
+  w800: String
+  w1200: String
+  w1600: String
+  w2400: String
+}
+
+type ResizedWebPImages {
+  original: String
+  w480: String
+  w800: String
+  w1200: String
+  w1600: String
+  w2400: String
+}
+
+input PhotoWhereUniqueInput {
+  id: ID
+}
+
+input PhotoWhereInput {
+  AND: [PhotoWhereInput!]
+  OR: [PhotoWhereInput!]
+  NOT: [PhotoWhereInput!]
+  id: IDFilter
+  name: StringFilter
+  urlOriginal: StringFilter
+  altText: StringFilter
+  caption: StringFilter
+  width: IntNullableFilter
+  height: IntNullableFilter
+  uploadedBy: MemberWhereInput
+  createdAt: DateTimeNullableFilter
+  updatedAt: DateTimeNullableFilter
+  createdBy: UserWhereInput
+  updatedBy: UserWhereInput
+}
+
+input PhotoOrderByInput {
+  id: OrderDirection
+  name: OrderDirection
+  urlOriginal: OrderDirection
+  altText: OrderDirection
+  caption: OrderDirection
+  width: OrderDirection
+  height: OrderDirection
+  createdAt: OrderDirection
+  updatedAt: OrderDirection
+}
+
+input PhotoUpdateInput {
+  name: String
+  file: ImageFieldInput
+  urlOriginal: String
+  altText: String
+  caption: String
+  width: Int
+  height: Int
+  uploadedBy: MemberRelateToOneForUpdateInput
+  createdAt: DateTime
+  updatedAt: DateTime
+  createdBy: UserRelateToOneForUpdateInput
+  updatedBy: UserRelateToOneForUpdateInput
+}
+
+input ImageFieldInput {
+  upload: Upload!
+}
+
+"""The `Upload` scalar type represents a file upload."""
+scalar Upload
+
+input PhotoUpdateArgs {
+  where: PhotoWhereUniqueInput!
+  data: PhotoUpdateInput!
+}
+
+input PhotoCreateInput {
+  name: String
+  file: ImageFieldInput
+  urlOriginal: String
+  altText: String
+  caption: String
+  width: Int
+  height: Int
+  uploadedBy: MemberRelateToOneForCreateInput
+  createdAt: DateTime
+  updatedAt: DateTime
+  createdBy: UserRelateToOneForCreateInput
+  updatedBy: UserRelateToOneForCreateInput
 }
 
 type Category {
@@ -248,12 +2120,6 @@ input CategoryUpdateInput {
   updatedBy: UserRelateToOneForUpdateInput
 }
 
-input UserRelateToOneForUpdateInput {
-  create: UserCreateInput
-  connect: UserWhereUniqueInput
-  disconnect: Boolean
-}
-
 input CategoryUpdateArgs {
   where: CategoryWhereUniqueInput!
   data: CategoryUpdateInput!
@@ -268,217 +2134,6 @@ input CategoryCreateInput {
   updatedAt: DateTime
   createdBy: UserRelateToOneForCreateInput
   updatedBy: UserRelateToOneForCreateInput
-}
-
-input UserRelateToOneForCreateInput {
-  create: UserCreateInput
-  connect: UserWhereUniqueInput
-}
-
-type Comment {
-  id: ID!
-  member: Member
-  content: String
-  content_zh: String
-  content_en: String
-  content_vi: String
-  content_id: String
-  content_th: String
-  post: Post
-  reactions(where: ReactionWhereInput! = {}, orderBy: [ReactionOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: ReactionWhereUniqueInput): [Reaction!]
-  reactionsCount(where: ReactionWhereInput! = {}): Int
-  parent: Comment
-  root: Comment
-  like(where: MemberWhereInput! = {}, orderBy: [MemberOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: MemberWhereUniqueInput): [Member!]
-  likeCount(where: MemberWhereInput! = {}): Int
-  state: CommentStateType
-  published_date: DateTime
-  is_edited: Boolean
-  is_active: Boolean
-  createdAt: DateTime
-  updatedAt: DateTime
-  createdBy: User
-  updatedBy: User
-}
-
-enum CommentStateType {
-  public
-  private
-  friend
-}
-
-input CommentWhereUniqueInput {
-  id: ID
-}
-
-input CommentWhereInput {
-  AND: [CommentWhereInput!]
-  OR: [CommentWhereInput!]
-  NOT: [CommentWhereInput!]
-  id: IDFilter
-  member: MemberWhereInput
-  content: StringFilter
-  content_zh: StringFilter
-  content_en: StringFilter
-  content_vi: StringFilter
-  content_id: StringFilter
-  content_th: StringFilter
-  post: PostWhereInput
-  reactions: ReactionManyRelationFilter
-  parent: CommentWhereInput
-  root: CommentWhereInput
-  like: MemberManyRelationFilter
-  state: CommentStateTypeNullableFilter
-  published_date: DateTimeNullableFilter
-  is_edited: BooleanFilter
-  is_active: BooleanFilter
-  createdAt: DateTimeNullableFilter
-  updatedAt: DateTimeNullableFilter
-  createdBy: UserWhereInput
-  updatedBy: UserWhereInput
-}
-
-input ReactionManyRelationFilter {
-  every: ReactionWhereInput
-  some: ReactionWhereInput
-  none: ReactionWhereInput
-}
-
-input MemberManyRelationFilter {
-  every: MemberWhereInput
-  some: MemberWhereInput
-  none: MemberWhereInput
-}
-
-input CommentStateTypeNullableFilter {
-  equals: CommentStateType
-  in: [CommentStateType!]
-  notIn: [CommentStateType!]
-  not: CommentStateTypeNullableFilter
-}
-
-input CommentOrderByInput {
-  id: OrderDirection
-  content: OrderDirection
-  content_zh: OrderDirection
-  content_en: OrderDirection
-  content_vi: OrderDirection
-  content_id: OrderDirection
-  content_th: OrderDirection
-  state: OrderDirection
-  published_date: OrderDirection
-  is_edited: OrderDirection
-  is_active: OrderDirection
-  createdAt: OrderDirection
-  updatedAt: OrderDirection
-}
-
-input CommentUpdateInput {
-  member: MemberRelateToOneForUpdateInput
-  content: String
-  content_zh: String
-  content_en: String
-  content_vi: String
-  content_id: String
-  content_th: String
-  post: PostRelateToOneForUpdateInput
-  reactions: ReactionRelateToManyForUpdateInput
-  parent: CommentRelateToOneForUpdateInput
-  root: CommentRelateToOneForUpdateInput
-  like: MemberRelateToManyForUpdateInput
-  state: CommentStateType
-  published_date: DateTime
-  is_edited: Boolean
-  is_active: Boolean
-  createdAt: DateTime
-  updatedAt: DateTime
-  createdBy: UserRelateToOneForUpdateInput
-  updatedBy: UserRelateToOneForUpdateInput
-}
-
-input MemberRelateToOneForUpdateInput {
-  create: MemberCreateInput
-  connect: MemberWhereUniqueInput
-  disconnect: Boolean
-}
-
-input PostRelateToOneForUpdateInput {
-  create: PostCreateInput
-  connect: PostWhereUniqueInput
-  disconnect: Boolean
-}
-
-input ReactionRelateToManyForUpdateInput {
-  disconnect: [ReactionWhereUniqueInput!]
-  set: [ReactionWhereUniqueInput!]
-  create: [ReactionCreateInput!]
-  connect: [ReactionWhereUniqueInput!]
-}
-
-input CommentRelateToOneForUpdateInput {
-  create: CommentCreateInput
-  connect: CommentWhereUniqueInput
-  disconnect: Boolean
-}
-
-input MemberRelateToManyForUpdateInput {
-  disconnect: [MemberWhereUniqueInput!]
-  set: [MemberWhereUniqueInput!]
-  create: [MemberCreateInput!]
-  connect: [MemberWhereUniqueInput!]
-}
-
-input CommentUpdateArgs {
-  where: CommentWhereUniqueInput!
-  data: CommentUpdateInput!
-}
-
-input CommentCreateInput {
-  member: MemberRelateToOneForCreateInput
-  content: String
-  content_zh: String
-  content_en: String
-  content_vi: String
-  content_id: String
-  content_th: String
-  post: PostRelateToOneForCreateInput
-  reactions: ReactionRelateToManyForCreateInput
-  parent: CommentRelateToOneForCreateInput
-  root: CommentRelateToOneForCreateInput
-  like: MemberRelateToManyForCreateInput
-  state: CommentStateType
-  published_date: DateTime
-  is_edited: Boolean
-  is_active: Boolean
-  createdAt: DateTime
-  updatedAt: DateTime
-  createdBy: UserRelateToOneForCreateInput
-  updatedBy: UserRelateToOneForCreateInput
-}
-
-input MemberRelateToOneForCreateInput {
-  create: MemberCreateInput
-  connect: MemberWhereUniqueInput
-}
-
-input PostRelateToOneForCreateInput {
-  create: PostCreateInput
-  connect: PostWhereUniqueInput
-}
-
-input ReactionRelateToManyForCreateInput {
-  create: [ReactionCreateInput!]
-  connect: [ReactionWhereUniqueInput!]
-}
-
-input CommentRelateToOneForCreateInput {
-  create: CommentCreateInput
-  connect: CommentWhereUniqueInput
-}
-
-input MemberRelateToManyForCreateInput {
-  create: [MemberCreateInput!]
-  connect: [MemberWhereUniqueInput!]
 }
 
 type Tag {
@@ -535,516 +2190,6 @@ input TagCreateInput {
   updatedBy: UserRelateToOneForCreateInput
 }
 
-type Member {
-  id: ID!
-  firebaseId: String
-  customId: String
-  name: String
-  nickname: String
-  avatar: String
-  intro: String
-  avatar_image: Photo
-  email: String
-  is_active: Boolean
-  verified: Boolean
-  comment(where: CommentWhereInput! = {}, orderBy: [CommentOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: CommentWhereUniqueInput): [Comment!]
-  commentCount(where: CommentWhereInput! = {}): Int
-  member_like(where: CommentWhereInput! = {}, orderBy: [CommentOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: CommentWhereUniqueInput): [Comment!]
-  member_likeCount(where: CommentWhereInput! = {}): Int
-  posts(where: PostWhereInput! = {}, orderBy: [PostOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: PostWhereUniqueInput): [Post!]
-  postsCount(where: PostWhereInput! = {}): Int
-  reactions(where: ReactionWhereInput! = {}, orderBy: [ReactionOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: ReactionWhereUniqueInput): [Reaction!]
-  reactionsCount(where: ReactionWhereInput! = {}): Int
-  follower(where: MemberWhereInput! = {}, orderBy: [MemberOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: MemberWhereUniqueInput): [Member!]
-  followerCount(where: MemberWhereInput! = {}): Int
-  following(where: MemberWhereInput! = {}, orderBy: [MemberOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: MemberWhereUniqueInput): [Member!]
-  followingCount(where: MemberWhereInput! = {}): Int
-  block(where: MemberWhereInput! = {}, orderBy: [MemberOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: MemberWhereUniqueInput): [Member!]
-  blockCount(where: MemberWhereInput! = {}): Int
-  blocked(where: MemberWhereInput! = {}, orderBy: [MemberOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: MemberWhereUniqueInput): [Member!]
-  blockedCount(where: MemberWhereInput! = {}): Int
-  following_category(where: CategoryWhereInput! = {}, orderBy: [CategoryOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: CategoryWhereUniqueInput): [Category!]
-  following_categoryCount(where: CategoryWhereInput! = {}): Int
-  language: MemberLanguageType
-  createdAt: DateTime
-  updatedAt: DateTime
-  createdBy: User
-  updatedBy: User
-}
-
-enum MemberLanguageType {
-  zh
-  en
-  vi
-  id
-  th
-}
-
-input MemberWhereUniqueInput {
-  id: ID
-  firebaseId: String
-  customId: String
-  email: String
-}
-
-input MemberWhereInput {
-  AND: [MemberWhereInput!]
-  OR: [MemberWhereInput!]
-  NOT: [MemberWhereInput!]
-  id: IDFilter
-  firebaseId: StringFilter
-  customId: StringFilter
-  name: StringFilter
-  nickname: StringFilter
-  avatar: StringFilter
-  intro: StringFilter
-  avatar_image: PhotoWhereInput
-  email: StringFilter
-  is_active: BooleanFilter
-  verified: BooleanFilter
-  comment: CommentManyRelationFilter
-  member_like: CommentManyRelationFilter
-  posts: PostManyRelationFilter
-  reactions: ReactionManyRelationFilter
-  follower: MemberManyRelationFilter
-  following: MemberManyRelationFilter
-  block: MemberManyRelationFilter
-  blocked: MemberManyRelationFilter
-  following_category: CategoryManyRelationFilter
-  language: MemberLanguageTypeNullableFilter
-  createdAt: DateTimeNullableFilter
-  updatedAt: DateTimeNullableFilter
-  createdBy: UserWhereInput
-  updatedBy: UserWhereInput
-}
-
-input CommentManyRelationFilter {
-  every: CommentWhereInput
-  some: CommentWhereInput
-  none: CommentWhereInput
-}
-
-input PostManyRelationFilter {
-  every: PostWhereInput
-  some: PostWhereInput
-  none: PostWhereInput
-}
-
-input CategoryManyRelationFilter {
-  every: CategoryWhereInput
-  some: CategoryWhereInput
-  none: CategoryWhereInput
-}
-
-input MemberLanguageTypeNullableFilter {
-  equals: MemberLanguageType
-  in: [MemberLanguageType!]
-  notIn: [MemberLanguageType!]
-  not: MemberLanguageTypeNullableFilter
-}
-
-input MemberOrderByInput {
-  id: OrderDirection
-  firebaseId: OrderDirection
-  customId: OrderDirection
-  name: OrderDirection
-  nickname: OrderDirection
-  avatar: OrderDirection
-  intro: OrderDirection
-  email: OrderDirection
-  is_active: OrderDirection
-  verified: OrderDirection
-  language: OrderDirection
-  createdAt: OrderDirection
-  updatedAt: OrderDirection
-}
-
-input MemberUpdateInput {
-  firebaseId: String
-  customId: String
-  name: String
-  nickname: String
-  avatar: String
-  intro: String
-  avatar_image: PhotoRelateToOneForUpdateInput
-  email: String
-  is_active: Boolean
-  verified: Boolean
-  comment: CommentRelateToManyForUpdateInput
-  member_like: CommentRelateToManyForUpdateInput
-  posts: PostRelateToManyForUpdateInput
-  reactions: ReactionRelateToManyForUpdateInput
-  follower: MemberRelateToManyForUpdateInput
-  following: MemberRelateToManyForUpdateInput
-  block: MemberRelateToManyForUpdateInput
-  blocked: MemberRelateToManyForUpdateInput
-  following_category: CategoryRelateToManyForUpdateInput
-  language: MemberLanguageType
-  createdAt: DateTime
-  updatedAt: DateTime
-  createdBy: UserRelateToOneForUpdateInput
-  updatedBy: UserRelateToOneForUpdateInput
-}
-
-input PhotoRelateToOneForUpdateInput {
-  create: PhotoCreateInput
-  connect: PhotoWhereUniqueInput
-  disconnect: Boolean
-}
-
-input CommentRelateToManyForUpdateInput {
-  disconnect: [CommentWhereUniqueInput!]
-  set: [CommentWhereUniqueInput!]
-  create: [CommentCreateInput!]
-  connect: [CommentWhereUniqueInput!]
-}
-
-input PostRelateToManyForUpdateInput {
-  disconnect: [PostWhereUniqueInput!]
-  set: [PostWhereUniqueInput!]
-  create: [PostCreateInput!]
-  connect: [PostWhereUniqueInput!]
-}
-
-input CategoryRelateToManyForUpdateInput {
-  disconnect: [CategoryWhereUniqueInput!]
-  set: [CategoryWhereUniqueInput!]
-  create: [CategoryCreateInput!]
-  connect: [CategoryWhereUniqueInput!]
-}
-
-input MemberUpdateArgs {
-  where: MemberWhereUniqueInput!
-  data: MemberUpdateInput!
-}
-
-input MemberCreateInput {
-  firebaseId: String
-  customId: String
-  name: String
-  nickname: String
-  avatar: String
-  intro: String
-  avatar_image: PhotoRelateToOneForCreateInput
-  email: String
-  is_active: Boolean
-  verified: Boolean
-  comment: CommentRelateToManyForCreateInput
-  member_like: CommentRelateToManyForCreateInput
-  posts: PostRelateToManyForCreateInput
-  reactions: ReactionRelateToManyForCreateInput
-  follower: MemberRelateToManyForCreateInput
-  following: MemberRelateToManyForCreateInput
-  block: MemberRelateToManyForCreateInput
-  blocked: MemberRelateToManyForCreateInput
-  following_category: CategoryRelateToManyForCreateInput
-  language: MemberLanguageType
-  createdAt: DateTime
-  updatedAt: DateTime
-  createdBy: UserRelateToOneForCreateInput
-  updatedBy: UserRelateToOneForCreateInput
-}
-
-input PhotoRelateToOneForCreateInput {
-  create: PhotoCreateInput
-  connect: PhotoWhereUniqueInput
-}
-
-input CommentRelateToManyForCreateInput {
-  create: [CommentCreateInput!]
-  connect: [CommentWhereUniqueInput!]
-}
-
-input PostRelateToManyForCreateInput {
-  create: [PostCreateInput!]
-  connect: [PostWhereUniqueInput!]
-}
-
-input CategoryRelateToManyForCreateInput {
-  create: [CategoryCreateInput!]
-  connect: [CategoryWhereUniqueInput!]
-}
-
-type Post {
-  id: ID!
-  title: String
-  content_zh: String
-  content_en: String
-  content_vi: String
-  content_id: String
-  content_th: String
-  author: Member
-  comments(where: CommentWhereInput! = {}, orderBy: [CommentOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: CommentWhereUniqueInput): [Comment!]
-  commentsCount(where: CommentWhereInput! = {}): Int
-  reactions(where: ReactionWhereInput! = {}, orderBy: [ReactionOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: ReactionWhereUniqueInput): [Reaction!]
-  reactionsCount(where: ReactionWhereInput! = {}): Int
-  is_active: Boolean
-  createdAt: DateTime
-  updatedAt: DateTime
-  createdBy: User
-  updatedBy: User
-}
-
-input PostWhereUniqueInput {
-  id: ID
-}
-
-input PostWhereInput {
-  AND: [PostWhereInput!]
-  OR: [PostWhereInput!]
-  NOT: [PostWhereInput!]
-  id: IDFilter
-  title: StringFilter
-  content_zh: StringFilter
-  content_en: StringFilter
-  content_vi: StringFilter
-  content_id: StringFilter
-  content_th: StringFilter
-  author: MemberWhereInput
-  comments: CommentManyRelationFilter
-  reactions: ReactionManyRelationFilter
-  is_active: BooleanFilter
-  createdAt: DateTimeNullableFilter
-  updatedAt: DateTimeNullableFilter
-  createdBy: UserWhereInput
-  updatedBy: UserWhereInput
-}
-
-input PostOrderByInput {
-  id: OrderDirection
-  title: OrderDirection
-  content_zh: OrderDirection
-  content_en: OrderDirection
-  content_vi: OrderDirection
-  content_id: OrderDirection
-  content_th: OrderDirection
-  is_active: OrderDirection
-  createdAt: OrderDirection
-  updatedAt: OrderDirection
-}
-
-input PostUpdateInput {
-  title: String
-  content_zh: String
-  content_en: String
-  content_vi: String
-  content_id: String
-  content_th: String
-  author: MemberRelateToOneForUpdateInput
-  comments: CommentRelateToManyForUpdateInput
-  reactions: ReactionRelateToManyForUpdateInput
-  is_active: Boolean
-  createdAt: DateTime
-  updatedAt: DateTime
-  createdBy: UserRelateToOneForUpdateInput
-  updatedBy: UserRelateToOneForUpdateInput
-}
-
-input PostUpdateArgs {
-  where: PostWhereUniqueInput!
-  data: PostUpdateInput!
-}
-
-input PostCreateInput {
-  title: String
-  content_zh: String
-  content_en: String
-  content_vi: String
-  content_id: String
-  content_th: String
-  author: MemberRelateToOneForCreateInput
-  comments: CommentRelateToManyForCreateInput
-  reactions: ReactionRelateToManyForCreateInput
-  is_active: Boolean
-  createdAt: DateTime
-  updatedAt: DateTime
-  createdBy: UserRelateToOneForCreateInput
-  updatedBy: UserRelateToOneForCreateInput
-}
-
-type Reaction {
-  id: ID!
-  member: Member
-  post: Post
-  comment: Comment
-  emotion: ReactionEmotionType
-  createdAt: DateTime
-  updatedAt: DateTime
-  createdBy: User
-  updatedBy: User
-}
-
-enum ReactionEmotionType {
-  happy
-  angry
-  surprise
-  sad
-}
-
-input ReactionWhereUniqueInput {
-  id: ID
-}
-
-input ReactionWhereInput {
-  AND: [ReactionWhereInput!]
-  OR: [ReactionWhereInput!]
-  NOT: [ReactionWhereInput!]
-  id: IDFilter
-  member: MemberWhereInput
-  post: PostWhereInput
-  comment: CommentWhereInput
-  emotion: ReactionEmotionTypeNullableFilter
-  createdAt: DateTimeNullableFilter
-  updatedAt: DateTimeNullableFilter
-  createdBy: UserWhereInput
-  updatedBy: UserWhereInput
-}
-
-input ReactionEmotionTypeNullableFilter {
-  equals: ReactionEmotionType
-  in: [ReactionEmotionType!]
-  notIn: [ReactionEmotionType!]
-  not: ReactionEmotionTypeNullableFilter
-}
-
-input ReactionOrderByInput {
-  id: OrderDirection
-  emotion: OrderDirection
-  createdAt: OrderDirection
-  updatedAt: OrderDirection
-}
-
-input ReactionUpdateInput {
-  member: MemberRelateToOneForUpdateInput
-  post: PostRelateToOneForUpdateInput
-  comment: CommentRelateToOneForUpdateInput
-  emotion: ReactionEmotionType
-  createdAt: DateTime
-  updatedAt: DateTime
-  createdBy: UserRelateToOneForUpdateInput
-  updatedBy: UserRelateToOneForUpdateInput
-}
-
-input ReactionUpdateArgs {
-  where: ReactionWhereUniqueInput!
-  data: ReactionUpdateInput!
-}
-
-input ReactionCreateInput {
-  member: MemberRelateToOneForCreateInput
-  post: PostRelateToOneForCreateInput
-  comment: CommentRelateToOneForCreateInput
-  emotion: ReactionEmotionType
-  createdAt: DateTime
-  updatedAt: DateTime
-  createdBy: UserRelateToOneForCreateInput
-  updatedBy: UserRelateToOneForCreateInput
-}
-
-type Photo {
-  id: ID!
-  name: String
-  file: ImageFieldOutput
-  resized: ResizedImages
-  resizedWebp: ResizedWebPImages
-  urlOriginal: String
-  createdAt: DateTime
-  updatedAt: DateTime
-  createdBy: User
-  updatedBy: User
-}
-
-type ImageFieldOutput {
-  id: ID!
-  filesize: Int!
-  width: Int!
-  height: Int!
-  extension: ImageExtension!
-  url: String!
-}
-
-enum ImageExtension {
-  jpg
-  png
-  webp
-  gif
-}
-
-type ResizedImages {
-  original: String
-  w480: String
-  w800: String
-  w1200: String
-  w1600: String
-  w2400: String
-}
-
-type ResizedWebPImages {
-  original: String
-  w480: String
-  w800: String
-  w1200: String
-  w1600: String
-  w2400: String
-}
-
-input PhotoWhereUniqueInput {
-  id: ID
-}
-
-input PhotoWhereInput {
-  AND: [PhotoWhereInput!]
-  OR: [PhotoWhereInput!]
-  NOT: [PhotoWhereInput!]
-  id: IDFilter
-  name: StringFilter
-  urlOriginal: StringFilter
-  createdAt: DateTimeNullableFilter
-  updatedAt: DateTimeNullableFilter
-  createdBy: UserWhereInput
-  updatedBy: UserWhereInput
-}
-
-input PhotoOrderByInput {
-  id: OrderDirection
-  name: OrderDirection
-  urlOriginal: OrderDirection
-  createdAt: OrderDirection
-  updatedAt: OrderDirection
-}
-
-input PhotoUpdateInput {
-  name: String
-  file: ImageFieldInput
-  urlOriginal: String
-  createdAt: DateTime
-  updatedAt: DateTime
-  createdBy: UserRelateToOneForUpdateInput
-  updatedBy: UserRelateToOneForUpdateInput
-}
-
-input ImageFieldInput {
-  upload: Upload!
-}
-
-"""The `Upload` scalar type represents a file upload."""
-scalar Upload
-
-input PhotoUpdateArgs {
-  where: PhotoWhereUniqueInput!
-  data: PhotoUpdateInput!
-}
-
-input PhotoCreateInput {
-  name: String
-  file: ImageFieldInput
-  urlOriginal: String
-  createdAt: DateTime
-  updatedAt: DateTime
-  createdBy: UserRelateToOneForCreateInput
-  updatedBy: UserRelateToOneForCreateInput
-}
-
 """
 The `JSON` scalar type represents JSON values as specified by [ECMA-404](http://www.ecma-international.org/publications/files/ECMA-ST/ECMA-404.pdf).
 """
@@ -1057,48 +2202,120 @@ type Mutation {
   updateUsers(data: [UserUpdateArgs!]!): [User]
   deleteUser(where: UserWhereUniqueInput!): User
   deleteUsers(where: [UserWhereUniqueInput!]!): [User]
-  createCategory(data: CategoryCreateInput!): Category
-  createCategories(data: [CategoryCreateInput!]!): [Category]
-  updateCategory(where: CategoryWhereUniqueInput!, data: CategoryUpdateInput!): Category
-  updateCategories(data: [CategoryUpdateArgs!]!): [Category]
-  deleteCategory(where: CategoryWhereUniqueInput!): Category
-  deleteCategories(where: [CategoryWhereUniqueInput!]!): [Category]
-  createComment(data: CommentCreateInput!): Comment
-  createComments(data: [CommentCreateInput!]!): [Comment]
-  updateComment(where: CommentWhereUniqueInput!, data: CommentUpdateInput!): Comment
-  updateComments(data: [CommentUpdateArgs!]!): [Comment]
-  deleteComment(where: CommentWhereUniqueInput!): Comment
-  deleteComments(where: [CommentWhereUniqueInput!]!): [Comment]
-  createTag(data: TagCreateInput!): Tag
-  createTags(data: [TagCreateInput!]!): [Tag]
-  updateTag(where: TagWhereUniqueInput!, data: TagUpdateInput!): Tag
-  updateTags(data: [TagUpdateArgs!]!): [Tag]
-  deleteTag(where: TagWhereUniqueInput!): Tag
-  deleteTags(where: [TagWhereUniqueInput!]!): [Tag]
   createMember(data: MemberCreateInput!): Member
   createMembers(data: [MemberCreateInput!]!): [Member]
   updateMember(where: MemberWhereUniqueInput!, data: MemberUpdateInput!): Member
   updateMembers(data: [MemberUpdateArgs!]!): [Member]
   deleteMember(where: MemberWhereUniqueInput!): Member
   deleteMembers(where: [MemberWhereUniqueInput!]!): [Member]
+  createOfficialMapping(data: OfficialMappingCreateInput!): OfficialMapping
+  createOfficialMappings(data: [OfficialMappingCreateInput!]!): [OfficialMapping]
+  updateOfficialMapping(where: OfficialMappingWhereUniqueInput!, data: OfficialMappingUpdateInput!): OfficialMapping
+  updateOfficialMappings(data: [OfficialMappingUpdateArgs!]!): [OfficialMapping]
+  deleteOfficialMapping(where: OfficialMappingWhereUniqueInput!): OfficialMapping
+  deleteOfficialMappings(where: [OfficialMappingWhereUniqueInput!]!): [OfficialMapping]
   createPost(data: PostCreateInput!): Post
   createPosts(data: [PostCreateInput!]!): [Post]
   updatePost(where: PostWhereUniqueInput!, data: PostUpdateInput!): Post
   updatePosts(data: [PostUpdateArgs!]!): [Post]
   deletePost(where: PostWhereUniqueInput!): Post
   deletePosts(where: [PostWhereUniqueInput!]!): [Post]
+  createTopic(data: TopicCreateInput!): Topic
+  createTopics(data: [TopicCreateInput!]!): [Topic]
+  updateTopic(where: TopicWhereUniqueInput!, data: TopicUpdateInput!): Topic
+  updateTopics(data: [TopicUpdateArgs!]!): [Topic]
+  deleteTopic(where: TopicWhereUniqueInput!): Topic
+  deleteTopics(where: [TopicWhereUniqueInput!]!): [Topic]
+  createEditorChoice(data: EditorChoiceCreateInput!): EditorChoice
+  createEditorChoices(data: [EditorChoiceCreateInput!]!): [EditorChoice]
+  updateEditorChoice(where: EditorChoiceWhereUniqueInput!, data: EditorChoiceUpdateInput!): EditorChoice
+  updateEditorChoices(data: [EditorChoiceUpdateArgs!]!): [EditorChoice]
+  deleteEditorChoice(where: EditorChoiceWhereUniqueInput!): EditorChoice
+  deleteEditorChoices(where: [EditorChoiceWhereUniqueInput!]!): [EditorChoice]
+  createLifeGuide(data: LifeGuideCreateInput!): LifeGuide
+  createLifeGuides(data: [LifeGuideCreateInput!]!): [LifeGuide]
+  updateLifeGuide(where: LifeGuideWhereUniqueInput!, data: LifeGuideUpdateInput!): LifeGuide
+  updateLifeGuides(data: [LifeGuideUpdateArgs!]!): [LifeGuide]
+  deleteLifeGuide(where: LifeGuideWhereUniqueInput!): LifeGuide
+  deleteLifeGuides(where: [LifeGuideWhereUniqueInput!]!): [LifeGuide]
+  createComment(data: CommentCreateInput!): Comment
+  createComments(data: [CommentCreateInput!]!): [Comment]
+  updateComment(where: CommentWhereUniqueInput!, data: CommentUpdateInput!): Comment
+  updateComments(data: [CommentUpdateArgs!]!): [Comment]
+  deleteComment(where: CommentWhereUniqueInput!): Comment
+  deleteComments(where: [CommentWhereUniqueInput!]!): [Comment]
   createReaction(data: ReactionCreateInput!): Reaction
   createReactions(data: [ReactionCreateInput!]!): [Reaction]
   updateReaction(where: ReactionWhereUniqueInput!, data: ReactionUpdateInput!): Reaction
   updateReactions(data: [ReactionUpdateArgs!]!): [Reaction]
   deleteReaction(where: ReactionWhereUniqueInput!): Reaction
   deleteReactions(where: [ReactionWhereUniqueInput!]!): [Reaction]
+  createBookmark(data: BookmarkCreateInput!): Bookmark
+  createBookmarks(data: [BookmarkCreateInput!]!): [Bookmark]
+  updateBookmark(where: BookmarkWhereUniqueInput!, data: BookmarkUpdateInput!): Bookmark
+  updateBookmarks(data: [BookmarkUpdateArgs!]!): [Bookmark]
+  deleteBookmark(where: BookmarkWhereUniqueInput!): Bookmark
+  deleteBookmarks(where: [BookmarkWhereUniqueInput!]!): [Bookmark]
+  createPoll(data: PollCreateInput!): Poll
+  createPolls(data: [PollCreateInput!]!): [Poll]
+  updatePoll(where: PollWhereUniqueInput!, data: PollUpdateInput!): Poll
+  updatePolls(data: [PollUpdateArgs!]!): [Poll]
+  deletePoll(where: PollWhereUniqueInput!): Poll
+  deletePolls(where: [PollWhereUniqueInput!]!): [Poll]
+  createPollOption(data: PollOptionCreateInput!): PollOption
+  createPollOptions(data: [PollOptionCreateInput!]!): [PollOption]
+  updatePollOption(where: PollOptionWhereUniqueInput!, data: PollOptionUpdateInput!): PollOption
+  updatePollOptions(data: [PollOptionUpdateArgs!]!): [PollOption]
+  deletePollOption(where: PollOptionWhereUniqueInput!): PollOption
+  deletePollOptions(where: [PollOptionWhereUniqueInput!]!): [PollOption]
+  createPollVote(data: PollVoteCreateInput!): PollVote
+  createPollVotes(data: [PollVoteCreateInput!]!): [PollVote]
+  updatePollVote(where: PollVoteWhereUniqueInput!, data: PollVoteUpdateInput!): PollVote
+  updatePollVotes(data: [PollVoteUpdateArgs!]!): [PollVote]
+  deletePollVote(where: PollVoteWhereUniqueInput!): PollVote
+  deletePollVotes(where: [PollVoteWhereUniqueInput!]!): [PollVote]
+  createContent(data: ContentCreateInput!): Content
+  createContents(data: [ContentCreateInput!]!): [Content]
+  updateContent(where: ContentWhereUniqueInput!, data: ContentUpdateInput!): Content
+  updateContents(data: [ContentUpdateArgs!]!): [Content]
+  deleteContent(where: ContentWhereUniqueInput!): Content
+  deleteContents(where: [ContentWhereUniqueInput!]!): [Content]
+  createReport(data: ReportCreateInput!): Report
+  createReports(data: [ReportCreateInput!]!): [Report]
+  updateReport(where: ReportWhereUniqueInput!, data: ReportUpdateInput!): Report
+  updateReports(data: [ReportUpdateArgs!]!): [Report]
+  deleteReport(where: ReportWhereUniqueInput!): Report
+  deleteReports(where: [ReportWhereUniqueInput!]!): [Report]
+  createForbiddenKeyword(data: ForbiddenKeywordCreateInput!): ForbiddenKeyword
+  createForbiddenKeywords(data: [ForbiddenKeywordCreateInput!]!): [ForbiddenKeyword]
+  updateForbiddenKeyword(where: ForbiddenKeywordWhereUniqueInput!, data: ForbiddenKeywordUpdateInput!): ForbiddenKeyword
+  updateForbiddenKeywords(data: [ForbiddenKeywordUpdateArgs!]!): [ForbiddenKeyword]
+  deleteForbiddenKeyword(where: ForbiddenKeywordWhereUniqueInput!): ForbiddenKeyword
+  deleteForbiddenKeywords(where: [ForbiddenKeywordWhereUniqueInput!]!): [ForbiddenKeyword]
+  createVideo(data: VideoCreateInput!): Video
+  createVideos(data: [VideoCreateInput!]!): [Video]
+  updateVideo(where: VideoWhereUniqueInput!, data: VideoUpdateInput!): Video
+  updateVideos(data: [VideoUpdateArgs!]!): [Video]
+  deleteVideo(where: VideoWhereUniqueInput!): Video
+  deleteVideos(where: [VideoWhereUniqueInput!]!): [Video]
   createPhoto(data: PhotoCreateInput!): Photo
   createPhotos(data: [PhotoCreateInput!]!): [Photo]
   updatePhoto(where: PhotoWhereUniqueInput!, data: PhotoUpdateInput!): Photo
   updatePhotos(data: [PhotoUpdateArgs!]!): [Photo]
   deletePhoto(where: PhotoWhereUniqueInput!): Photo
   deletePhotos(where: [PhotoWhereUniqueInput!]!): [Photo]
+  createCategory(data: CategoryCreateInput!): Category
+  createCategories(data: [CategoryCreateInput!]!): [Category]
+  updateCategory(where: CategoryWhereUniqueInput!, data: CategoryUpdateInput!): Category
+  updateCategories(data: [CategoryUpdateArgs!]!): [Category]
+  deleteCategory(where: CategoryWhereUniqueInput!): Category
+  deleteCategories(where: [CategoryWhereUniqueInput!]!): [Category]
+  createTag(data: TagCreateInput!): Tag
+  createTags(data: [TagCreateInput!]!): [Tag]
+  updateTag(where: TagWhereUniqueInput!, data: TagUpdateInput!): Tag
+  updateTags(data: [TagUpdateArgs!]!): [Tag]
+  deleteTag(where: TagWhereUniqueInput!): Tag
+  deleteTags(where: [TagWhereUniqueInput!]!): [Tag]
   endSession: Boolean!
   authenticateUserWithPassword(email: String!, password: String!): UserAuthenticationWithPasswordResult
   createInitialUser(data: CreateInitialUserInput!): UserAuthenticationWithPasswordSuccess!
@@ -1173,27 +2390,63 @@ type Query {
   user(where: UserWhereUniqueInput!): User
   users(where: UserWhereInput! = {}, orderBy: [UserOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: UserWhereUniqueInput): [User!]
   usersCount(where: UserWhereInput! = {}): Int
-  category(where: CategoryWhereUniqueInput!): Category
-  categories(where: CategoryWhereInput! = {}, orderBy: [CategoryOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: CategoryWhereUniqueInput): [Category!]
-  categoriesCount(where: CategoryWhereInput! = {}): Int
-  comment(where: CommentWhereUniqueInput!): Comment
-  comments(where: CommentWhereInput! = {}, orderBy: [CommentOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: CommentWhereUniqueInput): [Comment!]
-  commentsCount(where: CommentWhereInput! = {}): Int
-  tag(where: TagWhereUniqueInput!): Tag
-  tags(where: TagWhereInput! = {}, orderBy: [TagOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: TagWhereUniqueInput): [Tag!]
-  tagsCount(where: TagWhereInput! = {}): Int
   member(where: MemberWhereUniqueInput!): Member
   members(where: MemberWhereInput! = {}, orderBy: [MemberOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: MemberWhereUniqueInput): [Member!]
   membersCount(where: MemberWhereInput! = {}): Int
+  officialMapping(where: OfficialMappingWhereUniqueInput!): OfficialMapping
+  officialMappings(where: OfficialMappingWhereInput! = {}, orderBy: [OfficialMappingOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: OfficialMappingWhereUniqueInput): [OfficialMapping!]
+  officialMappingsCount(where: OfficialMappingWhereInput! = {}): Int
   post(where: PostWhereUniqueInput!): Post
   posts(where: PostWhereInput! = {}, orderBy: [PostOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: PostWhereUniqueInput): [Post!]
   postsCount(where: PostWhereInput! = {}): Int
+  topic(where: TopicWhereUniqueInput!): Topic
+  topics(where: TopicWhereInput! = {}, orderBy: [TopicOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: TopicWhereUniqueInput): [Topic!]
+  topicsCount(where: TopicWhereInput! = {}): Int
+  editorChoice(where: EditorChoiceWhereUniqueInput!): EditorChoice
+  editorChoices(where: EditorChoiceWhereInput! = {}, orderBy: [EditorChoiceOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: EditorChoiceWhereUniqueInput): [EditorChoice!]
+  editorChoicesCount(where: EditorChoiceWhereInput! = {}): Int
+  lifeGuide(where: LifeGuideWhereUniqueInput!): LifeGuide
+  lifeGuides(where: LifeGuideWhereInput! = {}, orderBy: [LifeGuideOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: LifeGuideWhereUniqueInput): [LifeGuide!]
+  lifeGuidesCount(where: LifeGuideWhereInput! = {}): Int
+  comment(where: CommentWhereUniqueInput!): Comment
+  comments(where: CommentWhereInput! = {}, orderBy: [CommentOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: CommentWhereUniqueInput): [Comment!]
+  commentsCount(where: CommentWhereInput! = {}): Int
   reaction(where: ReactionWhereUniqueInput!): Reaction
   reactions(where: ReactionWhereInput! = {}, orderBy: [ReactionOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: ReactionWhereUniqueInput): [Reaction!]
   reactionsCount(where: ReactionWhereInput! = {}): Int
+  bookmark(where: BookmarkWhereUniqueInput!): Bookmark
+  bookmarks(where: BookmarkWhereInput! = {}, orderBy: [BookmarkOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: BookmarkWhereUniqueInput): [Bookmark!]
+  bookmarksCount(where: BookmarkWhereInput! = {}): Int
+  poll(where: PollWhereUniqueInput!): Poll
+  polls(where: PollWhereInput! = {}, orderBy: [PollOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: PollWhereUniqueInput): [Poll!]
+  pollsCount(where: PollWhereInput! = {}): Int
+  pollOption(where: PollOptionWhereUniqueInput!): PollOption
+  pollOptions(where: PollOptionWhereInput! = {}, orderBy: [PollOptionOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: PollOptionWhereUniqueInput): [PollOption!]
+  pollOptionsCount(where: PollOptionWhereInput! = {}): Int
+  pollVote(where: PollVoteWhereUniqueInput!): PollVote
+  pollVotes(where: PollVoteWhereInput! = {}, orderBy: [PollVoteOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: PollVoteWhereUniqueInput): [PollVote!]
+  pollVotesCount(where: PollVoteWhereInput! = {}): Int
+  content(where: ContentWhereUniqueInput!): Content
+  contents(where: ContentWhereInput! = {}, orderBy: [ContentOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: ContentWhereUniqueInput): [Content!]
+  contentsCount(where: ContentWhereInput! = {}): Int
+  report(where: ReportWhereUniqueInput!): Report
+  reports(where: ReportWhereInput! = {}, orderBy: [ReportOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: ReportWhereUniqueInput): [Report!]
+  reportsCount(where: ReportWhereInput! = {}): Int
+  forbiddenKeyword(where: ForbiddenKeywordWhereUniqueInput!): ForbiddenKeyword
+  forbiddenKeywords(where: ForbiddenKeywordWhereInput! = {}, orderBy: [ForbiddenKeywordOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: ForbiddenKeywordWhereUniqueInput): [ForbiddenKeyword!]
+  forbiddenKeywordsCount(where: ForbiddenKeywordWhereInput! = {}): Int
+  video(where: VideoWhereUniqueInput!): Video
+  videos(where: VideoWhereInput! = {}, orderBy: [VideoOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: VideoWhereUniqueInput): [Video!]
+  videosCount(where: VideoWhereInput! = {}): Int
   photo(where: PhotoWhereUniqueInput!): Photo
   photos(where: PhotoWhereInput! = {}, orderBy: [PhotoOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: PhotoWhereUniqueInput): [Photo!]
   photosCount(where: PhotoWhereInput! = {}): Int
+  category(where: CategoryWhereUniqueInput!): Category
+  categories(where: CategoryWhereInput! = {}, orderBy: [CategoryOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: CategoryWhereUniqueInput): [Category!]
+  categoriesCount(where: CategoryWhereInput! = {}): Int
+  tag(where: TagWhereUniqueInput!): Tag
+  tags(where: TagWhereInput! = {}, orderBy: [TagOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: TagWhereUniqueInput): [Tag!]
+  tagsCount(where: TagWhereInput! = {}): Int
   keystone: KeystoneMeta!
   authenticatedItem: AuthenticatedItem
   validateUserPasswordResetToken(email: String!, token: String!): ValidateUserPasswordResetTokenResult
