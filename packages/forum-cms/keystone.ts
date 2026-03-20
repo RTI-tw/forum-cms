@@ -1352,16 +1352,18 @@ export default function ResetPasswordPage() {
         });
 
         const result = await response.json();
+        if (result.errors?.length) {
+          throw new Error(result.errors[0]?.message ?? '驗證失敗，請稍後再試。');
+        }
+
         const validationResult = result.data?.validateUserPasswordResetToken;
 
-        if (validationResult) {
-          setValidationError(validationResult.message);
-        } else {
-          setValidationError('');
-        }
+        setValidationError(validationResult ? validationResult.message : '');
       } catch (error) {
         console.error(error);
-        setValidationError('驗證失敗，請稍後再試。');
+        setValidationError(
+          error instanceof Error ? error.message : '驗證失敗，請稍後再試。'
+        );
       } finally {
         setIsValidating(false);
       }
@@ -1410,6 +1412,9 @@ export default function ResetPasswordPage() {
       });
 
       const result = await response.json();
+      if (result.errors?.length) {
+        throw new Error(result.errors[0]?.message ?? '重設失敗，請稍後再試。');
+      }
       const resetResult = result.data?.redeemUserPasswordResetToken;
 
       if (resetResult) {
@@ -1425,7 +1430,7 @@ export default function ResetPasswordPage() {
     } catch (error) {
       console.error(error);
       setStatus('error');
-      setMessage('重設失敗，請稍後再試。');
+      setMessage(error instanceof Error ? error.message : '重設失敗，請稍後再試。');
     } finally {
       setIsSubmitting(false);
     }
@@ -2005,6 +2010,39 @@ export default function SigninPage() {
 }
 `;
 
+const customAdminAdditionalFiles = async () => [
+  {
+    mode: 'write' as const,
+    outputPath: 'pages/change-password.tsx',
+    src: changePasswordPageTemplate,
+  },
+  {
+    mode: 'write' as const,
+    outputPath: 'pages/signin.tsx',
+    src: signinPageTemplate,
+  },
+  {
+    mode: 'write' as const,
+    outputPath: 'pages/forgot-password.tsx',
+    src: forgotPasswordPageTemplate,
+  },
+  {
+    mode: 'write' as const,
+    outputPath: 'pages/reset-password.tsx',
+    src: resetPasswordPageTemplate,
+  },
+  {
+    mode: 'write' as const,
+    outputPath: 'pages/account-locked.tsx',
+    src: accountLockedPageTemplate,
+  },
+  {
+    mode: 'write' as const,
+    outputPath: 'pages/_document.tsx',
+    src: adminDocumentTemplate,
+  },
+]
+
 const passwordEnforcerClientScript = `
 (function () {
   var CHANGE_PATH = '${CHANGE_PASSWORD_PATH}';
@@ -2294,6 +2332,9 @@ export default class CustomDocument extends Document {
 
 const graphqlConfig = {
     apolloConfig: {
+        ...(envVar.graphqlDisableCsrfPrevention
+            ? { csrfPrevention: false }
+            : {}),
         plugins: [
             createLoginLoggingPlugin(),
             ...(envVar.accessControlStrategy === "gql" && envVar.cache.isEnabled
@@ -2319,7 +2360,6 @@ const graphqlConfig = {
             : {}),
     } as any,
     extendGraphqlSchema: (schema: any) => {
-        // Apply both schema extensions
         schema = passwordSchemaExtension(schema);
         schema = memberAuthSchemaExtension(schema);
         return schema;
@@ -2389,40 +2429,7 @@ const baseKeystoneConfig = config({
 
             return !!session;
         },
-        getAdditionalFiles: [
-            async () => [
-                {
-                    mode: "write" as const,
-                    outputPath: "pages/change-password.tsx",
-                    src: changePasswordPageTemplate,
-                },
-                {
-                    mode: "write" as const,
-                    outputPath: "pages/signin.tsx",
-                    src: signinPageTemplate,
-                },
-                {
-                    mode: "write" as const,
-                    outputPath: "pages/forgot-password.tsx",
-                    src: forgotPasswordPageTemplate,
-                },
-                {
-                    mode: "write" as const,
-                    outputPath: "pages/reset-password.tsx",
-                    src: resetPasswordPageTemplate,
-                },
-                {
-                    mode: "write" as const,
-                    outputPath: "pages/account-locked.tsx",
-                    src: accountLockedPageTemplate,
-                },
-                {
-                    mode: "write" as const,
-                    outputPath: "pages/_document.tsx",
-                    src: adminDocumentTemplate,
-                },
-            ],
-        ],
+        getAdditionalFiles: [customAdminAdditionalFiles],
     },
     graphql: graphqlConfig as any,
     lists,
@@ -2544,16 +2551,22 @@ const baseKeystoneConfig = config({
 
 const keystone = withAuth(baseKeystoneConfig);
 
+const SIGNIN_FILE_OUTPUTS = new Set(["pages/signin.js", "pages/signin.tsx"]);
+
 if (keystone.ui?.getAdditionalFiles?.length) {
     keystone.ui.getAdditionalFiles = keystone.ui.getAdditionalFiles.map(
         (getFiles) => {
+            if (getFiles === customAdminAdditionalFiles) {
+                return getFiles;
+            }
+
             return async () => {
                 const files = await getFiles();
                 if (!Array.isArray(files)) {
                     return files;
                 }
                 return files.filter(
-                    (file) => file.outputPath !== "pages/signin.js",
+                    (file) => !SIGNIN_FILE_OUTPUTS.has(file.outputPath),
                 );
             };
         },
