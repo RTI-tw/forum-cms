@@ -53,8 +53,21 @@ DATABASE_URL=postgres://anotherAccount:anotherPasswd@localhost:5433/anotherDatab
 
 成功將服務起來後，使用瀏覽器打開 [http://localhost:3000](http://localhost:3000)，便可以開始使用 CMS 服務。
 
-### GraphQL playground
-起 lilith-mesh CMS 服務後，我們可以透過 [http://localhost:3000/api/graphql](http://localhost:3000/api/graphql) 來使用 GraphQL playground。
+### GraphQL 瀏覽器 IDE（Apollo Sandbox）
+
+Keystone 6 底層是 **Apollo Server 4**，開發環境（`NODE_ENV` 不是 `production`）下用瀏覽器直接開啟 [http://localhost:3000/api/graphql](http://localhost:3000/api/graphql)，通常會看到 **Apollo Sandbox**（內嵌的 GraphQL IDE），而不是早期 Keystone / Apollo 3 那種獨立的 **GraphQL Playground** 介面。
+
+生產環境預設會關閉 playground／introspection；此時同一支網址只會當成 **API**，不會再提供瀏覽器 IDE。
+
+若以 **POST** 呼叫 API，body 必須是 JSON，且含**非空**的 `query` 欄位，否則會得到：`GraphQL operations must contain a non-empty 'query' or a 'persistedQuery' extension`。例如：
+
+```bash
+curl -X POST http://localhost:3000/api/graphql \
+  -H 'Content-Type: application/json' \
+  -d '{"query":"{ __typename }"}'
+```
+
+也可用 [Altair](https://altairgraphql.dev/)、Insomnia、Postman 等客戶端連到同一 endpoint。
 
 ### Start GraphQL API server only
 我們也可以單獨把 lilith-mesh 當作 GraphQL API server 使用。
