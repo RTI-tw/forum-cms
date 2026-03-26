@@ -3,6 +3,21 @@ import envVar from '../environment-variables'
 
 type ArticleType = 'post' | 'comment'
 
+let warnedMissingMessageServicesUrl = false
+
+function warnMissingMessageServicesUrlOnce() {
+  if (warnedMissingMessageServicesUrl) return
+  warnedMissingMessageServicesUrl = true
+  console.warn(
+    JSON.stringify({
+      severity: 'WARN',
+      message:
+        'MESSAGE_SERVICES_URL 未設定，翻譯 hook 不會呼叫 message-services。請在部署環境設定此變數（message-services 根網址，勿結尾斜線）。',
+      timestamp: new Date().toISOString(),
+    })
+  )
+}
+
 function normText(value: unknown): string {
   return String(value ?? '').trim()
 }
@@ -55,7 +70,10 @@ export function createMessageServicesTranslationHook(
     if (operation === 'delete') return
 
     const baseUrl = envVar.messageServicesUrl?.replace(/\/$/, '')
-    if (!baseUrl) return
+    if (!baseUrl) {
+      warnMissingMessageServicesUrlOnce()
+      return
+    }
 
     const id = item && String((item as { id?: unknown }).id ?? '')
     if (!id) return
@@ -68,6 +86,18 @@ export function createMessageServicesTranslationHook(
         originalItem as { title?: unknown; content?: unknown } | null | undefined
       )
     ) {
+      if (operation === 'create' && !normText((item as { content?: unknown }).content)) {
+        console.info(
+          JSON.stringify({
+            severity: 'INFO',
+            message:
+              '翻譯 hook 略過：建立時「原文內容」為空（僅有標題等不會觸發翻譯）。',
+            articleType,
+            id,
+            timestamp: new Date().toISOString(),
+          })
+        )
+      }
       return
     }
 
@@ -95,6 +125,17 @@ export function createMessageServicesTranslationHook(
             articleType,
             id,
             detail: bodyText.slice(0, 2000),
+            timestamp: new Date().toISOString(),
+          })
+        )
+      } else {
+        console.info(
+          JSON.stringify({
+            severity: 'INFO',
+            message: 'message-services sync-translations 已請求',
+            status: res.status,
+            articleType,
+            id,
             timestamp: new Date().toISOString(),
           })
         )
