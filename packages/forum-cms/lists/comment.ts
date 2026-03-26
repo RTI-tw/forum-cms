@@ -7,6 +7,7 @@ import {
   checkbox,
   select,
 } from '@keystone-6/core/fields';
+import { createMessageServicesTranslationHook } from '../utils/message-services-translation-hook'
 
 const {
   allowRoles,
@@ -90,6 +91,9 @@ const listConfigurations = list({
       create: allowRoles(admin, moderator),
       delete: allowRoles(admin),
     },
+  },
+  hooks: {
+    afterOperation: createMessageServicesTranslationHook('comment'),
   },
 })
 

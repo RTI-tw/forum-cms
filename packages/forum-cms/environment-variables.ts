@@ -39,6 +39,7 @@ const {
   MEMBER_SESSION_SECRET,
   MEMBER_SESSION_MAX_AGE,
   GRAPHQL_DISABLE_CSRF_PREVENTION,
+  MESSAGE_SERVICES_URL,
 } = process.env
 
 enum DatabaseProvider {
@@ -135,4 +136,6 @@ export default {
   },
   /** 設為 true 時關閉 Apollo GraphQL 的 CSRF 檢查（僅在無法調整客戶端標頭時使用，會降低 cookie 場景下的 CSRF 防護） */
   graphqlDisableCsrfPrevention: GRAPHQL_DISABLE_CSRF_PREVENTION === 'true',
+  /** message-services 根 URL（例如 https://xxx.run.app），未設定則不觸發翻譯 hook */
+  messageServicesUrl: (MESSAGE_SERVICES_URL || '').trim() || undefined,
 }
