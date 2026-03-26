@@ -4,6 +4,7 @@ import {
     text,
     relationship,
     select,
+    float,
 } from '@keystone-6/core/fields'
 import { createMessageServicesTranslationHook } from '../utils/message-services-translation-hook'
 
@@ -49,6 +50,11 @@ const listConfigurations = list({
         }),
         author: relationship({ ref: 'Member.posts', many: false, label: '作者' }),
         ip: text({ label: '發文 IP' }),
+        spamScore: float({
+            label: 'SPAM 分數（0–1）',
+            validation: { min: 0, max: 1 },
+            db: { isNullable: true },
+        }),
         topic: relationship({ ref: 'Topic.posts', many: false, label: '主題分類' }),
         status: select({
             label: '狀態',
@@ -69,7 +75,7 @@ const listConfigurations = list({
     ui: {
         label: '文章',
         listView: {
-            initialColumns: ['title', 'author', 'createdAt'],
+            initialColumns: ['title', 'author', 'spamScore', 'createdAt'],
         },
     },
     access: {

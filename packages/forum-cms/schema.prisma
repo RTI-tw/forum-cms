@@ -144,6 +144,7 @@ model Post {
   author                 Member?           @relation("Post_author", fields: [authorId], references: [id])
   authorId               Int?              @map("author")
   ip                     String            @default("")
+  spamScore              Float?
   topic                  Topic?            @relation("Post_topic", fields: [topicId], references: [id])
   topicId                Int?              @map("topic")
   status                 PostStatusType?   @default(draft)
@@ -242,6 +243,7 @@ model Comment {
   member              Member?              @relation("Comment_member", fields: [memberId], references: [id])
   memberId            Int?                 @map("member")
   ip                  String               @default("")
+  spamScore           Float?
   status              CommentStatusType?   @default(published)
   reactions           Reaction[]           @relation("Reaction_comment")
   reports             Report[]             @relation("Report_comment")

@@ -595,6 +595,7 @@ type Post {
   content_th: String
   author: Member
   ip: String
+  spamScore: Float
   topic: Topic
   status: PostStatusType
   heroImage: Photo
@@ -644,6 +645,7 @@ input PostWhereInput {
   content_th: StringFilter
   author: MemberWhereInput
   ip: StringFilter
+  spamScore: FloatNullableFilter
   topic: TopicWhereInput
   status: PostStatusTypeNullableFilter
   heroImage: PhotoWhereInput
@@ -661,6 +663,17 @@ input PostLanguageTypeNullableFilter {
   in: [PostLanguageType!]
   notIn: [PostLanguageType!]
   not: PostLanguageTypeNullableFilter
+}
+
+input FloatNullableFilter {
+  equals: Float
+  in: [Float!]
+  notIn: [Float!]
+  lt: Float
+  lte: Float
+  gt: Float
+  gte: Float
+  not: FloatNullableFilter
 }
 
 input PostStatusTypeNullableFilter {
@@ -687,6 +700,7 @@ input PostOrderByInput {
   content_id: OrderDirection
   content_th: OrderDirection
   ip: OrderDirection
+  spamScore: OrderDirection
   status: OrderDirection
   createdAt: OrderDirection
   updatedAt: OrderDirection
@@ -703,6 +717,7 @@ input PostUpdateInput {
   content_th: String
   author: MemberRelateToOneForUpdateInput
   ip: String
+  spamScore: Float
   topic: TopicRelateToOneForUpdateInput
   status: PostStatusType
   heroImage: PhotoRelateToOneForUpdateInput
@@ -744,6 +759,7 @@ input PostCreateInput {
   content_th: String
   author: MemberRelateToOneForCreateInput
   ip: String
+  spamScore: Float
   topic: TopicRelateToOneForCreateInput
   status: PostStatusType
   heroImage: PhotoRelateToOneForCreateInput
@@ -1022,6 +1038,7 @@ type Comment {
   post: Post
   member: Member
   ip: String
+  spamScore: Float
   status: CommentStatusType
   reactions(where: ReactionWhereInput! = {}, orderBy: [ReactionOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: ReactionWhereUniqueInput): [Reaction!]
   reactionsCount(where: ReactionWhereInput! = {}): Int
@@ -1072,6 +1089,7 @@ input CommentWhereInput {
   post: PostWhereInput
   member: MemberWhereInput
   ip: StringFilter
+  spamScore: FloatNullableFilter
   status: CommentStatusTypeNullableFilter
   reactions: ReactionManyRelationFilter
   reports: ReportManyRelationFilter
@@ -1111,6 +1129,7 @@ input CommentOrderByInput {
   content_id: OrderDirection
   content_th: OrderDirection
   ip: OrderDirection
+  spamScore: OrderDirection
   status: OrderDirection
   published_date: OrderDirection
   is_edited: OrderDirection
@@ -1130,6 +1149,7 @@ input CommentUpdateInput {
   post: PostRelateToOneForUpdateInput
   member: MemberRelateToOneForUpdateInput
   ip: String
+  spamScore: Float
   status: CommentStatusType
   reactions: ReactionRelateToManyForUpdateInput
   reports: ReportRelateToManyForUpdateInput
@@ -1167,6 +1187,7 @@ input CommentCreateInput {
   post: PostRelateToOneForCreateInput
   member: MemberRelateToOneForCreateInput
   ip: String
+  spamScore: Float
   status: CommentStatusType
   reactions: ReactionRelateToManyForCreateInput
   reports: ReportRelateToManyForCreateInput

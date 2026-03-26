@@ -6,6 +6,7 @@ import {
   timestamp,
   checkbox,
   select,
+  float,
 } from '@keystone-6/core/fields';
 import { createMessageServicesTranslationHook } from '../utils/message-services-translation-hook'
 
@@ -54,6 +55,11 @@ const listConfigurations = list({
     post: relationship({ ref: 'Post.comments', many: false, label: '文章' }),
     member: relationship({ ref: 'Member.comment', many: false, label: '作者' }),
     ip: text({ label: '發文 IP' }),
+    spamScore: float({
+      label: 'SPAM 分數（0–1）',
+      validation: { min: 0, max: 1 },
+      db: { isNullable: true },
+    }),
     status: select({
       label: '狀態',
       type: 'enum',
@@ -81,7 +87,7 @@ const listConfigurations = list({
   ui: {
     label: '留言',
     listView: {
-      initialColumns: ['content', 'member', 'published_date'],
+      initialColumns: ['content', 'member', 'spamScore', 'published_date'],
     },
   },
   access: {
