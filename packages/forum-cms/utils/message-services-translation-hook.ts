@@ -29,6 +29,16 @@ function normText(value: unknown): string {
   return String(value ?? '').trim()
 }
 
+function readMergedText(
+  item: Record<string, unknown>,
+  originalItem: Record<string, unknown> | null | undefined,
+  key: string
+): string {
+  const nextRaw =
+    item[key] !== undefined ? item[key] : originalItem ? originalItem[key] : ''
+  return normText(nextRaw)
+}
+
 function getSourceText(
   entityType: MessageServicesEntityType,
   item: Record<string, unknown>
@@ -61,15 +71,15 @@ function shouldSyncTranslations(
   originalItem: Record<string, unknown> | null | undefined
 ): boolean {
   if (entityType === 'post') {
-    const title = normText(item.title)
-    const content = normText(item.content)
+    const title = readMergedText(item, originalItem, 'title')
+    const content = readMergedText(item, originalItem, 'content')
     if (!title && !content) return false
     if (operation === 'create') return true
     if (operation !== 'update' || !originalItem) return false
     const prevTitle = normText(originalItem.title)
     const prevContent = normText(originalItem.content)
-    const nextTitle = normText(item.title)
-    const nextContent = normText(item.content)
+    const nextTitle = readMergedText(item, originalItem, 'title')
+    const nextContent = readMergedText(item, originalItem, 'content')
     return prevTitle !== nextTitle || prevContent !== nextContent
   }
 
@@ -121,8 +131,12 @@ export function createMessageServicesTranslationHook(
       return
     }
 
-    const sourceText = getSourceText(entityType, rec)
-    const sourceTitle = entityType === 'post' ? normText(rec.title) : ''
+    const sourceText =
+      entityType === 'post'
+        ? readMergedText(rec, orig, 'content')
+        : getSourceText(entityType, rec)
+    const sourceTitle =
+      entityType === 'post' ? readMergedText(rec, orig, 'title') : ''
 
     try {
       const syncRes = await fetch(`${baseUrl}/hooks/sync-translations`, {
