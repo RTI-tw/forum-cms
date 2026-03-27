@@ -13,6 +13,26 @@ const { allowRoles, admin, moderator, editor } = utils.accessControl
 const listConfigurations = list({
     fields: {
         title: text({ validation: { isRequired: true }, label: '標題' }),
+        title_zh: text({
+            label: '標題（中文）',
+            ui: { displayMode: 'textarea' },
+        }),
+        title_en: text({
+            label: '標題（英文）',
+            ui: { displayMode: 'textarea' },
+        }),
+        title_vi: text({
+            label: '標題（越南文）',
+            ui: { displayMode: 'textarea' },
+        }),
+        title_id: text({
+            label: '標題（印尼文）',
+            ui: { displayMode: 'textarea' },
+        }),
+        title_th: text({
+            label: '標題（泰文）',
+            ui: { displayMode: 'textarea' },
+        }),
         content: text({
             label: '原文內容',
             ui: { displayMode: 'textarea' },

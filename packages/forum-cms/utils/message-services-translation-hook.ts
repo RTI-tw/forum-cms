@@ -61,18 +61,16 @@ function shouldSyncTranslations(
   originalItem: Record<string, unknown> | null | undefined
 ): boolean {
   if (entityType === 'post') {
+    const title = normText(item.title)
     const content = normText(item.content)
-    if (!content) return false
+    if (!title && !content) return false
     if (operation === 'create') return true
     if (operation !== 'update' || !originalItem) return false
     const prevTitle = normText(originalItem.title)
     const prevContent = normText(originalItem.content)
     const nextTitle = normText(item.title)
     const nextContent = normText(item.content)
-    const articleBodyTouched =
-      prevTitle !== nextTitle || prevContent !== nextContent
-    if (!articleBodyTouched) return false
-    return prevContent !== nextContent
+    return prevTitle !== nextTitle || prevContent !== nextContent
   }
 
   const src = getSourceText(entityType, item)
@@ -124,6 +122,7 @@ export function createMessageServicesTranslationHook(
     }
 
     const sourceText = getSourceText(entityType, rec)
+    const sourceTitle = entityType === 'post' ? normText(rec.title) : ''
 
     try {
       const syncRes = await fetch(`${baseUrl}/hooks/sync-translations`, {
@@ -135,6 +134,7 @@ export function createMessageServicesTranslationHook(
           type: entityType,
           id,
           source_text: sourceText,
+          ...(entityType === 'post' ? { source_title: sourceTitle } : {}),
         }),
       })
       if (!syncRes.ok) {
@@ -170,7 +170,6 @@ export function createMessageServicesTranslationHook(
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-              bucket_name: envVar.gcs.bucket,
               id,
             }),
           })
