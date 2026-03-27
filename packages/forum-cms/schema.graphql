@@ -586,6 +586,11 @@ input MemberRelateToOneForCreateInput {
 type Post {
   id: ID!
   title: String
+  title_zh: String
+  title_en: String
+  title_vi: String
+  title_id: String
+  title_th: String
   content: String
   language: PostLanguageType
   content_zh: String
@@ -636,6 +641,11 @@ input PostWhereInput {
   NOT: [PostWhereInput!]
   id: IDFilter
   title: StringFilter
+  title_zh: StringFilter
+  title_en: StringFilter
+  title_vi: StringFilter
+  title_id: StringFilter
+  title_th: StringFilter
   content: StringFilter
   language: PostLanguageTypeNullableFilter
   content_zh: StringFilter
@@ -692,6 +702,11 @@ input ReportManyRelationFilter {
 input PostOrderByInput {
   id: OrderDirection
   title: OrderDirection
+  title_zh: OrderDirection
+  title_en: OrderDirection
+  title_vi: OrderDirection
+  title_id: OrderDirection
+  title_th: OrderDirection
   content: OrderDirection
   language: OrderDirection
   content_zh: OrderDirection
@@ -708,6 +723,11 @@ input PostOrderByInput {
 
 input PostUpdateInput {
   title: String
+  title_zh: String
+  title_en: String
+  title_vi: String
+  title_id: String
+  title_th: String
   content: String
   language: PostLanguageType
   content_zh: String
@@ -750,6 +770,11 @@ input PostUpdateArgs {
 
 input PostCreateInput {
   title: String
+  title_zh: String
+  title_en: String
+  title_vi: String
+  title_id: String
+  title_th: String
   content: String
   language: PostLanguageType
   content_zh: String

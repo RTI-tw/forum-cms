@@ -134,6 +134,11 @@ model OfficialMapping {
 model Post {
   id                     Int               @id @default(autoincrement())
   title                  String            @default("")
+  title_zh               String            @default("")
+  title_en               String            @default("")
+  title_vi               String            @default("")
+  title_id               String            @default("")
+  title_th               String            @default("")
   content                String            @default("")
   language               PostLanguageType?
   content_zh             String            @default("")
