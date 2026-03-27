@@ -1,6 +1,7 @@
 import { utils } from '@mirrormedia/lilith-core'
 import { list } from '@keystone-6/core'
 import { text, integer, relationship, timestamp } from '@keystone-6/core/fields'
+import { createMessageServicesTranslationHook } from '../utils/message-services-translation-hook'
 
 const { allowRoles, admin, moderator, editor } = utils.accessControl
 
@@ -47,6 +48,9 @@ const listConfigurations = list({
       create: allowRoles(admin, moderator),
       delete: allowRoles(admin),
     },
+  },
+  hooks: {
+    afterOperation: createMessageServicesTranslationHook('poll'),
   },
 })
 

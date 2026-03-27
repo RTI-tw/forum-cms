@@ -1,7 +1,14 @@
 import type { ListHooks } from '@keystone-6/core/types'
 import envVar from '../environment-variables'
 
-type ArticleType = 'post' | 'comment'
+/** 與 message-services `KeystoneHookSyncTranslationRequest.type` 一致 */
+export type MessageServicesEntityType =
+  | 'post'
+  | 'comment'
+  | 'topic'
+  | 'poll'
+  | 'pollOption'
+  | 'content'
 
 let warnedMissingMessageServicesUrl = false
 
@@ -22,49 +29,65 @@ function normText(value: unknown): string {
   return String(value ?? '').trim()
 }
 
-/**
- * create：有「原文內容」就觸發翻譯。
- * update：僅在「文章本身」有編輯時才可能觸發——
- *   - Post：標題或正文其一相對於更新前有變，且翻譯 API 只依正文，故僅在 **正文 content** 有變時才呼叫（僅改標題不呼叫）。
- *   - Comment：僅比對 **正文 content**。
- * 僅改狀態、分類、主圖、翻譯欄位等（原文 title/content 未變）→ 不觸發。
- */
-function shouldSyncTranslations(
-  articleType: ArticleType,
-  operation: 'create' | 'update' | 'delete',
-  item: { title?: unknown; content?: unknown },
-  originalItem: { title?: unknown; content?: unknown } | null | undefined
-): boolean {
-  const content = normText(item.content)
-  if (!content) return false
-
-  if (operation === 'create') return true
-
-  if (operation !== 'update' || !originalItem) return false
-
-  const prevTitle = normText(originalItem.title)
-  const prevContent = normText(originalItem.content)
-  const nextTitle = normText(item.title)
-  const nextContent = normText(item.content)
-
-  if (articleType === 'post') {
-    const articleBodyTouched =
-      prevTitle !== nextTitle || prevContent !== nextContent
-    if (!articleBodyTouched) return false
-    // 翻譯以 content 為準；正文未改則不呼叫（例如只改標題、或僅動到其他欄位）
-    return prevContent !== nextContent
+function getSourceText(
+  entityType: MessageServicesEntityType,
+  item: Record<string, unknown>
+): string {
+  switch (entityType) {
+    case 'post':
+    case 'comment':
+    case 'content':
+      return normText(item.content)
+    case 'topic':
+      return normText(item.name)
+    case 'poll':
+      return normText(item.title)
+    case 'pollOption':
+      return normText(item.text)
+    default:
+      return ''
   }
-
-  return prevContent !== nextContent
 }
 
 /**
- * Post / Comment 在建立或「文章本身」變更後，呼叫 message-services 的
- * POST /hooks/sync-translations（與 app/hooks_translate.py 一致）。
- * 服務端寫回翻譯欄位時 content 不變 → 不觸發，避免迴圈。
+ * create：有原文就觸發翻譯。
+ * update：僅在「原文欄位」有變更時觸發（翻譯欄位寫回不觸發，避免迴圈）。
+ * Post：另見標題／正文邏輯。
+ */
+function shouldSyncTranslations(
+  entityType: MessageServicesEntityType,
+  operation: 'create' | 'update' | 'delete',
+  item: Record<string, unknown>,
+  originalItem: Record<string, unknown> | null | undefined
+): boolean {
+  if (entityType === 'post') {
+    const content = normText(item.content)
+    if (!content) return false
+    if (operation === 'create') return true
+    if (operation !== 'update' || !originalItem) return false
+    const prevTitle = normText(originalItem.title)
+    const prevContent = normText(originalItem.content)
+    const nextTitle = normText(item.title)
+    const nextContent = normText(item.content)
+    const articleBodyTouched =
+      prevTitle !== nextTitle || prevContent !== nextContent
+    if (!articleBodyTouched) return false
+    return prevContent !== nextContent
+  }
+
+  const src = getSourceText(entityType, item)
+  if (!src) return false
+  if (operation === 'create') return true
+  if (operation !== 'update' || !originalItem) return false
+  return getSourceText(entityType, originalItem) !== src
+}
+
+/**
+ * Post / Comment / Topic / Poll / PollOption / Content 建立或原文變更後，
+ * 呼叫 message-services POST /hooks/sync-translations。
  */
 export function createMessageServicesTranslationHook(
-  articleType: ArticleType
+  entityType: MessageServicesEntityType
 ): NonNullable<ListHooks<any>['afterOperation']> {
   return async ({ item, originalItem, operation }) => {
     if (operation === 'delete') return
@@ -78,21 +101,20 @@ export function createMessageServicesTranslationHook(
     const id = item && String((item as { id?: unknown }).id ?? '')
     if (!id) return
 
-    if (
-      !shouldSyncTranslations(
-        articleType,
-        operation,
-        item as { title?: unknown; content?: unknown },
-        originalItem as { title?: unknown; content?: unknown } | null | undefined
-      )
-    ) {
-      if (operation === 'create' && !normText((item as { content?: unknown }).content)) {
+    const rec = item as Record<string, unknown>
+    const orig = originalItem as Record<string, unknown> | null | undefined
+
+    if (!shouldSyncTranslations(entityType, operation, rec, orig)) {
+      if (
+        operation === 'create' &&
+        !getSourceText(entityType, rec)
+      ) {
         console.info(
           JSON.stringify({
             severity: 'INFO',
             message:
-              '翻譯 hook 略過：建立時「原文內容」為空（僅有標題等不會觸發翻譯）。',
-            articleType,
+              '翻譯 hook 略過：建立時原文欄位為空（未填寫可翻譯原文）。',
+            entityType,
             id,
             timestamp: new Date().toISOString(),
           })
@@ -101,7 +123,7 @@ export function createMessageServicesTranslationHook(
       return
     }
 
-    const content = normText((item as { content?: unknown }).content)
+    const sourceText = getSourceText(entityType, rec)
 
     try {
       const res = await fetch(`${baseUrl}/hooks/sync-translations`, {
@@ -110,9 +132,9 @@ export function createMessageServicesTranslationHook(
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          type: articleType,
+          type: entityType,
           id,
-          source_text: content,
+          source_text: sourceText,
         }),
       })
       if (!res.ok) {
@@ -122,7 +144,7 @@ export function createMessageServicesTranslationHook(
             severity: 'ERROR',
             message: 'message-services sync-translations failed',
             status: res.status,
-            articleType,
+            entityType,
             id,
             detail: bodyText.slice(0, 2000),
             timestamp: new Date().toISOString(),
@@ -134,7 +156,7 @@ export function createMessageServicesTranslationHook(
             severity: 'INFO',
             message: 'message-services sync-translations 已請求',
             status: res.status,
-            articleType,
+            entityType,
             id,
             timestamp: new Date().toISOString(),
           })
@@ -145,7 +167,7 @@ export function createMessageServicesTranslationHook(
         JSON.stringify({
           severity: 'ERROR',
           message: 'message-services sync-translations request failed',
-          articleType,
+          entityType,
           id,
           error: error instanceof Error ? error.message : String(error),
           timestamp: new Date().toISOString(),
