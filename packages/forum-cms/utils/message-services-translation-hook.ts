@@ -126,7 +126,7 @@ export function createMessageServicesTranslationHook(
     const sourceText = getSourceText(entityType, rec)
 
     try {
-      const res = await fetch(`${baseUrl}/hooks/sync-translations`, {
+      const syncRes = await fetch(`${baseUrl}/hooks/sync-translations`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -137,13 +137,13 @@ export function createMessageServicesTranslationHook(
           source_text: sourceText,
         }),
       })
-      if (!res.ok) {
-        const bodyText = await res.text()
+      if (!syncRes.ok) {
+        const bodyText = await syncRes.text()
         console.error(
           JSON.stringify({
             severity: 'ERROR',
             message: 'message-services sync-translations failed',
-            status: res.status,
+            status: syncRes.status,
             entityType,
             id,
             detail: bodyText.slice(0, 2000),
@@ -155,12 +155,53 @@ export function createMessageServicesTranslationHook(
           JSON.stringify({
             severity: 'INFO',
             message: 'message-services sync-translations 已請求',
-            status: res.status,
+            status: syncRes.status,
             entityType,
             id,
             timestamp: new Date().toISOString(),
           })
         )
+
+        // content 在翻譯寫回後，立即觸發 JSON 匯出到 GCS（單筆 id）
+        if (entityType === 'content') {
+          const exportRes = await fetch(`${baseUrl}/export/contents-to-gcs`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              bucket_name: envVar.gcs.bucket,
+              id,
+            }),
+          })
+
+          if (!exportRes.ok) {
+            const exportBodyText = await exportRes.text()
+            console.error(
+              JSON.stringify({
+                severity: 'ERROR',
+                message: 'message-services export/contents-to-gcs failed',
+                status: exportRes.status,
+                entityType,
+                id,
+                detail: exportBodyText.slice(0, 2000),
+                timestamp: new Date().toISOString(),
+              })
+            )
+          } else {
+            console.info(
+              JSON.stringify({
+                severity: 'INFO',
+                message: 'message-services export/contents-to-gcs 已請求',
+                status: exportRes.status,
+                entityType,
+                id,
+                bucket: envVar.gcs.bucket,
+                timestamp: new Date().toISOString(),
+              })
+            )
+          }
+        }
       }
     } catch (error) {
       console.error(
