@@ -1,4 +1,5 @@
 import { utils } from '@mirrormedia/lilith-core'
+import { allowRoles, admin, moderator, editor } from '../utils/access-control'
 import { list } from '@keystone-6/core'
 import {
     text,
@@ -7,8 +8,10 @@ import {
     float,
 } from '@keystone-6/core/fields'
 import { createMessageServicesTranslationHook } from '../utils/message-services-translation-hook'
-
-const { allowRoles, admin, moderator, editor } = utils.accessControl
+import {
+    getOfficialMemberIdForSessionUser,
+    hasExplicitMemberRelationInput,
+} from '../utils/official-member-from-session'
 
 const listConfigurations = list({
     fields: {
@@ -112,6 +115,28 @@ const listConfigurations = list({
         },
     },
     hooks: {
+        resolveInput: async ({
+            resolvedData,
+            operation,
+            context,
+            inputData,
+        }) => {
+            const data = { ...resolvedData }
+            if (operation === 'create') {
+                const explicit = hasExplicitMemberRelationInput(
+                    inputData as Record<string, unknown>,
+                    'author',
+                )
+                if (!explicit) {
+                    const memberId =
+                        await getOfficialMemberIdForSessionUser(context)
+                    if (memberId != null) {
+                        data.author = { connect: { id: memberId } }
+                    }
+                }
+            }
+            return data
+        },
         afterOperation: createMessageServicesTranslationHook('post'),
     },
 })

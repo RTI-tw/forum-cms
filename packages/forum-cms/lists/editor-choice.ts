@@ -1,8 +1,7 @@
 import { utils } from '@mirrormedia/lilith-core'
+import { allowRoles, admin, moderator, editor } from '../utils/access-control'
 import { list } from '@keystone-6/core'
 import { integer, relationship } from '@keystone-6/core/fields'
-
-const { allowRoles, admin, moderator, editor } = utils.accessControl
 
 const listConfigurations = list({
   fields: {

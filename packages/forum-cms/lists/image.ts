@@ -3,7 +3,7 @@ import { list, graphql } from '@keystone-6/core'
 import { image, text, virtual, integer, relationship } from '@keystone-6/core/fields'
 import { utils } from '@mirrormedia/lilith-core'
 import { getFileURL } from '../utils/common'
-const { allowRoles, admin, moderator, editor } = utils.accessControl
+import { allowRoles, admin, moderator, editor } from '../utils/access-control'
 
 const listConfigurations = list({
   db: {

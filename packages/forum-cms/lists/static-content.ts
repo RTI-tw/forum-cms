@@ -1,9 +1,8 @@
 import { utils } from '@mirrormedia/lilith-core'
+import { allowRoles, admin, moderator, editor } from '../utils/access-control'
 import { list } from '@keystone-6/core'
 import { text, select } from '@keystone-6/core/fields'
 import { createMessageServicesTranslationHook } from '../utils/message-services-translation-hook'
-
-const { allowRoles, admin, moderator, editor } = utils.accessControl
 
 const listConfigurations = list({
   db: {

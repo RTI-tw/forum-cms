@@ -1,8 +1,7 @@
 import { list } from '@keystone-6/core'
 import { text, relationship, select, timestamp } from '@keystone-6/core/fields'
 import { utils } from '@mirrormedia/lilith-core'
-
-const { allowRoles, admin, moderator, editor } = utils.accessControl
+import { allowRoles, admin, moderator, editor } from '../utils/access-control'
 
 const listConfigurations = list({
   fields: {

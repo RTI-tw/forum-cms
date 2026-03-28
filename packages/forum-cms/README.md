@@ -81,12 +81,55 @@ IS_UI_DISABLED=true npm run dev
 若是在登出的狀態下，我們是無法使用 GraphQL API 的。
 
 除了 `cms` 權限控管模式，我們可以使用 `ACCESS_CONTROL_STRATEGY` 環境變數來切換不同的 GraphQL API 權限控管的模式。
-例如：
+
+| 策略值 | 說明 |
+|--------|------|
+| `cms`（預設） | 依 Admin 登入 session 的 role（admin / moderator / editor 等）決定各 list 的 query／mutation 權限。 |
+| `gql` | 不檢查登入；**所有 list 的 GraphQL 操作一律允許**（等同全開）。僅適合有嚴格網路隔離的場景。 |
+| `preview` | 與 `gql` 相同（全開），供預覽等用途。 |
+| `api` | 不檢查 CMS role；改依環境變數 **`ACCESS_CONTROL_API_RULES_JSON`** 逐 **list** 設定只讀、可寫或關閉（見下方）。實作在 **`utils/access-control.ts`**。 |
+
+#### `gql` 模式（全開）
 ```
 ACCESS_CONTROL_STRATEGY=gql npm run dev
 ```
 切換成 `gql` 模式後，GraphQL API server 就不會檢查使用者是否處於登入的狀態（意即 GraphQL API server 會處理所有的 requests）。
 注意：`gql` 模式的使用上，需要搭配「不允許外部網路的限制」來部署程式碼，以免門戶大開。
+
+#### `api` 模式（依 list 細部控管）
+對外公開 GraphQL、又不想像 `gql` 一樣全開時，可使用 `api`：依 **Keystone list 名稱**（與程式中 `list({ ... })` 的 list key 一致，例如 `Post`、`Photo`、`Comment`）設定權限等級。
+
+**環境變數**
+
+| 變數 | 必填 | 說明 |
+|------|------|------|
+| `ACCESS_CONTROL_STRATEGY` | 是 | 設為 `api`。 |
+| `ACCESS_CONTROL_API_RULES_JSON` | 強烈建議 | JSON 字串：物件的 **key** 為 list key，**value** 為下列字串之一。 |
+| `ACCESS_CONTROL_API_DEFAULT` | 否 | 當某個 list **未**出現在 JSON 且也**沒有**使用 `"*"` 時的預設等級；可為 `none`、`read`、`read_write`。未設定時預設為 **`none`**（最安全）。 |
+
+**每個 list 的等級（`ACCESS_CONTROL_API_RULES_JSON` 的值）**
+
+| 值 | 效果 |
+|----|------|
+| `none` | 不可 query，也不可 create／update／delete。 |
+| `read` | 僅允許 **query**（含單筆與列表）；所有 mutation 拒絕。 |
+| `read_write` | query 與 create／update／delete 皆允許（仍不檢查 CMS 登入 role）。 |
+
+**特殊 key `"*"`**（可選）：代表「任何未在 JSON 裡單獨列出的 list」的預設等級。若未設定 `"*"` 且也未設定 `ACCESS_CONTROL_API_DEFAULT` 可涵蓋的 list，則該 list 依 `ACCESS_CONTROL_API_DEFAULT` 處理（預設 `none`）。
+
+**`User` list 與第一個管理員**：若資料庫中尚無任何 User，仍允許建立第一筆 User（與 `cms` 下 `allowRolesForUsers` 的行為一致），避免無法登入 Admin UI。
+
+**本機範例**（單行 JSON，實際部署可用 Secret Manager 或多行 escape）：
+
+```bash
+ACCESS_CONTROL_STRATEGY=api \
+ACCESS_CONTROL_API_RULES_JSON='{"Post":"read","Comment":"read_write","User":"none","Photo":"read","*":"none"}' \
+npm run dev
+```
+
+**說明**：上例中 `Post`、`Photo` 僅可查詢；`Comment` 可查可寫；`User` 與其他未列名的 list 為 `none`（若某 list 未出現在 JSON，且設了 `"*":"none"`，則走 `none`）。
+
+**注意**：`api` 仍不驗證「誰」在呼叫 API；若需只給特定應用或金鑰使用，請在 **API Gateway、Cloud Run IAM、反向代理或自訂 middleware** 再加一層驗證。
 
 ### Troubleshootings
 #### Q1: 我在 `packages/*` 資料夾底下跑 `yarn install` 時，在 `yarn postinstall` 階段發生錯誤。
