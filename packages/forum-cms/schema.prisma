@@ -66,6 +66,8 @@ model User {
   from_Category_updatedBy         Category[]         @relation("Category_updatedBy")
   from_Tag_createdBy              Tag[]              @relation("Tag_createdBy")
   from_Tag_updatedBy              Tag[]              @relation("Tag_updatedBy")
+  from_Ad_createdBy               Ad[]               @relation("Ad_createdBy")
+  from_Ad_updatedBy               Ad[]               @relation("Ad_updatedBy")
 }
 
 model Member {
@@ -493,6 +495,7 @@ model Photo {
   updatedById              Int?      @map("updatedBy")
   from_Member_avatar_image Member[]  @relation("Member_avatar_image")
   from_Post_heroImage      Post[]    @relation("Post_heroImage")
+  from_Ad_image            Ad[]      @relation("Ad_image")
 
   @@index([uploadedById])
   @@index([createdById])
@@ -528,6 +531,28 @@ model Tag {
   updatedBy   User?     @relation("Tag_updatedBy", fields: [updatedById], references: [id])
   updatedById Int?      @map("updatedBy")
 
+  @@index([createdById])
+  @@index([updatedById])
+}
+
+model Ad {
+  id                      Int         @id @default(autoincrement())
+  name                    String      @default("")
+  showOnHomepage          Boolean     @default(false)
+  showOnHomepageDeepTopic Boolean     @default(false)
+  image                   Photo?      @relation("Ad_image", fields: [imageId], references: [id])
+  imageId                 Int?        @map("image")
+  imageUrl                String      @default("")
+  state                   AdStateType @default(inactive)
+  sortOrder               Int
+  createdAt               DateTime?
+  updatedAt               DateTime?
+  createdBy               User?       @relation("Ad_createdBy", fields: [createdById], references: [id])
+  createdById             Int?        @map("createdBy")
+  updatedBy               User?       @relation("Ad_updatedBy", fields: [updatedById], references: [id])
+  updatedById             Int?        @map("updatedBy")
+
+  @@index([imageId])
   @@index([createdById])
   @@index([updatedById])
 }
@@ -603,4 +628,9 @@ enum ReportStatusType {
   pending
   resolved
   dismissed
+}
+
+enum AdStateType {
+  active
+  inactive
 }

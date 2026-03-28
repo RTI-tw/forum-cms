@@ -2236,6 +2236,100 @@ input TagCreateInput {
   updatedBy: UserRelateToOneForCreateInput
 }
 
+type Ad {
+  id: ID!
+  name: String
+  showOnHomepage: Boolean
+  showOnHomepageDeepTopic: Boolean
+  image: Photo
+  imageUrl: String
+  state: AdStateType
+  sortOrder: Int
+  createdAt: DateTime
+  updatedAt: DateTime
+  createdBy: User
+  updatedBy: User
+}
+
+enum AdStateType {
+  active
+  inactive
+}
+
+input AdWhereUniqueInput {
+  id: ID
+}
+
+input AdWhereInput {
+  AND: [AdWhereInput!]
+  OR: [AdWhereInput!]
+  NOT: [AdWhereInput!]
+  id: IDFilter
+  name: StringFilter
+  showOnHomepage: BooleanFilter
+  showOnHomepageDeepTopic: BooleanFilter
+  image: PhotoWhereInput
+  imageUrl: StringFilter
+  state: AdStateTypeNullableFilter
+  sortOrder: IntFilter
+  createdAt: DateTimeNullableFilter
+  updatedAt: DateTimeNullableFilter
+  createdBy: UserWhereInput
+  updatedBy: UserWhereInput
+}
+
+input AdStateTypeNullableFilter {
+  equals: AdStateType
+  in: [AdStateType!]
+  notIn: [AdStateType!]
+  not: AdStateTypeNullableFilter
+}
+
+input AdOrderByInput {
+  id: OrderDirection
+  name: OrderDirection
+  showOnHomepage: OrderDirection
+  showOnHomepageDeepTopic: OrderDirection
+  imageUrl: OrderDirection
+  state: OrderDirection
+  sortOrder: OrderDirection
+  createdAt: OrderDirection
+  updatedAt: OrderDirection
+}
+
+input AdUpdateInput {
+  name: String
+  showOnHomepage: Boolean
+  showOnHomepageDeepTopic: Boolean
+  image: PhotoRelateToOneForUpdateInput
+  imageUrl: String
+  state: AdStateType
+  sortOrder: Int
+  createdAt: DateTime
+  updatedAt: DateTime
+  createdBy: UserRelateToOneForUpdateInput
+  updatedBy: UserRelateToOneForUpdateInput
+}
+
+input AdUpdateArgs {
+  where: AdWhereUniqueInput!
+  data: AdUpdateInput!
+}
+
+input AdCreateInput {
+  name: String
+  showOnHomepage: Boolean
+  showOnHomepageDeepTopic: Boolean
+  image: PhotoRelateToOneForCreateInput
+  imageUrl: String
+  state: AdStateType
+  sortOrder: Int
+  createdAt: DateTime
+  updatedAt: DateTime
+  createdBy: UserRelateToOneForCreateInput
+  updatedBy: UserRelateToOneForCreateInput
+}
+
 """
 The `JSON` scalar type represents JSON values as specified by [ECMA-404](http://www.ecma-international.org/publications/files/ECMA-ST/ECMA-404.pdf).
 """
@@ -2362,6 +2456,12 @@ type Mutation {
   updateTags(data: [TagUpdateArgs!]!): [Tag]
   deleteTag(where: TagWhereUniqueInput!): Tag
   deleteTags(where: [TagWhereUniqueInput!]!): [Tag]
+  createAd(data: AdCreateInput!): Ad
+  createAds(data: [AdCreateInput!]!): [Ad]
+  updateAd(where: AdWhereUniqueInput!, data: AdUpdateInput!): Ad
+  updateAds(data: [AdUpdateArgs!]!): [Ad]
+  deleteAd(where: AdWhereUniqueInput!): Ad
+  deleteAds(where: [AdWhereUniqueInput!]!): [Ad]
   endSession: Boolean!
   authenticateUserWithPassword(email: String!, password: String!): UserAuthenticationWithPasswordResult
   createInitialUser(data: CreateInitialUserInput!): UserAuthenticationWithPasswordSuccess!
@@ -2493,6 +2593,9 @@ type Query {
   tag(where: TagWhereUniqueInput!): Tag
   tags(where: TagWhereInput! = {}, orderBy: [TagOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: TagWhereUniqueInput): [Tag!]
   tagsCount(where: TagWhereInput! = {}): Int
+  ad(where: AdWhereUniqueInput!): Ad
+  ads(where: AdWhereInput! = {}, orderBy: [AdOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: AdWhereUniqueInput): [Ad!]
+  adsCount(where: AdWhereInput! = {}): Int
   keystone: KeystoneMeta!
   authenticatedItem: AuthenticatedItem
   validateUserPasswordResetToken(email: String!, token: String!): ValidateUserPasswordResetTokenResult

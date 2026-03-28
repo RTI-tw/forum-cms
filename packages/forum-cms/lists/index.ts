@@ -18,6 +18,7 @@ import Video from './video'
 import Image from './image'
 import Category from './category'
 import Tag from './tag'
+import Ad from './ad'
 
 export const listDefinition = {
   User,
@@ -40,4 +41,5 @@ export const listDefinition = {
   Photo: Image,
   Category,
   Tag,
+  Ad,
 }
