@@ -536,23 +536,26 @@ model Tag {
 }
 
 model Ad {
-  id                      Int         @id @default(autoincrement())
-  name                    String      @default("")
-  showOnHomepage          Boolean     @default(false)
-  showOnHomepageDeepTopic Boolean     @default(false)
-  image                   Photo?      @relation("Ad_image", fields: [imageId], references: [id])
-  imageId                 Int?        @map("image")
-  imageUrl                String      @default("")
-  state                   AdStateType @default(inactive)
-  sortOrder               Int
-  createdAt               DateTime?
-  updatedAt               DateTime?
-  createdBy               User?       @relation("Ad_createdBy", fields: [createdById], references: [id])
-  createdById             Int?        @map("createdBy")
-  updatedBy               User?       @relation("Ad_updatedBy", fields: [updatedById], references: [id])
-  updatedById             Int?        @map("updatedBy")
+  id          Int           @id @default(autoincrement())
+  title       String        @default("")
+  startAt     DateTime?
+  endAt       DateTime?
+  status      AdStatusType  @default(draft)
+  image       Photo?        @relation("Ad_image", fields: [imageId], references: [id])
+  imageId     Int?          @map("image")
+  videoUrl    String        @default("")
+  linkUrl     String        @default("")
+  createdAt   DateTime?
+  updatedAt   DateTime?
+  createdBy   User?         @relation("Ad_createdBy", fields: [createdById], references: [id])
+  createdById Int?          @map("createdBy")
+  updatedBy   User?         @relation("Ad_updatedBy", fields: [updatedById], references: [id])
+  updatedById Int?          @map("updatedBy")
 
   @@index([imageId])
+  @@index([status])
+  @@index([startAt])
+  @@index([endAt])
   @@index([createdById])
   @@index([updatedById])
 }
@@ -630,7 +633,8 @@ enum ReportStatusType {
   dismissed
 }
 
-enum AdStateType {
+enum AdStatusType {
+  draft
   active
-  inactive
+  finished
 }

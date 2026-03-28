@@ -2238,22 +2238,23 @@ input TagCreateInput {
 
 type Ad {
   id: ID!
-  name: String
-  showOnHomepage: Boolean
-  showOnHomepageDeepTopic: Boolean
+  title: String
+  startAt: DateTime
+  endAt: DateTime
+  status: AdStatusType
   image: Photo
-  imageUrl: String
-  state: AdStateType
-  sortOrder: Int
+  videoUrl: String
+  linkUrl: String
   createdAt: DateTime
   updatedAt: DateTime
   createdBy: User
   updatedBy: User
 }
 
-enum AdStateType {
+enum AdStatusType {
+  draft
   active
-  inactive
+  finished
 }
 
 input AdWhereUniqueInput {
@@ -2265,46 +2266,46 @@ input AdWhereInput {
   OR: [AdWhereInput!]
   NOT: [AdWhereInput!]
   id: IDFilter
-  name: StringFilter
-  showOnHomepage: BooleanFilter
-  showOnHomepageDeepTopic: BooleanFilter
+  title: StringFilter
+  startAt: DateTimeNullableFilter
+  endAt: DateTimeNullableFilter
+  status: AdStatusTypeNullableFilter
   image: PhotoWhereInput
-  imageUrl: StringFilter
-  state: AdStateTypeNullableFilter
-  sortOrder: IntFilter
+  videoUrl: StringFilter
+  linkUrl: StringFilter
   createdAt: DateTimeNullableFilter
   updatedAt: DateTimeNullableFilter
   createdBy: UserWhereInput
   updatedBy: UserWhereInput
 }
 
-input AdStateTypeNullableFilter {
-  equals: AdStateType
-  in: [AdStateType!]
-  notIn: [AdStateType!]
-  not: AdStateTypeNullableFilter
+input AdStatusTypeNullableFilter {
+  equals: AdStatusType
+  in: [AdStatusType!]
+  notIn: [AdStatusType!]
+  not: AdStatusTypeNullableFilter
 }
 
 input AdOrderByInput {
   id: OrderDirection
-  name: OrderDirection
-  showOnHomepage: OrderDirection
-  showOnHomepageDeepTopic: OrderDirection
-  imageUrl: OrderDirection
-  state: OrderDirection
-  sortOrder: OrderDirection
+  title: OrderDirection
+  startAt: OrderDirection
+  endAt: OrderDirection
+  status: OrderDirection
+  videoUrl: OrderDirection
+  linkUrl: OrderDirection
   createdAt: OrderDirection
   updatedAt: OrderDirection
 }
 
 input AdUpdateInput {
-  name: String
-  showOnHomepage: Boolean
-  showOnHomepageDeepTopic: Boolean
+  title: String
+  startAt: DateTime
+  endAt: DateTime
+  status: AdStatusType
   image: PhotoRelateToOneForUpdateInput
-  imageUrl: String
-  state: AdStateType
-  sortOrder: Int
+  videoUrl: String
+  linkUrl: String
   createdAt: DateTime
   updatedAt: DateTime
   createdBy: UserRelateToOneForUpdateInput
@@ -2317,13 +2318,13 @@ input AdUpdateArgs {
 }
 
 input AdCreateInput {
-  name: String
-  showOnHomepage: Boolean
-  showOnHomepageDeepTopic: Boolean
+  title: String
+  startAt: DateTime
+  endAt: DateTime
+  status: AdStatusType
   image: PhotoRelateToOneForCreateInput
-  imageUrl: String
-  state: AdStateType
-  sortOrder: Int
+  videoUrl: String
+  linkUrl: String
   createdAt: DateTime
   updatedAt: DateTime
   createdBy: UserRelateToOneForCreateInput
