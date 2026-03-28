@@ -1,0 +1,5 @@
+-- Ad 改為純文字 imageUrl，移除與 Image(Photo) 的 FK
+ALTER TABLE "Ad" DROP CONSTRAINT IF EXISTS "Ad_image_fkey";
+DROP INDEX IF EXISTS "Ad_image_idx";
+ALTER TABLE "Ad" DROP COLUMN IF EXISTS "image";
+ALTER TABLE "Ad" ADD COLUMN IF NOT EXISTS "imageUrl" TEXT NOT NULL DEFAULT '';

@@ -38,7 +38,7 @@ const listConfigurations = list({
       label: '廣告圖片 Image',
       ui: {
         description:
-          '建議依裝置準備素材：桌機 728×90（超級橫幅）、手機 300×250（中矩形），對應 Google 多媒體廣告常用「成效最佳」尺寸。',
+          '從圖片庫選擇。建議素材：桌機 728×90（超級橫幅）、手機 300×250（中矩形）。',
       },
     }),
     videoUrl: text({

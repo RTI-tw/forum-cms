@@ -17,7 +17,7 @@ const listConfigurations = list({
     title_id: text({ label: '標題（印尼文）' }),
     title_th: text({ label: '標題（泰文）' }),
     post: relationship({
-      ref: 'Post',
+      ref: 'Post.poll',
       many: false,
       label: '關聯文章',
     }),

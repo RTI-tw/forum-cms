@@ -604,6 +604,7 @@ type Post {
   topic: Topic
   status: PostStatusType
   heroImage: Photo
+  poll: Poll
   comments(where: CommentWhereInput! = {}, orderBy: [CommentOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: CommentWhereUniqueInput): [Comment!]
   commentsCount(where: CommentWhereInput! = {}): Int
   reactions(where: ReactionWhereInput! = {}, orderBy: [ReactionOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: ReactionWhereUniqueInput): [Reaction!]
@@ -633,6 +634,7 @@ enum PostStatusType {
 
 input PostWhereUniqueInput {
   id: ID
+  poll: PollWhereUniqueInput
 }
 
 input PostWhereInput {
@@ -659,6 +661,7 @@ input PostWhereInput {
   topic: TopicWhereInput
   status: PostStatusTypeNullableFilter
   heroImage: PhotoWhereInput
+  poll: PollWhereInput
   comments: CommentManyRelationFilter
   reactions: ReactionManyRelationFilter
   reports: ReportManyRelationFilter
@@ -741,6 +744,7 @@ input PostUpdateInput {
   topic: TopicRelateToOneForUpdateInput
   status: PostStatusType
   heroImage: PhotoRelateToOneForUpdateInput
+  poll: PollRelateToOneForUpdateInput
   comments: CommentRelateToManyForUpdateInput
   reactions: ReactionRelateToManyForUpdateInput
   reports: ReportRelateToManyForUpdateInput
@@ -753,6 +757,12 @@ input PostUpdateInput {
 input TopicRelateToOneForUpdateInput {
   create: TopicCreateInput
   connect: TopicWhereUniqueInput
+  disconnect: Boolean
+}
+
+input PollRelateToOneForUpdateInput {
+  create: PollCreateInput
+  connect: PollWhereUniqueInput
   disconnect: Boolean
 }
 
@@ -788,6 +798,7 @@ input PostCreateInput {
   topic: TopicRelateToOneForCreateInput
   status: PostStatusType
   heroImage: PhotoRelateToOneForCreateInput
+  poll: PollRelateToOneForCreateInput
   comments: CommentRelateToManyForCreateInput
   reactions: ReactionRelateToManyForCreateInput
   reports: ReportRelateToManyForCreateInput
@@ -800,6 +811,11 @@ input PostCreateInput {
 input TopicRelateToOneForCreateInput {
   create: TopicCreateInput
   connect: TopicWhereUniqueInput
+}
+
+input PollRelateToOneForCreateInput {
+  create: PollCreateInput
+  connect: PollWhereUniqueInput
 }
 
 input ReportRelateToManyForCreateInput {
@@ -1392,6 +1408,7 @@ type Poll {
 
 input PollWhereUniqueInput {
   id: ID
+  post: PostWhereUniqueInput
 }
 
 input PollWhereInput {
@@ -1553,12 +1570,6 @@ input PollOptionUpdateInput {
   updatedBy: UserRelateToOneForUpdateInput
 }
 
-input PollRelateToOneForUpdateInput {
-  create: PollCreateInput
-  connect: PollWhereUniqueInput
-  disconnect: Boolean
-}
-
 input PollOptionUpdateArgs {
   where: PollOptionWhereUniqueInput!
   data: PollOptionUpdateInput!
@@ -1577,11 +1588,6 @@ input PollOptionCreateInput {
   updatedAt: DateTime
   createdBy: UserRelateToOneForCreateInput
   updatedBy: UserRelateToOneForCreateInput
-}
-
-input PollRelateToOneForCreateInput {
-  create: PollCreateInput
-  connect: PollWhereUniqueInput
 }
 
 type PollVote {

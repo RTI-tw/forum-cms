@@ -157,6 +157,7 @@ model Post {
   status                 PostStatusType?   @default(draft)
   heroImage              Photo?            @relation("Post_heroImage", fields: [heroImageId], references: [id])
   heroImageId            Int?              @map("heroImage")
+  poll                   Poll?             @relation("Poll_post")
   comments               Comment[]         @relation("Comment_post")
   reactions              Reaction[]        @relation("Reaction_post")
   reports                Report[]          @relation("Report_post")
@@ -169,7 +170,6 @@ model Post {
   from_EditorChoice_post EditorChoice[]    @relation("EditorChoice_post")
   from_LifeGuide_post    LifeGuide[]       @relation("LifeGuide_post")
   from_Bookmark_post     Bookmark[]        @relation("Bookmark_post")
-  from_Poll_post         Poll[]            @relation("Poll_post")
 
   @@index([authorId])
   @@index([topicId])
@@ -330,7 +330,7 @@ model Poll {
   title_id           String       @default("")
   title_th           String       @default("")
   post               Post?        @relation("Poll_post", fields: [postId], references: [id])
-  postId             Int?         @map("post")
+  postId             Int?         @unique @map("post")
   expiresAt          DateTime?
   options            PollOption[] @relation("PollOption_poll")
   totalVotes         Int?         @default(0)
@@ -342,7 +342,6 @@ model Poll {
   updatedById        Int?         @map("updatedBy")
   from_PollVote_poll PollVote[]   @relation("PollVote_poll")
 
-  @@index([postId])
   @@index([createdById])
   @@index([updatedById])
 }
@@ -536,26 +535,23 @@ model Tag {
 }
 
 model Ad {
-  id          Int           @id @default(autoincrement())
-  title       String        @default("")
+  id          Int          @id @default(autoincrement())
+  title       String       @default("")
   startAt     DateTime?
   endAt       DateTime?
-  status      AdStatusType  @default(draft)
-  image       Photo?        @relation("Ad_image", fields: [imageId], references: [id])
-  imageId     Int?          @map("image")
-  videoUrl    String        @default("")
-  linkUrl     String        @default("")
+  status      AdStatusType @default(draft)
+  image       Photo?       @relation("Ad_image", fields: [imageId], references: [id])
+  imageId     Int?         @map("image")
+  videoUrl    String       @default("")
+  linkUrl     String       @default("")
   createdAt   DateTime?
   updatedAt   DateTime?
-  createdBy   User?         @relation("Ad_createdBy", fields: [createdById], references: [id])
-  createdById Int?          @map("createdBy")
-  updatedBy   User?         @relation("Ad_updatedBy", fields: [updatedById], references: [id])
-  updatedById Int?          @map("updatedBy")
+  createdBy   User?        @relation("Ad_createdBy", fields: [createdById], references: [id])
+  createdById Int?         @map("createdBy")
+  updatedBy   User?        @relation("Ad_updatedBy", fields: [updatedById], references: [id])
+  updatedById Int?         @map("updatedBy")
 
   @@index([imageId])
-  @@index([status])
-  @@index([startAt])
-  @@index([endAt])
   @@index([createdById])
   @@index([updatedById])
 }

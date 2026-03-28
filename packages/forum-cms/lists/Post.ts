@@ -88,6 +88,11 @@ const listConfigurations = list({
             defaultValue: 'draft',
         }),
         heroImage: relationship({ ref: 'Photo', many: false, label: '主圖' }),
+        poll: relationship({
+            ref: 'Poll.post',
+            many: false,
+            label: '投票',
+        }),
         comments: relationship({ ref: 'Comment.post', many: true, label: '留言' }),
         reactions: relationship({ ref: 'Reaction.post', many: true, label: '反應' }),
         reports: relationship({ ref: 'Report.post', many: true, label: '檢舉紀錄' }),
