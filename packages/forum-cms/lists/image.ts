@@ -186,6 +186,11 @@ const listConfigurations = list({
     width: integer({ label: '原始寬度' }),
     height: integer({ label: '原始高度' }),
     uploadedBy: relationship({ ref: 'Member', many: false, label: '上傳者' }),
+    postsAsHeroImages: relationship({
+      ref: 'Post.heroImages',
+      many: true,
+      label: '作為主圖的文章',
+    }),
   },
   ui: {
     label: '圖片',

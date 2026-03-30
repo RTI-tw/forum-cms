@@ -59,6 +59,11 @@ const listConfigurations = list({
       ref: 'Post.author',
       many: true,
     }),
+    memberPolls: relationship({
+      label: '投票活動',
+      ref: 'Poll.member',
+      many: true,
+    }),
     reactions: relationship({
       label: '反應',
       ref: 'Reaction.member',

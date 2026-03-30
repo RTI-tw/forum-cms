@@ -1,7 +1,7 @@
 import { utils } from '@mirrormedia/lilith-core'
 import { allowRoles, admin, moderator, editor } from '../utils/access-control'
 import { list } from '@keystone-6/core'
-import { text } from '@keystone-6/core/fields'
+import { text, relationship } from '@keystone-6/core/fields'
 
 const listConfigurations = list({
   fields: {
@@ -11,6 +11,11 @@ const listConfigurations = list({
     }),
     coverImage: text({
       label: '影片縮圖',
+    }),
+    post: relationship({
+      ref: 'Post.videos',
+      many: false,
+      label: '關聯文章',
     }),
   },
   ui: {

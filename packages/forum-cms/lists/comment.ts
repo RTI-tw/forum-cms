@@ -10,10 +10,14 @@ import {
   float,
 } from '@keystone-6/core/fields';
 import { createMessageServicesTranslationHook } from '../utils/message-services-translation-hook'
+import { syncPostCommentAndReactionCounts } from '../utils/post-count-sync'
 import {
   getOfficialMemberIdForSessionUser,
   hasExplicitMemberRelationInput,
 } from '../utils/official-member-from-session'
+
+const translationAfterComment =
+  createMessageServicesTranslationHook('comment')
 
 const listConfigurations = list({
   fields: {
@@ -56,15 +60,24 @@ const listConfigurations = list({
       label: 'SPAM 分數（0–1）',
       validation: { min: 0, max: 1 },
       db: { isNullable: true },
+      ui: {
+        createView: { fieldMode: 'hidden' },
+        itemView: { fieldMode: 'hidden' },
+        listView: { fieldMode: 'hidden' },
+      },
     }),
     status: select({
       label: '狀態',
       type: 'enum',
       options: [
         { label: 'Published', value: 'published' },
+        { label: 'Archived', value: 'archived' },
         { label: 'Hidden', value: 'hidden' },
       ],
       defaultValue: 'published',
+      ui: {
+        description: 'Published：公開；Archived：封存；Hidden：隱藏。',
+      },
     }),
     reactions: relationship({ ref: 'Reaction.comment', many: true, label: '反應' }),
     reports: relationship({ ref: 'Report.comment', many: true, label: '檢舉紀錄' }),
@@ -84,7 +97,7 @@ const listConfigurations = list({
   ui: {
     label: '留言',
     listView: {
-      initialColumns: ['content', 'member', 'spamScore', 'published_date'],
+      initialColumns: ['content', 'member', 'status', 'published_date'],
     },
   },
   access: {
@@ -117,7 +130,40 @@ const listConfigurations = list({
       }
       return data
     },
-    afterOperation: createMessageServicesTranslationHook('comment'),
+    afterOperation: async (args) => {
+      await translationAfterComment(args)
+      const { operation, item, originalItem, context } = args
+      const getPostId = (
+        r: Record<string, unknown> | null | undefined
+      ): number | null => {
+        if (!r) return null
+        const pid = r.postId as number | null | undefined
+        if (pid != null) return pid
+        const p = r.post as { id?: number } | null | undefined
+        return p?.id ?? null
+      }
+      const postId = getPostId(item as Record<string, unknown>)
+      const prevPostId = getPostId(
+        originalItem as Record<string, unknown> | undefined
+      )
+
+      if (operation === 'delete') {
+        await syncPostCommentAndReactionCounts(
+          context.prisma,
+          prevPostId ?? postId
+        )
+        return
+      }
+      await syncPostCommentAndReactionCounts(context.prisma, postId)
+      if (
+        operation === 'update' &&
+        prevPostId != null &&
+        postId != null &&
+        prevPostId !== postId
+      ) {
+        await syncPostCommentAndReactionCounts(context.prisma, prevPostId)
+      }
+    },
   },
 })
 

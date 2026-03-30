@@ -61,15 +61,14 @@ export default {
   memoryCacheSize: Number.isNaN(Number(MEMORY_CACHE_SIZE))
     ? 300
     : Number(MEMORY_CACHE_SIZE),
-  // cms：依 session role；gql / preview：GraphQL 全開；api：依 ACCESS_CONTROL_API_RULES_JSON 限制各 list（實作在 packages/forum-cms/utils/access-control.ts）
-  accessControlStrategy: ACCESS_CONTROL_STRATEGY || 'cms',
+  accessControlStrategy: ACCESS_CONTROL_STRATEGY || 'cms', // the value could be one of 'cms', 'gql' or 'preview'
   previewServerOrigin: PREVIEW_SERVER_ORIGIN || 'http://localhost:3001',
   database: {
     provider:
       DATABASE_PROVIDER === 'sqlite'
         ? DatabaseProvider.Sqlite
         : DatabaseProvider.Postgres,
-    url: DATABASE_URL || 'postgres://hcchien@localhost:5432/forum-cms',
+    url: DATABASE_URL || 'postgres://username:password@localhost:5432/forum-cms',
   },
   session: {
     secret:

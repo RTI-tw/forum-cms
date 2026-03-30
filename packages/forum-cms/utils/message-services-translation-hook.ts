@@ -1,6 +1,12 @@
 import type { ListHooks } from '@keystone-6/core/types'
 import envVar from '../environment-variables'
 
+/** Keystone 的 afterOperation 可為函式或依操作分流物件；此 hook 僅為前者。 */
+type AfterOperationHookFn = Extract<
+  NonNullable<ListHooks<any>['afterOperation']>,
+  (...args: any[]) => any
+>
+
 /** 與 message-services `KeystoneHookSyncTranslationRequest.type` 一致 */
 export type MessageServicesEntityType =
   | 'post'
@@ -70,7 +76,7 @@ function shouldSyncTranslations(
   item: Record<string, unknown>,
   originalItem: Record<string, unknown> | null | undefined
 ): boolean {
-  if (entityType === 'post') {
+  if (entityType === 'post' || entityType === 'content') {
     const title = readMergedText(item, originalItem, 'title')
     const content = readMergedText(item, originalItem, 'content')
     if (!title && !content) return false
@@ -96,7 +102,7 @@ function shouldSyncTranslations(
  */
 export function createMessageServicesTranslationHook(
   entityType: MessageServicesEntityType
-): NonNullable<ListHooks<any>['afterOperation']> {
+): AfterOperationHookFn {
   return async ({ item, originalItem, operation }) => {
     if (operation === 'delete') return
 
@@ -132,11 +138,13 @@ export function createMessageServicesTranslationHook(
     }
 
     const sourceText =
-      entityType === 'post'
+      entityType === 'post' || entityType === 'content'
         ? readMergedText(rec, orig, 'content')
         : getSourceText(entityType, rec)
     const sourceTitle =
-      entityType === 'post' ? readMergedText(rec, orig, 'title') : ''
+      entityType === 'post' || entityType === 'content'
+        ? readMergedText(rec, orig, 'title')
+        : ''
 
     try {
       const syncRes = await fetch(`${baseUrl}/hooks/sync-translations`, {
@@ -148,7 +156,9 @@ export function createMessageServicesTranslationHook(
           type: entityType,
           id,
           source_text: sourceText,
-          ...(entityType === 'post' ? { source_title: sourceTitle } : {}),
+          ...(entityType === 'post' || entityType === 'content'
+            ? { source_title: sourceTitle }
+            : {}),
         }),
       })
       if (!syncRes.ok) {

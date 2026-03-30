@@ -225,6 +225,8 @@ type Member {
   member_likeCount(where: CommentWhereInput! = {}): Int
   posts(where: PostWhereInput! = {}, orderBy: [PostOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: PostWhereUniqueInput): [Post!]
   postsCount(where: PostWhereInput! = {}): Int
+  memberPolls(where: PollWhereInput! = {}, orderBy: [PollOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: PollWhereUniqueInput): [Poll!]
+  memberPollsCount(where: PollWhereInput! = {}): Int
   reactions(where: ReactionWhereInput! = {}, orderBy: [ReactionOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: ReactionWhereUniqueInput): [Reaction!]
   reactionsCount(where: ReactionWhereInput! = {}): Int
   follower(where: MemberWhereInput! = {}, orderBy: [MemberOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: MemberWhereUniqueInput): [Member!]
@@ -285,6 +287,7 @@ input MemberWhereInput {
   comment: CommentManyRelationFilter
   member_like: CommentManyRelationFilter
   posts: PostManyRelationFilter
+  memberPolls: PollManyRelationFilter
   reactions: ReactionManyRelationFilter
   follower: MemberManyRelationFilter
   following: MemberManyRelationFilter
@@ -311,6 +314,12 @@ input PostManyRelationFilter {
   every: PostWhereInput
   some: PostWhereInput
   none: PostWhereInput
+}
+
+input PollManyRelationFilter {
+  every: PollWhereInput
+  some: PollWhereInput
+  none: PollWhereInput
 }
 
 input ReactionManyRelationFilter {
@@ -378,6 +387,7 @@ input MemberUpdateInput {
   comment: CommentRelateToManyForUpdateInput
   member_like: CommentRelateToManyForUpdateInput
   posts: PostRelateToManyForUpdateInput
+  memberPolls: PollRelateToManyForUpdateInput
   reactions: ReactionRelateToManyForUpdateInput
   follower: MemberRelateToManyForUpdateInput
   following: MemberRelateToManyForUpdateInput
@@ -412,6 +422,13 @@ input PostRelateToManyForUpdateInput {
   set: [PostWhereUniqueInput!]
   create: [PostCreateInput!]
   connect: [PostWhereUniqueInput!]
+}
+
+input PollRelateToManyForUpdateInput {
+  disconnect: [PollWhereUniqueInput!]
+  set: [PollWhereUniqueInput!]
+  create: [PollCreateInput!]
+  connect: [PollWhereUniqueInput!]
 }
 
 input ReactionRelateToManyForUpdateInput {
@@ -460,6 +477,7 @@ input MemberCreateInput {
   comment: CommentRelateToManyForCreateInput
   member_like: CommentRelateToManyForCreateInput
   posts: PostRelateToManyForCreateInput
+  memberPolls: PollRelateToManyForCreateInput
   reactions: ReactionRelateToManyForCreateInput
   follower: MemberRelateToManyForCreateInput
   following: MemberRelateToManyForCreateInput
@@ -489,6 +507,11 @@ input CommentRelateToManyForCreateInput {
 input PostRelateToManyForCreateInput {
   create: [PostCreateInput!]
   connect: [PostWhereUniqueInput!]
+}
+
+input PollRelateToManyForCreateInput {
+  create: [PollCreateInput!]
+  connect: [PollWhereUniqueInput!]
 }
 
 input ReactionRelateToManyForCreateInput {
@@ -599,16 +622,29 @@ type Post {
   content_id: String
   content_th: String
   author: Member
+  published_date: DateTime
+  is_edited: Boolean
   ip: String
   spamScore: Float
+  isEditorChoice: Boolean
+  isLifeGuide: Boolean
+  editorChoices(where: EditorChoiceWhereInput! = {}, orderBy: [EditorChoiceOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: EditorChoiceWhereUniqueInput): [EditorChoice!]
+  editorChoicesCount(where: EditorChoiceWhereInput! = {}): Int
+  lifeGuides(where: LifeGuideWhereInput! = {}, orderBy: [LifeGuideOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: LifeGuideWhereUniqueInput): [LifeGuide!]
+  lifeGuidesCount(where: LifeGuideWhereInput! = {}): Int
   topic: Topic
   status: PostStatusType
-  heroImage: Photo
+  heroImages(where: PhotoWhereInput! = {}, orderBy: [PhotoOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: PhotoWhereUniqueInput): [Photo!]
+  heroImagesCount(where: PhotoWhereInput! = {}): Int
+  videos(where: VideoWhereInput! = {}, orderBy: [VideoOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: VideoWhereUniqueInput): [Video!]
+  videosCount(where: VideoWhereInput! = {}): Int
   poll: Poll
   comments(where: CommentWhereInput! = {}, orderBy: [CommentOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: CommentWhereUniqueInput): [Comment!]
   commentsCount(where: CommentWhereInput! = {}): Int
+  commentCount: Int
   reactions(where: ReactionWhereInput! = {}, orderBy: [ReactionOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: ReactionWhereUniqueInput): [Reaction!]
   reactionsCount(where: ReactionWhereInput! = {}): Int
+  reactionCount: Int
   reports(where: ReportWhereInput! = {}, orderBy: [ReportOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: ReportWhereUniqueInput): [Report!]
   reportsCount(where: ReportWhereInput! = {}): Int
   createdAt: DateTime
@@ -656,14 +692,23 @@ input PostWhereInput {
   content_id: StringFilter
   content_th: StringFilter
   author: MemberWhereInput
+  published_date: DateTimeNullableFilter
+  is_edited: BooleanFilter
   ip: StringFilter
   spamScore: FloatNullableFilter
+  isEditorChoice: BooleanFilter
+  isLifeGuide: BooleanFilter
+  editorChoices: EditorChoiceManyRelationFilter
+  lifeGuides: LifeGuideManyRelationFilter
   topic: TopicWhereInput
   status: PostStatusTypeNullableFilter
-  heroImage: PhotoWhereInput
+  heroImages: PhotoManyRelationFilter
+  videos: VideoManyRelationFilter
   poll: PollWhereInput
   comments: CommentManyRelationFilter
+  commentCount: IntNullableFilter
   reactions: ReactionManyRelationFilter
+  reactionCount: IntNullableFilter
   reports: ReportManyRelationFilter
   createdAt: DateTimeNullableFilter
   updatedAt: DateTimeNullableFilter
@@ -689,11 +734,35 @@ input FloatNullableFilter {
   not: FloatNullableFilter
 }
 
+input EditorChoiceManyRelationFilter {
+  every: EditorChoiceWhereInput
+  some: EditorChoiceWhereInput
+  none: EditorChoiceWhereInput
+}
+
+input LifeGuideManyRelationFilter {
+  every: LifeGuideWhereInput
+  some: LifeGuideWhereInput
+  none: LifeGuideWhereInput
+}
+
 input PostStatusTypeNullableFilter {
   equals: PostStatusType
   in: [PostStatusType!]
   notIn: [PostStatusType!]
   not: PostStatusTypeNullableFilter
+}
+
+input PhotoManyRelationFilter {
+  every: PhotoWhereInput
+  some: PhotoWhereInput
+  none: PhotoWhereInput
+}
+
+input VideoManyRelationFilter {
+  every: VideoWhereInput
+  some: VideoWhereInput
+  none: VideoWhereInput
 }
 
 input ReportManyRelationFilter {
@@ -717,9 +786,15 @@ input PostOrderByInput {
   content_vi: OrderDirection
   content_id: OrderDirection
   content_th: OrderDirection
+  published_date: OrderDirection
+  is_edited: OrderDirection
   ip: OrderDirection
   spamScore: OrderDirection
+  isEditorChoice: OrderDirection
+  isLifeGuide: OrderDirection
   status: OrderDirection
+  commentCount: OrderDirection
+  reactionCount: OrderDirection
   createdAt: OrderDirection
   updatedAt: OrderDirection
 }
@@ -739,14 +814,23 @@ input PostUpdateInput {
   content_id: String
   content_th: String
   author: MemberRelateToOneForUpdateInput
+  published_date: DateTime
+  is_edited: Boolean
   ip: String
   spamScore: Float
+  isEditorChoice: Boolean
+  isLifeGuide: Boolean
+  editorChoices: EditorChoiceRelateToManyForUpdateInput
+  lifeGuides: LifeGuideRelateToManyForUpdateInput
   topic: TopicRelateToOneForUpdateInput
   status: PostStatusType
-  heroImage: PhotoRelateToOneForUpdateInput
+  heroImages: PhotoRelateToManyForUpdateInput
+  videos: VideoRelateToManyForUpdateInput
   poll: PollRelateToOneForUpdateInput
   comments: CommentRelateToManyForUpdateInput
+  commentCount: Int
   reactions: ReactionRelateToManyForUpdateInput
+  reactionCount: Int
   reports: ReportRelateToManyForUpdateInput
   createdAt: DateTime
   updatedAt: DateTime
@@ -754,10 +838,38 @@ input PostUpdateInput {
   updatedBy: UserRelateToOneForUpdateInput
 }
 
+input EditorChoiceRelateToManyForUpdateInput {
+  disconnect: [EditorChoiceWhereUniqueInput!]
+  set: [EditorChoiceWhereUniqueInput!]
+  create: [EditorChoiceCreateInput!]
+  connect: [EditorChoiceWhereUniqueInput!]
+}
+
+input LifeGuideRelateToManyForUpdateInput {
+  disconnect: [LifeGuideWhereUniqueInput!]
+  set: [LifeGuideWhereUniqueInput!]
+  create: [LifeGuideCreateInput!]
+  connect: [LifeGuideWhereUniqueInput!]
+}
+
 input TopicRelateToOneForUpdateInput {
   create: TopicCreateInput
   connect: TopicWhereUniqueInput
   disconnect: Boolean
+}
+
+input PhotoRelateToManyForUpdateInput {
+  disconnect: [PhotoWhereUniqueInput!]
+  set: [PhotoWhereUniqueInput!]
+  create: [PhotoCreateInput!]
+  connect: [PhotoWhereUniqueInput!]
+}
+
+input VideoRelateToManyForUpdateInput {
+  disconnect: [VideoWhereUniqueInput!]
+  set: [VideoWhereUniqueInput!]
+  create: [VideoCreateInput!]
+  connect: [VideoWhereUniqueInput!]
 }
 
 input PollRelateToOneForUpdateInput {
@@ -793,14 +905,23 @@ input PostCreateInput {
   content_id: String
   content_th: String
   author: MemberRelateToOneForCreateInput
+  published_date: DateTime
+  is_edited: Boolean
   ip: String
   spamScore: Float
+  isEditorChoice: Boolean
+  isLifeGuide: Boolean
+  editorChoices: EditorChoiceRelateToManyForCreateInput
+  lifeGuides: LifeGuideRelateToManyForCreateInput
   topic: TopicRelateToOneForCreateInput
   status: PostStatusType
-  heroImage: PhotoRelateToOneForCreateInput
+  heroImages: PhotoRelateToManyForCreateInput
+  videos: VideoRelateToManyForCreateInput
   poll: PollRelateToOneForCreateInput
   comments: CommentRelateToManyForCreateInput
+  commentCount: Int
   reactions: ReactionRelateToManyForCreateInput
+  reactionCount: Int
   reports: ReportRelateToManyForCreateInput
   createdAt: DateTime
   updatedAt: DateTime
@@ -808,9 +929,29 @@ input PostCreateInput {
   updatedBy: UserRelateToOneForCreateInput
 }
 
+input EditorChoiceRelateToManyForCreateInput {
+  create: [EditorChoiceCreateInput!]
+  connect: [EditorChoiceWhereUniqueInput!]
+}
+
+input LifeGuideRelateToManyForCreateInput {
+  create: [LifeGuideCreateInput!]
+  connect: [LifeGuideWhereUniqueInput!]
+}
+
 input TopicRelateToOneForCreateInput {
   create: TopicCreateInput
   connect: TopicWhereUniqueInput
+}
+
+input PhotoRelateToManyForCreateInput {
+  create: [PhotoCreateInput!]
+  connect: [PhotoWhereUniqueInput!]
+}
+
+input VideoRelateToManyForCreateInput {
+  create: [VideoCreateInput!]
+  connect: [VideoWhereUniqueInput!]
 }
 
 input PollRelateToOneForCreateInput {
@@ -1108,6 +1249,7 @@ enum CommentLanguageType {
 
 enum CommentStatusType {
   published
+  archived
   hidden
 }
 
@@ -1400,6 +1542,7 @@ type Poll {
   options(where: PollOptionWhereInput! = {}, orderBy: [PollOptionOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: PollOptionWhereUniqueInput): [PollOption!]
   optionsCount(where: PollOptionWhereInput! = {}): Int
   totalVotes: Int
+  member: Member
   createdAt: DateTime
   updatedAt: DateTime
   createdBy: User
@@ -1426,6 +1569,7 @@ input PollWhereInput {
   expiresAt: DateTimeNullableFilter
   options: PollOptionManyRelationFilter
   totalVotes: IntNullableFilter
+  member: MemberWhereInput
   createdAt: DateTimeNullableFilter
   updatedAt: DateTimeNullableFilter
   createdBy: UserWhereInput
@@ -1463,6 +1607,7 @@ input PollUpdateInput {
   expiresAt: DateTime
   options: PollOptionRelateToManyForUpdateInput
   totalVotes: Int
+  member: MemberRelateToOneForUpdateInput
   createdAt: DateTime
   updatedAt: DateTime
   createdBy: UserRelateToOneForUpdateInput
@@ -1492,6 +1637,7 @@ input PollCreateInput {
   expiresAt: DateTime
   options: PollOptionRelateToManyForCreateInput
   totalVotes: Int
+  member: MemberRelateToOneForCreateInput
   createdAt: DateTime
   updatedAt: DateTime
   createdBy: UserRelateToOneForCreateInput
@@ -1664,6 +1810,12 @@ input PollOptionRelateToOneForCreateInput {
 type Content {
   id: ID!
   identifier: String
+  title: String
+  title_zh: String
+  title_en: String
+  title_vi: String
+  title_id: String
+  title_th: String
   content: String
   language: ContentLanguageType
   content_zh: String
@@ -1696,6 +1848,12 @@ input ContentWhereInput {
   NOT: [ContentWhereInput!]
   id: IDFilter
   identifier: StringFilter
+  title: StringFilter
+  title_zh: StringFilter
+  title_en: StringFilter
+  title_vi: StringFilter
+  title_id: StringFilter
+  title_th: StringFilter
   content: StringFilter
   language: ContentLanguageTypeNullableFilter
   content_zh: StringFilter
@@ -1719,6 +1877,12 @@ input ContentLanguageTypeNullableFilter {
 input ContentOrderByInput {
   id: OrderDirection
   identifier: OrderDirection
+  title: OrderDirection
+  title_zh: OrderDirection
+  title_en: OrderDirection
+  title_vi: OrderDirection
+  title_id: OrderDirection
+  title_th: OrderDirection
   content: OrderDirection
   language: OrderDirection
   content_zh: OrderDirection
@@ -1732,6 +1896,12 @@ input ContentOrderByInput {
 
 input ContentUpdateInput {
   identifier: String
+  title: String
+  title_zh: String
+  title_en: String
+  title_vi: String
+  title_id: String
+  title_th: String
   content: String
   language: ContentLanguageType
   content_zh: String
@@ -1752,6 +1922,12 @@ input ContentUpdateArgs {
 
 input ContentCreateInput {
   identifier: String
+  title: String
+  title_zh: String
+  title_en: String
+  title_vi: String
+  title_id: String
+  title_th: String
   content: String
   language: ContentLanguageType
   content_zh: String
@@ -1926,6 +2102,7 @@ type Video {
   id: ID!
   url: String
   coverImage: String
+  post: Post
   createdAt: DateTime
   updatedAt: DateTime
   createdBy: User
@@ -1943,6 +2120,7 @@ input VideoWhereInput {
   id: IDFilter
   url: StringFilter
   coverImage: StringFilter
+  post: PostWhereInput
   createdAt: DateTimeNullableFilter
   updatedAt: DateTimeNullableFilter
   createdBy: UserWhereInput
@@ -1960,6 +2138,7 @@ input VideoOrderByInput {
 input VideoUpdateInput {
   url: String
   coverImage: String
+  post: PostRelateToOneForUpdateInput
   createdAt: DateTime
   updatedAt: DateTime
   createdBy: UserRelateToOneForUpdateInput
@@ -1974,6 +2153,7 @@ input VideoUpdateArgs {
 input VideoCreateInput {
   url: String
   coverImage: String
+  post: PostRelateToOneForCreateInput
   createdAt: DateTime
   updatedAt: DateTime
   createdBy: UserRelateToOneForCreateInput
@@ -1992,6 +2172,8 @@ type Photo {
   width: Int
   height: Int
   uploadedBy: Member
+  postsAsHeroImages(where: PostWhereInput! = {}, orderBy: [PostOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: PostWhereUniqueInput): [Post!]
+  postsAsHeroImagesCount(where: PostWhereInput! = {}): Int
   createdAt: DateTime
   updatedAt: DateTime
   createdBy: User
@@ -2048,6 +2230,7 @@ input PhotoWhereInput {
   width: IntNullableFilter
   height: IntNullableFilter
   uploadedBy: MemberWhereInput
+  postsAsHeroImages: PostManyRelationFilter
   createdAt: DateTimeNullableFilter
   updatedAt: DateTimeNullableFilter
   createdBy: UserWhereInput
@@ -2075,6 +2258,7 @@ input PhotoUpdateInput {
   width: Int
   height: Int
   uploadedBy: MemberRelateToOneForUpdateInput
+  postsAsHeroImages: PostRelateToManyForUpdateInput
   createdAt: DateTime
   updatedAt: DateTime
   createdBy: UserRelateToOneForUpdateInput
@@ -2102,6 +2286,7 @@ input PhotoCreateInput {
   width: Int
   height: Int
   uploadedBy: MemberRelateToOneForCreateInput
+  postsAsHeroImages: PostRelateToManyForCreateInput
   createdAt: DateTime
   updatedAt: DateTime
   createdBy: UserRelateToOneForCreateInput

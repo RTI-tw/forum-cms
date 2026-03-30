@@ -1,6 +1,7 @@
 import { utils } from '@mirrormedia/lilith-core'
 import { allowRoles, admin, moderator, editor } from '../utils/access-control'
 import { list } from '@keystone-6/core'
+import { syncPostCommentAndReactionCounts } from '../utils/post-count-sync'
 import {
     relationship,
     select,
@@ -43,6 +44,30 @@ const listConfigurations = list({
             update: allowRoles(admin, moderator),
             create: allowRoles(admin, moderator),
             delete: allowRoles(admin),
+        },
+    },
+    hooks: {
+        afterOperation: async ({ item, originalItem, context }) => {
+            type R = { postId?: number | null; commentId?: number | null }
+            const postIdsForPostLevelReaction = (r: R | null | undefined) => {
+                if (!r?.postId) return []
+                if (r.commentId != null) return []
+                return [r.postId]
+            }
+            const ids = new Set<number>()
+            for (const id of postIdsForPostLevelReaction(
+                originalItem as R | undefined
+            )) {
+                ids.add(id)
+            }
+            for (const id of postIdsForPostLevelReaction(
+                item as R | undefined
+            )) {
+                ids.add(id)
+            }
+            for (const id of ids) {
+                await syncPostCommentAndReactionCounts(context.prisma, id)
+            }
         },
     },
 })

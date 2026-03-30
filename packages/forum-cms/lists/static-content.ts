@@ -14,6 +14,30 @@ const listConfigurations = list({
       isIndexed: 'unique',
       label: '識別碼',
     }),
+    title: text({
+      label: '標題',
+      ui: { displayMode: 'textarea' },
+    }),
+    title_zh: text({
+      label: '標題（中文）',
+      ui: { displayMode: 'textarea' },
+    }),
+    title_en: text({
+      label: '標題（英文）',
+      ui: { displayMode: 'textarea' },
+    }),
+    title_vi: text({
+      label: '標題（越南文）',
+      ui: { displayMode: 'textarea' },
+    }),
+    title_id: text({
+      label: '標題（印尼文）',
+      ui: { displayMode: 'textarea' },
+    }),
+    title_th: text({
+      label: '標題（泰文）',
+      ui: { displayMode: 'textarea' },
+    }),
     content: text({
       label: '原文內容',
       ui: { displayMode: 'textarea' },
@@ -53,7 +77,7 @@ const listConfigurations = list({
   ui: {
     label: '靜態頁面',
     listView: {
-      initialColumns: ['identifier', 'language'],
+      initialColumns: ['identifier', 'title', 'language'],
     },
   },
   access: {
