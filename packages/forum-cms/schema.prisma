@@ -97,6 +97,7 @@ model Member {
   status                              MemberStatusType?   @default(active)
   joinDate                            DateTime?           @default(now())
   language                            MemberLanguageType? @default(zh)
+  nationality                         String?             @postgresql.VarChar(2)
   createdAt                           DateTime?
   updatedAt                           DateTime?
   createdBy                           User?               @relation("Member_createdBy", fields: [createdById], references: [id])
@@ -159,8 +160,7 @@ model Post {
   isLifeGuide        Boolean          @default(false)
   editorChoices      EditorChoice[]   @relation("EditorChoice_post")
   lifeGuides         LifeGuide[]      @relation("LifeGuide_post")
-  topic              Topic?           @relation("Post_topic", fields: [topicId], references: [id])
-  topicId            Int?             @map("topic")
+  topics             Topic[]          @relation("Post_topics")
   status             PostStatusType?  @default(draft)
   heroImages         Photo[]          @relation("Photo_postsAsHeroImages")
   videos             Video[]          @relation("Video_post")
@@ -179,7 +179,6 @@ model Post {
   from_Bookmark_post Bookmark[]       @relation("Bookmark_post")
 
   @@index([authorId])
-  @@index([topicId])
   @@index([createdById])
   @@index([updatedById])
 }
@@ -196,7 +195,7 @@ model Topic {
   slug        String             @unique @default("")
   sortOrder   Int?               @default(0)
   description String             @default("")
-  posts       Post[]             @relation("Post_topic")
+  posts       Post[]             @relation("Post_topics")
   createdAt   DateTime?
   updatedAt   DateTime?
   createdBy   User?              @relation("Topic_createdBy", fields: [createdById], references: [id])

@@ -243,6 +243,7 @@ type Member {
   status: MemberStatusType
   joinDate: DateTime
   language: MemberLanguageType
+  nationality: String
   createdAt: DateTime
   updatedAt: DateTime
   createdBy: User
@@ -298,6 +299,7 @@ input MemberWhereInput {
   status: MemberStatusTypeNullableFilter
   joinDate: DateTimeNullableFilter
   language: MemberLanguageTypeNullableFilter
+  nationality: StringNullableFilter
   createdAt: DateTimeNullableFilter
   updatedAt: DateTimeNullableFilter
   createdBy: UserWhereInput
@@ -354,6 +356,21 @@ input MemberLanguageTypeNullableFilter {
   not: MemberLanguageTypeNullableFilter
 }
 
+input StringNullableFilter {
+  equals: String
+  in: [String!]
+  notIn: [String!]
+  lt: String
+  lte: String
+  gt: String
+  gte: String
+  contains: String
+  startsWith: String
+  endsWith: String
+  mode: QueryMode
+  not: StringNullableFilter
+}
+
 input MemberOrderByInput {
   id: OrderDirection
   firebaseId: OrderDirection
@@ -369,6 +386,7 @@ input MemberOrderByInput {
   status: OrderDirection
   joinDate: OrderDirection
   language: OrderDirection
+  nationality: OrderDirection
   createdAt: OrderDirection
   updatedAt: OrderDirection
 }
@@ -398,6 +416,7 @@ input MemberUpdateInput {
   status: MemberStatusType
   joinDate: DateTime
   language: MemberLanguageType
+  nationality: String
   createdAt: DateTime
   updatedAt: DateTime
   createdBy: UserRelateToOneForUpdateInput
@@ -488,6 +507,7 @@ input MemberCreateInput {
   status: MemberStatusType
   joinDate: DateTime
   language: MemberLanguageType
+  nationality: String
   createdAt: DateTime
   updatedAt: DateTime
   createdBy: UserRelateToOneForCreateInput
@@ -632,7 +652,8 @@ type Post {
   editorChoicesCount(where: EditorChoiceWhereInput! = {}): Int
   lifeGuides(where: LifeGuideWhereInput! = {}, orderBy: [LifeGuideOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: LifeGuideWhereUniqueInput): [LifeGuide!]
   lifeGuidesCount(where: LifeGuideWhereInput! = {}): Int
-  topic: Topic
+  topics(where: TopicWhereInput! = {}, orderBy: [TopicOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: TopicWhereUniqueInput): [Topic!]
+  topicsCount(where: TopicWhereInput! = {}): Int
   status: PostStatusType
   heroImages(where: PhotoWhereInput! = {}, orderBy: [PhotoOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: PhotoWhereUniqueInput): [Photo!]
   heroImagesCount(where: PhotoWhereInput! = {}): Int
@@ -700,7 +721,7 @@ input PostWhereInput {
   isLifeGuide: BooleanFilter
   editorChoices: EditorChoiceManyRelationFilter
   lifeGuides: LifeGuideManyRelationFilter
-  topic: TopicWhereInput
+  topics: TopicManyRelationFilter
   status: PostStatusTypeNullableFilter
   heroImages: PhotoManyRelationFilter
   videos: VideoManyRelationFilter
@@ -744,6 +765,12 @@ input LifeGuideManyRelationFilter {
   every: LifeGuideWhereInput
   some: LifeGuideWhereInput
   none: LifeGuideWhereInput
+}
+
+input TopicManyRelationFilter {
+  every: TopicWhereInput
+  some: TopicWhereInput
+  none: TopicWhereInput
 }
 
 input PostStatusTypeNullableFilter {
@@ -822,7 +849,7 @@ input PostUpdateInput {
   isLifeGuide: Boolean
   editorChoices: EditorChoiceRelateToManyForUpdateInput
   lifeGuides: LifeGuideRelateToManyForUpdateInput
-  topic: TopicRelateToOneForUpdateInput
+  topics: TopicRelateToManyForUpdateInput
   status: PostStatusType
   heroImages: PhotoRelateToManyForUpdateInput
   videos: VideoRelateToManyForUpdateInput
@@ -852,10 +879,11 @@ input LifeGuideRelateToManyForUpdateInput {
   connect: [LifeGuideWhereUniqueInput!]
 }
 
-input TopicRelateToOneForUpdateInput {
-  create: TopicCreateInput
-  connect: TopicWhereUniqueInput
-  disconnect: Boolean
+input TopicRelateToManyForUpdateInput {
+  disconnect: [TopicWhereUniqueInput!]
+  set: [TopicWhereUniqueInput!]
+  create: [TopicCreateInput!]
+  connect: [TopicWhereUniqueInput!]
 }
 
 input PhotoRelateToManyForUpdateInput {
@@ -913,7 +941,7 @@ input PostCreateInput {
   isLifeGuide: Boolean
   editorChoices: EditorChoiceRelateToManyForCreateInput
   lifeGuides: LifeGuideRelateToManyForCreateInput
-  topic: TopicRelateToOneForCreateInput
+  topics: TopicRelateToManyForCreateInput
   status: PostStatusType
   heroImages: PhotoRelateToManyForCreateInput
   videos: VideoRelateToManyForCreateInput
@@ -939,9 +967,9 @@ input LifeGuideRelateToManyForCreateInput {
   connect: [LifeGuideWhereUniqueInput!]
 }
 
-input TopicRelateToOneForCreateInput {
-  create: TopicCreateInput
-  connect: TopicWhereUniqueInput
+input TopicRelateToManyForCreateInput {
+  create: [TopicCreateInput!]
+  connect: [TopicWhereUniqueInput!]
 }
 
 input PhotoRelateToManyForCreateInput {

@@ -23,10 +23,24 @@ function normText(value: unknown): string {
     return String(value ?? '').trim()
 }
 
+/** Keystone many 關聯：connect 可為單筆或陣列；亦可能用 set / create。 */
+function hasAtLeastOneTopicRelation(topics: unknown): boolean {
+    if (topics == null || typeof topics !== 'object') return false
+    const t = topics as Record<string, unknown>
+    if (t.connect != null) {
+        const c = t.connect
+        if (Array.isArray(c)) return c.length > 0
+        if (typeof c === 'object' && c !== null && 'id' in c) return true
+    }
+    if (Array.isArray(t.set) && t.set.length > 0) return true
+    if (Array.isArray(t.create) && t.create.length > 0) return true
+    return false
+}
+
 /**
  * 欄位對應需求：標題原文（必填、≤80 字）、五語標題、貼文原文（必填）、五語內容、
  * 原始語言（必填）、作者（央廣後台預設 OfficialMapping 會員）、發文時間、已編輯、IP、SPAM、
- * 精選／生活須知（checkbox，並與 EditorChoice／LifeGuide 子表同步）、主題（必填）、狀態、多張主圖、關聯影片、
+ * 精選／生活須知（checkbox，並與 EditorChoice／LifeGuide 子表同步）、主題（必填，可多選）、狀態、多張主圖、關聯影片、
  * 投票、留言、留言數、反應、反應數、檢舉。留言數／反應數由 Comment／Reaction 的 hook 同步。
  */
 const listConfigurations = list({
@@ -169,13 +183,12 @@ const listConfigurations = list({
                 listView: { fieldMode: 'hidden' },
             },
         }),
-        topic: relationship({
+        topics: relationship({
             ref: 'Topic.posts',
-            many: false,
+            many: true,
             label: '主題分類',
-            validation: { isRequired: true },
             ui: {
-                description: '必填。',
+                description: '必填，至少選擇一個主題；可選多個。',
             },
         }),
         status: select({
@@ -284,13 +297,22 @@ const listConfigurations = list({
             if (resolvedData.language == null) {
                 addValidationError('原始語言為必填')
             }
-            const topicConnect =
-                resolvedData.topic &&
-                typeof resolvedData.topic === 'object' &&
-                'connect' in resolvedData.topic &&
-                (resolvedData.topic as { connect?: unknown }).connect
-            if (!topicConnect) {
-                addValidationError('主題分類為必填')
+            if (operation === 'create') {
+                if (!hasAtLeastOneTopicRelation(resolvedData.topics)) {
+                    addValidationError('主題分類為必填（至少選擇一個）')
+                }
+            } else if (
+                operation === 'update' &&
+                resolvedData.topics !== undefined
+            ) {
+                const td = resolvedData.topics as Record<string, unknown>
+                if (
+                    td.set !== undefined &&
+                    Array.isArray(td.set) &&
+                    td.set.length === 0
+                ) {
+                    addValidationError('主題分類至少需保留一個')
+                }
             }
         },
         resolveInput: async ({

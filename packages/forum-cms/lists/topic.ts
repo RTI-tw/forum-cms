@@ -40,7 +40,7 @@ const listConfigurations = list({
       ui: { displayMode: 'textarea' },
     }),
     posts: relationship({
-      ref: 'Post.topic',
+      ref: 'Post.topics',
       many: true,
       label: '文章',
     }),
