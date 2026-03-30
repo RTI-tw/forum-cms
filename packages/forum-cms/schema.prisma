@@ -144,7 +144,7 @@ model Post {
   title_id           String           @default("")
   title_th           String           @default("")
   content            String           @default("")
-  language           PostLanguageType @default(zh)
+  language           PostLanguageType
   content_zh         String           @default("")
   content_en         String           @default("")
   content_vi         String           @default("")
