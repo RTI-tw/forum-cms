@@ -16,6 +16,7 @@ import {
     hasExplicitMemberRelationInput,
 } from '../utils/official-member-from-session'
 import { reconcileEditorChoiceAndLifeGuideFromPostFlags } from '../utils/post-editor-life-sync'
+import { getClientIpFromKeystoneContext } from '../utils/client-ip'
 
 const translationAfterPost = createMessageServicesTranslationHook('post')
 
@@ -126,9 +127,10 @@ const listConfigurations = list({
             defaultValue: { kind: 'now' },
             db: { isNullable: true },
             ui: {
-                description: '建立時由系統帶入，可於後台調整。',
-                createView: { fieldMode: 'hidden' },
-                itemView: { fieldMode: 'read' },
+                description:
+                    '建立時預設為現在時間；建立／編輯時皆可手動調整。',
+                createView: { fieldMode: 'edit' },
+                itemView: { fieldMode: 'edit' },
                 listView: { fieldMode: 'read' },
             },
         }),
@@ -284,18 +286,25 @@ const listConfigurations = list({
     hooks: {
         validateInput: ({ resolvedData, addValidationError, operation }) => {
             if (operation !== 'create' && operation !== 'update') return
-            const title = normText(resolvedData.title)
-            if (!title) {
-                addValidationError('標題（原文）為必填')
+            const isCreate = operation === 'create'
+            // update 時 Keystone 只帶入有變更的欄位；未出現在 resolvedData 代表沿用原值，不可當成「未填」。
+            if (isCreate || resolvedData.title !== undefined) {
+                const title = normText(resolvedData.title)
+                if (!title) {
+                    addValidationError('標題（原文）為必填')
+                } else if (title.length > 80) {
+                    addValidationError('標題（原文）最多 80 字')
+                }
             }
-            if (title.length > 80) {
-                addValidationError('標題（原文）最多 80 字')
+            if (isCreate || resolvedData.content !== undefined) {
+                if (!normText(resolvedData.content)) {
+                    addValidationError('貼文原文為必填')
+                }
             }
-            if (!normText(resolvedData.content)) {
-                addValidationError('貼文原文為必填')
-            }
-            if (resolvedData.language == null) {
-                addValidationError('原始語言為必填')
+            if (isCreate || resolvedData.language !== undefined) {
+                if (resolvedData.language == null) {
+                    addValidationError('原始語言為必填')
+                }
             }
             if (operation === 'create') {
                 if (!hasAtLeastOneTopicRelation(resolvedData.topics)) {
@@ -339,6 +348,10 @@ const listConfigurations = list({
                     throw new Error(
                         '作者為必填：請選擇作者，或確認已以央廣後台帳號登入且已完成 OfficialMapping。'
                     )
+                }
+                // CMS 建立文章時由請求帶入發文 IP（表單未送或空白則補上）
+                if (!normText(data.ip)) {
+                    data.ip = getClientIpFromKeystoneContext(context)
                 }
             }
             if (operation === 'update' && item) {

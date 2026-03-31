@@ -1,0 +1,16 @@
+---
+description: Prisma schema 與 migration 一律用 npx prisma 產生與管理
+globs: packages/forum-cms/**/*
+alwaysApply: true
+---
+
+# Prisma：使用 npx 產生 schema 與 migration
+
+在 `packages/forum-cms`（Prisma 根目錄，`schema.prisma` 所在處）遵守：
+
+1. **Migration**：以 **`npx prisma migrate dev --name <描述性名稱>`** 產生並套用；由 Prisma 依 `schema.prisma` 變更寫入 `migrations/<timestamp>_<name>/migration.sql`。不要自行新增或手寫整份 migration 來取代此流程（除非使用者明確要求例外，並註明原因）。
+2. **改動 schema 後**：執行 **`npx prisma generate`**，讓 Prisma Client 與 `schema.prisma` 一致。
+3. **部署環境套用**：使用 **`npx prisma migrate deploy`**。
+4. **若需從現有 DB 反推**：使用 **`npx prisma db pull`**，再視需要 `migrate dev` 收斂差異。
+
+協助使用者時，優先建議上述指令與工作目錄；避免在沒有明確需求時改用手寫 SQL migration。
