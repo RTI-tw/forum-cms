@@ -38,8 +38,6 @@ model User {
   from_Topic_updatedBy            Topic[]            @relation("Topic_updatedBy")
   from_EditorChoice_createdBy     EditorChoice[]     @relation("EditorChoice_createdBy")
   from_EditorChoice_updatedBy     EditorChoice[]     @relation("EditorChoice_updatedBy")
-  from_LifeGuide_createdBy        LifeGuide[]        @relation("LifeGuide_createdBy")
-  from_LifeGuide_updatedBy        LifeGuide[]        @relation("LifeGuide_updatedBy")
   from_Comment_createdBy          Comment[]          @relation("Comment_createdBy")
   from_Comment_updatedBy          Comment[]          @relation("Comment_updatedBy")
   from_Reaction_createdBy         Reaction[]         @relation("Reaction_createdBy")
@@ -157,9 +155,7 @@ model Post {
   ip                 String           @default("")
   spamScore          Float?
   isEditorChoice     Boolean          @default(false)
-  isLifeGuide        Boolean          @default(false)
   editorChoices      EditorChoice[]   @relation("EditorChoice_post")
-  lifeGuides         LifeGuide[]      @relation("LifeGuide_post")
   topics             Topic[]          @relation("Post_topics")
   status             PostStatusType?  @default(draft)
   heroImages         Photo[]          @relation("Photo_postsAsHeroImages")
@@ -217,23 +213,6 @@ model EditorChoice {
   createdBy   User?     @relation("EditorChoice_createdBy", fields: [createdById], references: [id])
   createdById Int?      @map("createdBy")
   updatedBy   User?     @relation("EditorChoice_updatedBy", fields: [updatedById], references: [id])
-  updatedById Int?      @map("updatedBy")
-
-  @@index([postId])
-  @@index([createdById])
-  @@index([updatedById])
-}
-
-model LifeGuide {
-  id          Int       @id @default(autoincrement())
-  post        Post?     @relation("LifeGuide_post", fields: [postId], references: [id])
-  postId      Int?      @map("post")
-  sortOrder   Int?      @default(0)
-  createdAt   DateTime?
-  updatedAt   DateTime?
-  createdBy   User?     @relation("LifeGuide_createdBy", fields: [createdById], references: [id])
-  createdById Int?      @map("createdBy")
-  updatedBy   User?     @relation("LifeGuide_updatedBy", fields: [updatedById], references: [id])
   updatedById Int?      @map("updatedBy")
 
   @@index([postId])

@@ -40,7 +40,7 @@ function hasAtLeastOneTopicRelation(topics: unknown): boolean {
 /**
  * 欄位對應需求：標題原文（必填、≤80 字）、五語標題、貼文原文（必填）、五語內容、
  * 原始語言（必填）、作者（央廣後台預設 OfficialMapping 會員）、發文時間、已編輯、IP、SPAM、
- * 精選／生活須知（checkbox，僅作為「編輯精選／生活須知」選文資格；子表請至對應列表建立）、主題（必填，可多選）、狀態、多張主圖、關聯影片、
+ * 編輯精選（checkbox 作為「編輯精選」選文資格；子表請至該列表建立）、主題（必填，可多選）、狀態、多張主圖、關聯影片、
  * 投票、留言、留言數、反應、反應數、檢舉。留言數／反應數由 Comment／Reaction 的 hook 同步。
  */
 const listConfigurations = list({
@@ -156,28 +156,10 @@ const listConfigurations = list({
                     '勾選後，該文章會出現在「編輯精選」列表建立文章時的可選清單；實際上榜請至「編輯精選」新增並設定順序。',
             },
         }),
-        isLifeGuide: checkbox({
-            label: '生活須知',
-            defaultValue: false,
-            ui: {
-                description:
-                    '勾選後，該文章會出現在「生活須知」列表建立文章時的可選清單；實際上榜請至「生活須知」新增並設定順序。',
-            },
-        }),
         editorChoices: relationship({
             ref: 'EditorChoice.post',
             many: true,
             label: '編輯精選（關聯）',
-            ui: {
-                createView: { fieldMode: 'hidden' },
-                itemView: { fieldMode: 'hidden' },
-                listView: { fieldMode: 'hidden' },
-            },
-        }),
-        lifeGuides: relationship({
-            ref: 'LifeGuide.post',
-            many: true,
-            label: '生活須知（關聯）',
             ui: {
                 createView: { fieldMode: 'hidden' },
                 itemView: { fieldMode: 'hidden' },

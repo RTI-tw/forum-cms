@@ -647,11 +647,8 @@ type Post {
   ip: String
   spamScore: Float
   isEditorChoice: Boolean
-  isLifeGuide: Boolean
   editorChoices(where: EditorChoiceWhereInput! = {}, orderBy: [EditorChoiceOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: EditorChoiceWhereUniqueInput): [EditorChoice!]
   editorChoicesCount(where: EditorChoiceWhereInput! = {}): Int
-  lifeGuides(where: LifeGuideWhereInput! = {}, orderBy: [LifeGuideOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: LifeGuideWhereUniqueInput): [LifeGuide!]
-  lifeGuidesCount(where: LifeGuideWhereInput! = {}): Int
   topics(where: TopicWhereInput! = {}, orderBy: [TopicOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: TopicWhereUniqueInput): [Topic!]
   topicsCount(where: TopicWhereInput! = {}): Int
   status: PostStatusType
@@ -718,9 +715,7 @@ input PostWhereInput {
   ip: StringFilter
   spamScore: FloatNullableFilter
   isEditorChoice: BooleanFilter
-  isLifeGuide: BooleanFilter
   editorChoices: EditorChoiceManyRelationFilter
-  lifeGuides: LifeGuideManyRelationFilter
   topics: TopicManyRelationFilter
   status: PostStatusTypeNullableFilter
   heroImages: PhotoManyRelationFilter
@@ -759,12 +754,6 @@ input EditorChoiceManyRelationFilter {
   every: EditorChoiceWhereInput
   some: EditorChoiceWhereInput
   none: EditorChoiceWhereInput
-}
-
-input LifeGuideManyRelationFilter {
-  every: LifeGuideWhereInput
-  some: LifeGuideWhereInput
-  none: LifeGuideWhereInput
 }
 
 input TopicManyRelationFilter {
@@ -818,7 +807,6 @@ input PostOrderByInput {
   ip: OrderDirection
   spamScore: OrderDirection
   isEditorChoice: OrderDirection
-  isLifeGuide: OrderDirection
   status: OrderDirection
   commentCount: OrderDirection
   reactionCount: OrderDirection
@@ -846,9 +834,7 @@ input PostUpdateInput {
   ip: String
   spamScore: Float
   isEditorChoice: Boolean
-  isLifeGuide: Boolean
   editorChoices: EditorChoiceRelateToManyForUpdateInput
-  lifeGuides: LifeGuideRelateToManyForUpdateInput
   topics: TopicRelateToManyForUpdateInput
   status: PostStatusType
   heroImages: PhotoRelateToManyForUpdateInput
@@ -870,13 +856,6 @@ input EditorChoiceRelateToManyForUpdateInput {
   set: [EditorChoiceWhereUniqueInput!]
   create: [EditorChoiceCreateInput!]
   connect: [EditorChoiceWhereUniqueInput!]
-}
-
-input LifeGuideRelateToManyForUpdateInput {
-  disconnect: [LifeGuideWhereUniqueInput!]
-  set: [LifeGuideWhereUniqueInput!]
-  create: [LifeGuideCreateInput!]
-  connect: [LifeGuideWhereUniqueInput!]
 }
 
 input TopicRelateToManyForUpdateInput {
@@ -938,9 +917,7 @@ input PostCreateInput {
   ip: String
   spamScore: Float
   isEditorChoice: Boolean
-  isLifeGuide: Boolean
   editorChoices: EditorChoiceRelateToManyForCreateInput
-  lifeGuides: LifeGuideRelateToManyForCreateInput
   topics: TopicRelateToManyForCreateInput
   status: PostStatusType
   heroImages: PhotoRelateToManyForCreateInput
@@ -960,11 +937,6 @@ input PostCreateInput {
 input EditorChoiceRelateToManyForCreateInput {
   create: [EditorChoiceCreateInput!]
   connect: [EditorChoiceWhereUniqueInput!]
-}
-
-input LifeGuideRelateToManyForCreateInput {
-  create: [LifeGuideCreateInput!]
-  connect: [LifeGuideWhereUniqueInput!]
 }
 
 input TopicRelateToManyForCreateInput {
@@ -1177,63 +1149,6 @@ input EditorChoiceCreateInput {
 input PostRelateToOneForCreateInput {
   create: PostCreateInput
   connect: PostWhereUniqueInput
-}
-
-type LifeGuide {
-  id: ID!
-  post: Post
-  sortOrder: Int
-  createdAt: DateTime
-  updatedAt: DateTime
-  createdBy: User
-  updatedBy: User
-}
-
-input LifeGuideWhereUniqueInput {
-  id: ID
-}
-
-input LifeGuideWhereInput {
-  AND: [LifeGuideWhereInput!]
-  OR: [LifeGuideWhereInput!]
-  NOT: [LifeGuideWhereInput!]
-  id: IDFilter
-  post: PostWhereInput
-  sortOrder: IntNullableFilter
-  createdAt: DateTimeNullableFilter
-  updatedAt: DateTimeNullableFilter
-  createdBy: UserWhereInput
-  updatedBy: UserWhereInput
-}
-
-input LifeGuideOrderByInput {
-  id: OrderDirection
-  sortOrder: OrderDirection
-  createdAt: OrderDirection
-  updatedAt: OrderDirection
-}
-
-input LifeGuideUpdateInput {
-  post: PostRelateToOneForUpdateInput
-  sortOrder: Int
-  createdAt: DateTime
-  updatedAt: DateTime
-  createdBy: UserRelateToOneForUpdateInput
-  updatedBy: UserRelateToOneForUpdateInput
-}
-
-input LifeGuideUpdateArgs {
-  where: LifeGuideWhereUniqueInput!
-  data: LifeGuideUpdateInput!
-}
-
-input LifeGuideCreateInput {
-  post: PostRelateToOneForCreateInput
-  sortOrder: Int
-  createdAt: DateTime
-  updatedAt: DateTime
-  createdBy: UserRelateToOneForCreateInput
-  updatedBy: UserRelateToOneForCreateInput
 }
 
 type Comment {
@@ -2592,12 +2507,6 @@ type Mutation {
   updateEditorChoices(data: [EditorChoiceUpdateArgs!]!): [EditorChoice]
   deleteEditorChoice(where: EditorChoiceWhereUniqueInput!): EditorChoice
   deleteEditorChoices(where: [EditorChoiceWhereUniqueInput!]!): [EditorChoice]
-  createLifeGuide(data: LifeGuideCreateInput!): LifeGuide
-  createLifeGuides(data: [LifeGuideCreateInput!]!): [LifeGuide]
-  updateLifeGuide(where: LifeGuideWhereUniqueInput!, data: LifeGuideUpdateInput!): LifeGuide
-  updateLifeGuides(data: [LifeGuideUpdateArgs!]!): [LifeGuide]
-  deleteLifeGuide(where: LifeGuideWhereUniqueInput!): LifeGuide
-  deleteLifeGuides(where: [LifeGuideWhereUniqueInput!]!): [LifeGuide]
   createComment(data: CommentCreateInput!): Comment
   createComments(data: [CommentCreateInput!]!): [Comment]
   updateComment(where: CommentWhereUniqueInput!, data: CommentUpdateInput!): Comment
@@ -2771,9 +2680,6 @@ type Query {
   editorChoice(where: EditorChoiceWhereUniqueInput!): EditorChoice
   editorChoices(where: EditorChoiceWhereInput! = {}, orderBy: [EditorChoiceOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: EditorChoiceWhereUniqueInput): [EditorChoice!]
   editorChoicesCount(where: EditorChoiceWhereInput! = {}): Int
-  lifeGuide(where: LifeGuideWhereUniqueInput!): LifeGuide
-  lifeGuides(where: LifeGuideWhereInput! = {}, orderBy: [LifeGuideOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: LifeGuideWhereUniqueInput): [LifeGuide!]
-  lifeGuidesCount(where: LifeGuideWhereInput! = {}): Int
   comment(where: CommentWhereUniqueInput!): Comment
   comments(where: CommentWhereInput! = {}, orderBy: [CommentOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: CommentWhereUniqueInput): [Comment!]
   commentsCount(where: CommentWhereInput! = {}): Int

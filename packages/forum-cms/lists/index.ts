@@ -4,7 +4,6 @@ import OfficialMapping from './official-mapping'
 import Post from './Post'
 import Topic from './topic'
 import EditorChoice from './editor-choice'
-import LifeGuide from './life-guide'
 import Comment from './comment'
 import Reaction from './Reaction'
 import Bookmark from './bookmark'
@@ -27,7 +26,6 @@ export const listDefinition = {
   Post,
   Topic,
   EditorChoice,
-  LifeGuide,
   Comment,
   Reaction,
   Bookmark,
