@@ -15,7 +15,6 @@ import {
     getOfficialMemberIdForSessionUser,
     hasExplicitMemberRelationInput,
 } from '../utils/official-member-from-session'
-import { reconcileEditorChoiceAndLifeGuideFromPostFlags } from '../utils/post-editor-life-sync'
 import { getClientIpFromKeystoneContext } from '../utils/client-ip'
 
 const translationAfterPost = createMessageServicesTranslationHook('post')
@@ -41,7 +40,7 @@ function hasAtLeastOneTopicRelation(topics: unknown): boolean {
 /**
  * 欄位對應需求：標題原文（必填、≤80 字）、五語標題、貼文原文（必填）、五語內容、
  * 原始語言（必填）、作者（央廣後台預設 OfficialMapping 會員）、發文時間、已編輯、IP、SPAM、
- * 精選／生活須知（checkbox，並與 EditorChoice／LifeGuide 子表同步）、主題（必填，可多選）、狀態、多張主圖、關聯影片、
+ * 精選／生活須知（checkbox，僅作為「編輯精選／生活須知」選文資格；子表請至對應列表建立）、主題（必填，可多選）、狀態、多張主圖、關聯影片、
  * 投票、留言、留言數、反應、反應數、檢舉。留言數／反應數由 Comment／Reaction 的 hook 同步。
  */
 const listConfigurations = list({
@@ -154,7 +153,7 @@ const listConfigurations = list({
             defaultValue: false,
             ui: {
                 description:
-                    '勾選後會對應「編輯精選」列表（可至該處調整顯示順序）。',
+                    '勾選後，該文章會出現在「編輯精選」列表建立文章時的可選清單；實際上榜請至「編輯精選」新增並設定順序。',
             },
         }),
         isLifeGuide: checkbox({
@@ -162,7 +161,7 @@ const listConfigurations = list({
             defaultValue: false,
             ui: {
                 description:
-                    '勾選後會對應「生活須知」列表（可至該處調整顯示順序）。',
+                    '勾選後，該文章會出現在「生活須知」列表建立文章時的可選清單；實際上榜請至「生活須知」新增並設定順序。',
             },
         }),
         editorChoices: relationship({
@@ -375,24 +374,6 @@ const listConfigurations = list({
             return data
         },
         afterOperation: async (args) => {
-            const { operation, item, context } = args
-            if (
-                (operation === 'create' || operation === 'update') &&
-                item &&
-                typeof (item as { id?: unknown }).id === 'number'
-            ) {
-                const rec = item as {
-                    id: number
-                    isEditorChoice?: boolean | null
-                    isLifeGuide?: boolean | null
-                }
-                await reconcileEditorChoiceAndLifeGuideFromPostFlags(
-                    context.prisma,
-                    rec.id,
-                    Boolean(rec.isEditorChoice),
-                    Boolean(rec.isLifeGuide)
-                )
-            }
             await translationAfterPost(args)
         },
     },

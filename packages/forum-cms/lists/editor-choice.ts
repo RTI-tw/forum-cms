@@ -2,17 +2,6 @@ import { utils } from '@mirrormedia/lilith-core'
 import { allowRoles, admin, moderator, editor } from '../utils/access-control'
 import { list } from '@keystone-6/core'
 import { integer, relationship } from '@keystone-6/core/fields'
-import { syncPostIsEditorChoiceFromEditorChoices } from '../utils/post-editor-life-sync'
-
-function getPostIdFromItem(
-  item: Record<string, unknown> | null | undefined
-): number | null {
-  if (!item) return null
-  const pid = item.postId as number | null | undefined
-  if (pid != null) return pid
-  const p = item.post as { id?: number } | null | undefined
-  return p?.id ?? null
-}
 
 function getResolvedSortOrder(
   resolvedData: Record<string, unknown>,
@@ -114,25 +103,6 @@ const listConfigurations = list({
         addValidationError(
           '僅能選擇已在文章頁勾選「編輯精選」的文章；請先至文章開啟該選項後再選擇。'
         )
-      }
-    },
-    afterOperation: async ({ operation, item, originalItem, context }) => {
-      if (operation === 'create' || operation === 'update') {
-        const postId = getPostIdFromItem(item as Record<string, unknown>)
-        await syncPostIsEditorChoiceFromEditorChoices(context.prisma, postId)
-        if (operation === 'update' && originalItem) {
-          const prev = getPostIdFromItem(
-            originalItem as Record<string, unknown>
-          )
-          if (prev !== postId) {
-            await syncPostIsEditorChoiceFromEditorChoices(context.prisma, prev)
-          }
-        }
-      } else if (operation === 'delete' && originalItem) {
-        const postId = getPostIdFromItem(
-          originalItem as Record<string, unknown>
-        )
-        await syncPostIsEditorChoiceFromEditorChoices(context.prisma, postId)
       }
     },
   },
