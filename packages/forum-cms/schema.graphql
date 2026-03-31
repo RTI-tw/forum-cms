@@ -647,6 +647,7 @@ type Post {
   ip: String
   spamScore: Float
   isEditorChoice: Boolean
+  isLifeGuide: Boolean
   editorChoices(where: EditorChoiceWhereInput! = {}, orderBy: [EditorChoiceOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: EditorChoiceWhereUniqueInput): [EditorChoice!]
   editorChoicesCount(where: EditorChoiceWhereInput! = {}): Int
   topics(where: TopicWhereInput! = {}, orderBy: [TopicOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: TopicWhereUniqueInput): [Topic!]
@@ -715,6 +716,7 @@ input PostWhereInput {
   ip: StringFilter
   spamScore: FloatNullableFilter
   isEditorChoice: BooleanFilter
+  isLifeGuide: BooleanFilter
   editorChoices: EditorChoiceManyRelationFilter
   topics: TopicManyRelationFilter
   status: PostStatusTypeNullableFilter
@@ -807,6 +809,7 @@ input PostOrderByInput {
   ip: OrderDirection
   spamScore: OrderDirection
   isEditorChoice: OrderDirection
+  isLifeGuide: OrderDirection
   status: OrderDirection
   commentCount: OrderDirection
   reactionCount: OrderDirection
@@ -834,6 +837,7 @@ input PostUpdateInput {
   ip: String
   spamScore: Float
   isEditorChoice: Boolean
+  isLifeGuide: Boolean
   editorChoices: EditorChoiceRelateToManyForUpdateInput
   topics: TopicRelateToManyForUpdateInput
   status: PostStatusType
@@ -917,6 +921,7 @@ input PostCreateInput {
   ip: String
   spamScore: Float
   isEditorChoice: Boolean
+  isLifeGuide: Boolean
   editorChoices: EditorChoiceRelateToManyForCreateInput
   topics: TopicRelateToManyForCreateInput
   status: PostStatusType

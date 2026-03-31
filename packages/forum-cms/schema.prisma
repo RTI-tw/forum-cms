@@ -155,6 +155,7 @@ model Post {
   ip                 String           @default("")
   spamScore          Float?
   isEditorChoice     Boolean          @default(false)
+  isLifeGuide        Boolean          @default(false)
   editorChoices      EditorChoice[]   @relation("EditorChoice_post")
   topics             Topic[]          @relation("Post_topics")
   status             PostStatusType?  @default(draft)
