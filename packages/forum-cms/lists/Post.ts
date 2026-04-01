@@ -28,7 +28,7 @@ function normText(value: unknown): string {
 /**
  * 欄位對應需求：標題原文（必填、≤80 字）、五語標題、貼文原文（必填）、五語內容、
  * 原始語言（必填）、作者（央廣後台預設 OfficialMapping 會員）、發文時間、已編輯、IP、SPAM、
- * 編輯精選／生活須知（checkbox 旗標）、主題（選填，可多選）、狀態、主圖（多張 Photo）、關聯影片、
+ * 編輯精選／生活須知（checkbox 旗標）、暫停自動翻譯、主題（選填，可多選）、狀態、主圖（多張 Photo）、關聯影片、
  * 投票、留言、留言數、反應、反應數、檢舉。留言數／反應數由 Comment／Reaction 的 hook 同步。
  */
 const listConfigurations = list({
@@ -99,6 +99,14 @@ const listConfigurations = list({
         content_th: text({
             label: '貼文（泰文）',
             ui: { displayMode: 'textarea' },
+        }),
+        pauseAutoTranslation: checkbox({
+            label: '暫停自動翻譯',
+            defaultValue: false,
+            ui: {
+                description:
+                    '勾選後不會觸發 message-services 自動翻譯（標題／內文五語）。可自行編輯譯文。',
+            },
         }),
         author: relationship({
             ref: 'Member.posts',

@@ -641,6 +641,7 @@ type Post {
   content_vi: String
   content_id: String
   content_th: String
+  pauseAutoTranslation: Boolean
   author: Member
   published_date: DateTime
   is_edited: Boolean
@@ -710,6 +711,7 @@ input PostWhereInput {
   content_vi: StringFilter
   content_id: StringFilter
   content_th: StringFilter
+  pauseAutoTranslation: BooleanFilter
   author: MemberWhereInput
   published_date: DateTimeNullableFilter
   is_edited: BooleanFilter
@@ -804,6 +806,7 @@ input PostOrderByInput {
   content_vi: OrderDirection
   content_id: OrderDirection
   content_th: OrderDirection
+  pauseAutoTranslation: OrderDirection
   published_date: OrderDirection
   is_edited: OrderDirection
   ip: OrderDirection
@@ -831,6 +834,7 @@ input PostUpdateInput {
   content_vi: String
   content_id: String
   content_th: String
+  pauseAutoTranslation: Boolean
   author: MemberRelateToOneForUpdateInput
   published_date: DateTime
   is_edited: Boolean
@@ -915,6 +919,7 @@ input PostCreateInput {
   content_vi: String
   content_id: String
   content_th: String
+  pauseAutoTranslation: Boolean
   author: MemberRelateToOneForCreateInput
   published_date: DateTime
   is_edited: Boolean

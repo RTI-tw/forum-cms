@@ -50,6 +50,17 @@ function readMergedText(
   return normText(nextRaw)
 }
 
+/** 建立／更新合併後讀取 boolean（未在 resolvedData 則沿用原 item） */
+function readMergedBool(
+  item: Record<string, unknown>,
+  originalItem: Record<string, unknown> | null | undefined,
+  key: string
+): boolean {
+  const raw =
+    item[key] !== undefined ? item[key] : originalItem?.[key]
+  return raw === true
+}
+
 function getSourceText(
   entityType: MessageServicesEntityType,
   item: Record<string, unknown>
@@ -124,6 +135,13 @@ export function createMessageServicesTranslationHook(
 
     const rec = item as Record<string, unknown>
     const orig = originalItem as Record<string, unknown> | null | undefined
+
+    if (
+      entityType === 'post' &&
+      readMergedBool(rec, orig, 'pauseAutoTranslation')
+    ) {
+      return
+    }
 
     if (!shouldSyncTranslations(entityType, operation, rec, orig)) {
       if (
