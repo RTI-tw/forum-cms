@@ -1985,12 +1985,26 @@ input ReportCreateInput {
 type ForbiddenKeyword {
   id: ID!
   word: String
+  language: ForbiddenKeywordLanguageType
+  word_zh: String
+  word_en: String
+  word_vi: String
+  word_id: String
+  word_th: String
   note: String
   isEnabled: Boolean
   createdAt: DateTime
   updatedAt: DateTime
   createdBy: User
   updatedBy: User
+}
+
+enum ForbiddenKeywordLanguageType {
+  zh
+  en
+  vi
+  id
+  th
 }
 
 input ForbiddenKeywordWhereUniqueInput {
@@ -2004,6 +2018,12 @@ input ForbiddenKeywordWhereInput {
   NOT: [ForbiddenKeywordWhereInput!]
   id: IDFilter
   word: StringFilter
+  language: ForbiddenKeywordLanguageTypeNullableFilter
+  word_zh: StringFilter
+  word_en: StringFilter
+  word_vi: StringFilter
+  word_id: StringFilter
+  word_th: StringFilter
   note: StringFilter
   isEnabled: BooleanFilter
   createdAt: DateTimeNullableFilter
@@ -2012,9 +2032,22 @@ input ForbiddenKeywordWhereInput {
   updatedBy: UserWhereInput
 }
 
+input ForbiddenKeywordLanguageTypeNullableFilter {
+  equals: ForbiddenKeywordLanguageType
+  in: [ForbiddenKeywordLanguageType!]
+  notIn: [ForbiddenKeywordLanguageType!]
+  not: ForbiddenKeywordLanguageTypeNullableFilter
+}
+
 input ForbiddenKeywordOrderByInput {
   id: OrderDirection
   word: OrderDirection
+  language: OrderDirection
+  word_zh: OrderDirection
+  word_en: OrderDirection
+  word_vi: OrderDirection
+  word_id: OrderDirection
+  word_th: OrderDirection
   note: OrderDirection
   isEnabled: OrderDirection
   createdAt: OrderDirection
@@ -2023,6 +2056,12 @@ input ForbiddenKeywordOrderByInput {
 
 input ForbiddenKeywordUpdateInput {
   word: String
+  language: ForbiddenKeywordLanguageType
+  word_zh: String
+  word_en: String
+  word_vi: String
+  word_id: String
+  word_th: String
   note: String
   isEnabled: Boolean
   createdAt: DateTime
@@ -2038,6 +2077,12 @@ input ForbiddenKeywordUpdateArgs {
 
 input ForbiddenKeywordCreateInput {
   word: String
+  language: ForbiddenKeywordLanguageType
+  word_zh: String
+  word_en: String
+  word_vi: String
+  word_id: String
+  word_th: String
   note: String
   isEnabled: Boolean
   createdAt: DateTime

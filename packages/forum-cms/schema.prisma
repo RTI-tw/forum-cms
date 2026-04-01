@@ -437,16 +437,22 @@ model Report {
 }
 
 model ForbiddenKeyword {
-  id          Int       @id @default(autoincrement())
-  word        String    @unique @default("")
-  note        String    @default("")
-  isEnabled   Boolean   @default(true)
+  id          Int                          @id @default(autoincrement())
+  word        String                       @unique @default("")
+  language    ForbiddenKeywordLanguageType @default(zh)
+  word_zh     String                       @default("")
+  word_en     String                       @default("")
+  word_vi     String                       @default("")
+  word_id     String                       @default("")
+  word_th     String                       @default("")
+  note        String                       @default("")
+  isEnabled   Boolean                      @default(true)
   createdAt   DateTime?
   updatedAt   DateTime?
-  createdBy   User?     @relation("ForbiddenKeyword_createdBy", fields: [createdById], references: [id])
-  createdById Int?      @map("createdBy")
-  updatedBy   User?     @relation("ForbiddenKeyword_updatedBy", fields: [updatedById], references: [id])
-  updatedById Int?      @map("updatedBy")
+  createdBy   User?                        @relation("ForbiddenKeyword_createdBy", fields: [createdById], references: [id])
+  createdById Int?                         @map("createdBy")
+  updatedBy   User?                        @relation("ForbiddenKeyword_updatedBy", fields: [updatedById], references: [id])
+  updatedById Int?                         @map("updatedBy")
 
   @@index([createdById])
   @@index([updatedById])
@@ -627,6 +633,14 @@ enum ReportStatusType {
   pending
   resolved
   dismissed
+}
+
+enum ForbiddenKeywordLanguageType {
+  zh
+  en
+  vi
+  id
+  th
 }
 
 enum AdStatusType {
