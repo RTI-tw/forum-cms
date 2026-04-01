@@ -193,6 +193,7 @@ model Topic {
   name_th     String             @default("")
   slug        String             @unique @default("")
   sortOrder   Int?               @default(0)
+  state       TopicStateType?    @default(active)
   description String             @default("")
   posts       Post[]             @relation("Post_topics")
   createdAt   DateTime?
@@ -207,16 +208,17 @@ model Topic {
 }
 
 model EditorChoice {
-  id          Int       @id @default(autoincrement())
-  post        Post?     @relation("EditorChoice_post", fields: [postId], references: [id])
-  postId      Int?      @map("post")
-  sortOrder   Int?      @default(0)
+  id          Int                    @id @default(autoincrement())
+  post        Post?                  @relation("EditorChoice_post", fields: [postId], references: [id])
+  postId      Int?                   @map("post")
+  sortOrder   Int?                   @default(0)
+  state       EditorChoiceStateType? @default(inactive)
   createdAt   DateTime?
   updatedAt   DateTime?
-  createdBy   User?     @relation("EditorChoice_createdBy", fields: [createdById], references: [id])
-  createdById Int?      @map("createdBy")
-  updatedBy   User?     @relation("EditorChoice_updatedBy", fields: [updatedById], references: [id])
-  updatedById Int?      @map("updatedBy")
+  createdBy   User?                  @relation("EditorChoice_createdBy", fields: [createdById], references: [id])
+  createdById Int?                   @map("createdBy")
+  updatedBy   User?                  @relation("EditorChoice_updatedBy", fields: [updatedById], references: [id])
+  updatedById Int?                   @map("updatedBy")
 
   @@index([postId])
   @@index([createdById])
@@ -595,6 +597,16 @@ enum TopicLanguageType {
   vi
   id
   th
+}
+
+enum TopicStateType {
+  active
+  inactive
+}
+
+enum EditorChoiceStateType {
+  active
+  inactive
 }
 
 enum CommentLanguageType {

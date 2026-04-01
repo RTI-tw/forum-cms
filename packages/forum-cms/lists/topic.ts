@@ -35,6 +35,15 @@ const listConfigurations = list({
       label: '排序',
       defaultValue: 0,
     }),
+    state: select({
+      label: '狀態',
+      type: 'enum',
+      options: [
+        { label: '啟用', value: 'active' },
+        { label: '停用', value: 'inactive' },
+      ],
+      defaultValue: 'active',
+    }),
     description: text({
       label: '描述',
       ui: { displayMode: 'textarea' },
@@ -48,7 +57,7 @@ const listConfigurations = list({
   ui: {
     label: '主題分類',
     listView: {
-      initialColumns: ['name', 'slug', 'sortOrder'],
+      initialColumns: ['name', 'slug', 'state', 'sortOrder'],
     },
   },
   access: {

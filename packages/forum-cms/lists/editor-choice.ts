@@ -1,7 +1,8 @@
 import { utils } from '@mirrormedia/lilith-core'
 import { allowRoles, admin, moderator, editor } from '../utils/access-control'
 import { list } from '@keystone-6/core'
-import { integer, relationship } from '@keystone-6/core/fields'
+import { integer, relationship, select } from '@keystone-6/core/fields'
+import { editorChoiceStateFromPostStatus } from '../utils/sync-editor-choice-state'
 
 function getResolvedSortOrder(
   resolvedData: Record<string, unknown>,
@@ -38,11 +39,33 @@ const listConfigurations = list({
       label: '顯示順序',
       defaultValue: 0,
     }),
+    state: select({
+      label: '狀態',
+      type: 'enum',
+      options: [
+        { label: '有效（文章為已發布）', value: 'active' },
+        { label: '失效（文章非已發布或未關聯）', value: 'inactive' },
+      ],
+      defaultValue: 'inactive',
+      graphql: {
+        omit: {
+          create: true,
+          update: true,
+        },
+      },
+      ui: {
+        description:
+          '依關聯文章是否為「已發布」自動更新；文章改為草稿等狀態時會變為失效。無法手動修改。',
+        createView: { fieldMode: 'hidden' },
+        itemView: { fieldMode: 'read' },
+        listView: { fieldMode: 'read' },
+      },
+    }),
   },
   ui: {
     label: '編輯精選',
     listView: {
-      initialColumns: ['post', 'sortOrder'],
+      initialColumns: ['post', 'state', 'sortOrder'],
     },
   },
   access: {
@@ -54,6 +77,35 @@ const listConfigurations = list({
     },
   },
   hooks: {
+    resolveInput: async ({ resolvedData, operation, item, context }) => {
+      const data = { ...resolvedData } as Record<string, unknown>
+      const postRel = data.post as
+        | { connect?: { id: string }; disconnect?: boolean }
+        | undefined
+
+      if (postRel?.disconnect === true) {
+        data.state = 'inactive'
+        return data
+      }
+
+      let postId: number | undefined
+      if (postRel?.connect?.id != null) {
+        postId = Number(postRel.connect.id)
+      } else if (operation === 'update' && item) {
+        postId = (item as { postId?: number | null }).postId ?? undefined
+      }
+
+      if (postId != null && Number.isFinite(postId)) {
+        const post = await context.prisma.post.findUnique({
+          where: { id: postId },
+          select: { status: true },
+        })
+        data.state = editorChoiceStateFromPostStatus(post?.status ?? undefined)
+      } else {
+        data.state = 'inactive'
+      }
+      return data
+    },
     validateInput: async ({
       resolvedData,
       addValidationError,

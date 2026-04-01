@@ -16,6 +16,8 @@ import {
     hasExplicitMemberRelationInput,
 } from '../utils/official-member-from-session'
 import { getClientIpFromKeystoneContext } from '../utils/client-ip'
+import envVar from '../environment-variables'
+import { syncEditorChoiceStateForPostId } from '../utils/sync-editor-choice-state'
 
 const translationAfterPost = createMessageServicesTranslationHook('post')
 
@@ -23,24 +25,10 @@ function normText(value: unknown): string {
     return String(value ?? '').trim()
 }
 
-/** Keystone many 關聯：connect 可為單筆或陣列；亦可能用 set / create。 */
-function hasAtLeastOneTopicRelation(topics: unknown): boolean {
-    if (topics == null || typeof topics !== 'object') return false
-    const t = topics as Record<string, unknown>
-    if (t.connect != null) {
-        const c = t.connect
-        if (Array.isArray(c)) return c.length > 0
-        if (typeof c === 'object' && c !== null && 'id' in c) return true
-    }
-    if (Array.isArray(t.set) && t.set.length > 0) return true
-    if (Array.isArray(t.create) && t.create.length > 0) return true
-    return false
-}
-
 /**
  * 欄位對應需求：標題原文（必填、≤80 字）、五語標題、貼文原文（必填）、五語內容、
  * 原始語言（必填）、作者（央廣後台預設 OfficialMapping 會員）、發文時間、已編輯、IP、SPAM、
- * 編輯精選／生活須知（checkbox 旗標）、主題（必填，可多選）、狀態、主圖（多張 Photo）、關聯影片、
+ * 編輯精選／生活須知（checkbox 旗標）、主題（選填，可多選）、狀態、主圖（多張 Photo）、關聯影片、
  * 投票、留言、留言數、反應、反應數、檢舉。留言數／反應數由 Comment／Reaction 的 hook 同步。
  */
 const listConfigurations = list({
@@ -178,7 +166,7 @@ const listConfigurations = list({
             many: true,
             label: '主題分類',
             ui: {
-                description: '必填，至少選擇一個主題；可選多個。',
+                description: '選填；可選多個主題。',
             },
         }),
         status: select({
@@ -273,6 +261,18 @@ const listConfigurations = list({
             create: allowRoles(admin, moderator),
             delete: allowRoles(admin),
         },
+        /**
+         * ACCESS_CONTROL_STRATEGY 非 `cms`（例如 gql、preview、api）時，列表／單筆 query 僅能讀到
+         * `status: published`，避免公開 API 暴露草稿與未發布內容。
+         */
+        filter: {
+            query: () => {
+                if (envVar.accessControlStrategy === 'cms') {
+                    return true
+                }
+                return { status: { equals: 'published' } }
+            },
+        },
     },
     hooks: {
         validateInput: ({ resolvedData, addValidationError, operation }) => {
@@ -295,23 +295,6 @@ const listConfigurations = list({
             if (isCreate || resolvedData.language !== undefined) {
                 if (resolvedData.language == null) {
                     addValidationError('原始語言為必填')
-                }
-            }
-            if (operation === 'create') {
-                if (!hasAtLeastOneTopicRelation(resolvedData.topics)) {
-                    addValidationError('主題分類為必填（至少選擇一個）')
-                }
-            } else if (
-                operation === 'update' &&
-                resolvedData.topics !== undefined
-            ) {
-                const td = resolvedData.topics as Record<string, unknown>
-                if (
-                    td.set !== undefined &&
-                    Array.isArray(td.set) &&
-                    td.set.length === 0
-                ) {
-                    addValidationError('主題分類至少需保留一個')
                 }
             }
         },
@@ -367,6 +350,18 @@ const listConfigurations = list({
         },
         afterOperation: async (args) => {
             await translationAfterPost(args)
+            const { operation, item, context } = args
+            if (operation === 'delete') return
+            const rawId = (item as { id?: unknown })?.id
+            const postId =
+                typeof rawId === 'number'
+                    ? rawId
+                    : rawId != null
+                      ? Number(rawId)
+                      : NaN
+            if (Number.isFinite(postId)) {
+                await syncEditorChoiceStateForPostId(context, postId)
+            }
         },
     },
 })
