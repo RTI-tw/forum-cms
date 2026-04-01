@@ -176,6 +176,8 @@ model Post {
   from_Bookmark_post Bookmark[]       @relation("Bookmark_post")
 
   @@index([authorId])
+  @@index([commentCount])
+  @@index([reactionCount])
   @@index([createdById])
   @@index([updatedById])
 }

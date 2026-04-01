@@ -198,11 +198,6 @@ const listConfigurations = list({
             label: '主圖',
             ui: {
                 description: '可關聯多張圖片；建立與編輯單篇時皆可調整。',
-                displayMode: 'cards',
-                cardFields: ['name', 'urlOriginal'],
-                linkToItem: true,
-                /** cards 模式在「尚未選任何圖」時必須開啟，否則 Admin 不會出現連結既有圖片的 UI */
-                inlineConnect: true,
             },
         }),
         videos: relationship({
@@ -220,9 +215,12 @@ const listConfigurations = list({
             many: true,
             label: '留言',
         }),
+        /** 存在 DB 的整數（非 virtual），供篩選／排序；數值由 Comment hook 同步。 */
         commentCount: integer({
             label: '留言數',
             defaultValue: 0,
+            isIndexed: true,
+            isOrderable: true,
             ui: {
                 description: '由留言建立／刪除時自動重算。',
                 createView: { fieldMode: 'hidden' },
@@ -235,9 +233,12 @@ const listConfigurations = list({
             many: true,
             label: '反應',
         }),
+        /** 存在 DB 的整數（非 virtual），供篩選／排序；數值由 Reaction hook 同步。 */
         reactionCount: integer({
             label: '反應數',
             defaultValue: 0,
+            isIndexed: true,
+            isOrderable: true,
             ui: {
                 description: '僅統計「對文章」的反應；由反應建立／刪除時自動重算。',
                 createView: { fieldMode: 'hidden' },
