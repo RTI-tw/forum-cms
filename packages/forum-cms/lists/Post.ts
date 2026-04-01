@@ -201,6 +201,8 @@ const listConfigurations = list({
                 displayMode: 'cards',
                 cardFields: ['name', 'urlOriginal'],
                 linkToItem: true,
+                /** cards 模式在「尚未選任何圖」時必須開啟，否則 Admin 不會出現連結既有圖片的 UI */
+                inlineConnect: true,
             },
         }),
         videos: relationship({
