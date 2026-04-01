@@ -2,6 +2,10 @@ import { utils } from '@mirrormedia/lilith-core'
 import { allowRoles, admin, moderator, editor } from '../utils/access-control'
 import { list } from '@keystone-6/core'
 import { relationship } from '@keystone-6/core/fields'
+import {
+    getPollVotePollAndOptionIds,
+    syncPollVoteAggregates,
+} from '../utils/poll-vote-count-sync'
 
 const listConfigurations = list({
   fields: {
@@ -33,6 +37,27 @@ const listConfigurations = list({
       update: allowRoles(admin),
       create: allowRoles(admin, moderator),
       delete: allowRoles(admin),
+    },
+  },
+  hooks: {
+    afterOperation: async ({ operation, item, originalItem, context }) => {
+      const pollIds: number[] = []
+      const optionIds: number[] = []
+      const push = (pollId: number | null, optionId: number | null) => {
+        if (pollId != null) pollIds.push(pollId)
+        if (optionId != null) optionIds.push(optionId)
+      }
+      if (operation === 'create' || operation === 'update') {
+        const cur = getPollVotePollAndOptionIds(item as Record<string, unknown>)
+        push(cur.pollId, cur.optionId)
+      }
+      if (operation === 'update' || operation === 'delete') {
+        const prev = getPollVotePollAndOptionIds(
+          originalItem as Record<string, unknown>
+        )
+        push(prev.pollId, prev.optionId)
+      }
+      await syncPollVoteAggregates(context.prisma, pollIds, optionIds)
     },
   },
 })

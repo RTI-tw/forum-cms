@@ -91,7 +91,7 @@ const listConfigurations = list({
       defaultValue: 0,
       ui: {
         description:
-          '此投票總票數；可與 PollVote 對照或手動調整。',
+          '由「投票紀錄」建立／變更／刪除時自動重算；與 PollVote 筆數一致。',
       },
     }),
     member: relationship({

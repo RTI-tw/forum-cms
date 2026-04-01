@@ -46,7 +46,7 @@ const listConfigurations = list({
       defaultValue: 0,
       ui: {
         description:
-          '此選項得票數；若前端／流程有寫入 PollVote，請與實際紀錄一致，必要時可手動修正。',
+          '由「投票紀錄」建立／變更／刪除時自動重算；與該選項之 PollVote 筆數一致。',
       },
     }),
   },

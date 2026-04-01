@@ -44,6 +44,9 @@ const listConfigurations = list({
       label: '廣告影音 VideoUrl',
       ui: {
         description: '選填；格式與是否啟用待確認後再填寫',
+        createView: { fieldMode: 'hidden' },
+        itemView: { fieldMode: 'hidden' },
+        listView: { fieldMode: 'hidden' },
       },
     }),
     linkUrl: text({
