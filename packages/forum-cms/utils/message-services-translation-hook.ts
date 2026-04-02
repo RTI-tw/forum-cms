@@ -92,7 +92,8 @@ function shouldSyncTranslations(
   entityType: MessageServicesEntityType,
   operation: 'create' | 'update' | 'delete',
   item: Record<string, unknown>,
-  originalItem: Record<string, unknown> | null | undefined
+  originalItem: Record<string, unknown> | null | undefined,
+  resolvedData?: Record<string, unknown> | null
 ): boolean {
   if (entityType === 'post' || entityType === 'content') {
     const title = readMergedText(item, originalItem, 'title')
@@ -100,6 +101,23 @@ function shouldSyncTranslations(
     if (!title && !content) return false
     if (operation === 'create') return true
     if (operation !== 'update' || !originalItem) return false
+
+    // 更新時以「本次請求 resolvedData」對照 originalItem，避免僅改標題時，
+    // afterOperation 的 item 與 originalItem 比對遺漏（例如部分欄位未回傳／合併時差）。
+    const rd = resolvedData
+    if (rd != null) {
+      if (rd.title !== undefined) {
+        const prevTitle = normText(originalItem.title)
+        const submittedTitle = normText(rd.title)
+        if (submittedTitle !== prevTitle) return true
+      }
+      if (rd.content !== undefined) {
+        const prevContent = normText(originalItem.content)
+        const submittedContent = normText(rd.content)
+        if (submittedContent !== prevContent) return true
+      }
+    }
+
     const prevTitle = normText(originalItem.title)
     const prevContent = normText(originalItem.content)
     const nextTitle = readMergedText(item, originalItem, 'title')
@@ -121,7 +139,7 @@ function shouldSyncTranslations(
 export function createMessageServicesTranslationHook(
   entityType: MessageServicesEntityType
 ): AfterOperationHookFn {
-  return async ({ item, originalItem, operation }) => {
+  return async ({ item, originalItem, operation, resolvedData }) => {
     if (operation === 'delete') return
 
     const baseUrl = envVar.messageServicesUrl?.replace(/\/$/, '')
@@ -135,6 +153,10 @@ export function createMessageServicesTranslationHook(
 
     const rec = item as Record<string, unknown>
     const orig = originalItem as Record<string, unknown> | null | undefined
+    const rdResolved =
+      resolvedData && typeof resolvedData === 'object'
+        ? (resolvedData as Record<string, unknown>)
+        : null
 
     if (
       entityType === 'post' &&
@@ -143,7 +165,7 @@ export function createMessageServicesTranslationHook(
       return
     }
 
-    if (!shouldSyncTranslations(entityType, operation, rec, orig)) {
+    if (!shouldSyncTranslations(entityType, operation, rec, orig, rdResolved)) {
       if (
         operation === 'create' &&
         !getSourceText(entityType, rec)
