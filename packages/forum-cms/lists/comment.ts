@@ -58,6 +58,14 @@ const listConfigurations = list({
       label: '內容（泰文）',
       ui: { displayMode: 'textarea' },
     }),
+    pauseAutoTranslation: checkbox({
+      label: '暫停自動翻譯',
+      defaultValue: false,
+      ui: {
+        description:
+          '勾選後不會觸發 message-services 自動翻譯（內文五語）。可自行編輯譯文。',
+      },
+    }),
     post: relationship({ ref: 'Post.comments', many: false, label: '文章' }),
     member: relationship({ ref: 'Member.comment', many: false, label: '作者' }),
     ip: text({ label: '發文 IP' }),

@@ -88,6 +88,7 @@ function getSourceText(
  * update：僅在「原文欄位」有變更時觸發（翻譯欄位寫回不觸發，避免迴圈）。
  * Post／Content：標題／正文與 resolvedData 比對。
  * Comment：以 content 為原文；update 時併用 resolvedData.content 比對。
+ * Post／Comment：`pauseAutoTranslation` 為 true 時不送自動翻譯。
  */
 function shouldSyncTranslations(
   entityType: MessageServicesEntityType,
@@ -178,7 +179,7 @@ export function createMessageServicesTranslationHook(
         : null
 
     if (
-      entityType === 'post' &&
+      (entityType === 'post' || entityType === 'comment') &&
       readMergedBool(rec, orig, 'pauseAutoTranslation')
     ) {
       return

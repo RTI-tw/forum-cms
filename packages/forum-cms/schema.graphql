@@ -1132,6 +1132,7 @@ type Comment {
   content_vi: String
   content_id: String
   content_th: String
+  pauseAutoTranslation: Boolean
   post: Post
   member: Member
   ip: String
@@ -1182,6 +1183,7 @@ input CommentWhereInput {
   content_vi: StringFilter
   content_id: StringFilter
   content_th: StringFilter
+  pauseAutoTranslation: BooleanFilter
   post: PostWhereInput
   member: MemberWhereInput
   ip: StringFilter
@@ -1222,6 +1224,7 @@ input CommentOrderByInput {
   content_vi: OrderDirection
   content_id: OrderDirection
   content_th: OrderDirection
+  pauseAutoTranslation: OrderDirection
   ip: OrderDirection
   spamScore: OrderDirection
   status: OrderDirection
@@ -1241,6 +1244,7 @@ input CommentUpdateInput {
   content_vi: String
   content_id: String
   content_th: String
+  pauseAutoTranslation: Boolean
   post: PostRelateToOneForUpdateInput
   member: MemberRelateToOneForUpdateInput
   ip: String
@@ -1271,6 +1275,7 @@ input CommentCreateInput {
   content_vi: String
   content_id: String
   content_th: String
+  pauseAutoTranslation: Boolean
   post: PostRelateToOneForCreateInput
   member: MemberRelateToOneForCreateInput
   ip: String

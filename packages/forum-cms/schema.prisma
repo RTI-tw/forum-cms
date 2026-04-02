@@ -220,33 +220,34 @@ model EditorChoice {
 }
 
 model Comment {
-  id             Int                  @id @default(autoincrement())
-  content        String               @default("")
-  language       CommentLanguageType?
-  content_zh     String               @default("")
-  content_en     String               @default("")
-  content_vi     String               @default("")
-  content_id     String               @default("")
-  content_th     String               @default("")
-  post           Post?                @relation("Comment_post", fields: [postId], references: [id])
-  postId         Int?                 @map("post")
-  member         Member?              @relation("Comment_member", fields: [memberId], references: [id])
-  memberId       Int?                 @map("member")
-  ip             String               @default("")
-  spamScore      Float?
-  status         CommentStatusType?   @default(published)
-  reactions      Reaction[]           @relation("Reaction_comment")
-  reactionCount  Int?                 @default(0)
-  reports        Report[]             @relation("Report_comment")
-  published_date DateTime?
-  is_edited      Boolean              @default(false)
-  is_active      Boolean              @default(true)
-  createdAt      DateTime?
-  updatedAt      DateTime?
-  createdBy      User?                @relation("Comment_createdBy", fields: [createdById], references: [id])
-  createdById    Int?                 @map("createdBy")
-  updatedBy      User?                @relation("Comment_updatedBy", fields: [updatedById], references: [id])
-  updatedById    Int?                 @map("updatedBy")
+  id                   Int                  @id @default(autoincrement())
+  content              String               @default("")
+  language             CommentLanguageType?
+  content_zh           String               @default("")
+  content_en           String               @default("")
+  content_vi           String               @default("")
+  content_id           String               @default("")
+  content_th           String               @default("")
+  pauseAutoTranslation Boolean              @default(false)
+  post                 Post?                @relation("Comment_post", fields: [postId], references: [id])
+  postId               Int?                 @map("post")
+  member               Member?              @relation("Comment_member", fields: [memberId], references: [id])
+  memberId             Int?                 @map("member")
+  ip                   String               @default("")
+  spamScore            Float?
+  status               CommentStatusType?   @default(published)
+  reactions            Reaction[]           @relation("Reaction_comment")
+  reactionCount        Int?                 @default(0)
+  reports              Report[]             @relation("Report_comment")
+  published_date       DateTime?
+  is_edited            Boolean              @default(false)
+  is_active            Boolean              @default(true)
+  createdAt            DateTime?
+  updatedAt            DateTime?
+  createdBy            User?                @relation("Comment_createdBy", fields: [createdById], references: [id])
+  createdById          Int?                 @map("createdBy")
+  updatedBy            User?                @relation("Comment_updatedBy", fields: [updatedById], references: [id])
+  updatedById          Int?                 @map("updatedBy")
 
   @@index([postId])
   @@index([memberId])
