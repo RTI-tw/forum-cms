@@ -12,7 +12,10 @@ const listConfigurations = list({
   fields: {
     name: text({
       label: '標題',
-      validation: { isRequired: true },
+      validation: { isRequired: false },
+      ui: {
+        description: '可留空；從文章主圖新增時僅需上傳檔案與順序。',
+      },
     }),
     file: image({
       label: '檔案',
@@ -185,6 +188,13 @@ const listConfigurations = list({
     caption: text({ label: '圖片說明' }),
     width: integer({ label: '原始寬度' }),
     height: integer({ label: '原始高度' }),
+    sortOrder: integer({
+      label: '顯示順序',
+      defaultValue: 0,
+      ui: {
+        description: '作為文章主圖時的排序；數字越小越靠前。',
+      },
+    }),
     uploadedBy: relationship({ ref: 'Member', many: false, label: '上傳者' }),
     postsAsHeroImages: relationship({
       ref: 'Post.heroImages',

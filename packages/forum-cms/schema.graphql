@@ -2201,6 +2201,7 @@ type Photo {
   caption: String
   width: Int
   height: Int
+  sortOrder: Int
   uploadedBy: Member
   postsAsHeroImages(where: PostWhereInput! = {}, orderBy: [PostOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: PostWhereUniqueInput): [Post!]
   postsAsHeroImagesCount(where: PostWhereInput! = {}): Int
@@ -2259,6 +2260,7 @@ input PhotoWhereInput {
   caption: StringFilter
   width: IntNullableFilter
   height: IntNullableFilter
+  sortOrder: IntNullableFilter
   uploadedBy: MemberWhereInput
   postsAsHeroImages: PostManyRelationFilter
   createdAt: DateTimeNullableFilter
@@ -2275,6 +2277,7 @@ input PhotoOrderByInput {
   caption: OrderDirection
   width: OrderDirection
   height: OrderDirection
+  sortOrder: OrderDirection
   createdAt: OrderDirection
   updatedAt: OrderDirection
 }
@@ -2287,6 +2290,7 @@ input PhotoUpdateInput {
   caption: String
   width: Int
   height: Int
+  sortOrder: Int
   uploadedBy: MemberRelateToOneForUpdateInput
   postsAsHeroImages: PostRelateToManyForUpdateInput
   createdAt: DateTime
@@ -2315,6 +2319,7 @@ input PhotoCreateInput {
   caption: String
   width: Int
   height: Int
+  sortOrder: Int
   uploadedBy: MemberRelateToOneForCreateInput
   postsAsHeroImages: PostRelateToManyForCreateInput
   createdAt: DateTime

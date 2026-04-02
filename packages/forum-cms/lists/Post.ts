@@ -193,7 +193,19 @@ const listConfigurations = list({
             many: true,
             label: '主圖',
             ui: {
-                description: '可關聯多張圖片；建立與編輯單篇時皆可調整。',
+                description:
+                    '可關聯多張圖片；顯示順序以圖片「顯示順序」為準（數字越小越靠前；一張圖僅會作為一篇文的主圖）。',
+                displayMode: 'cards',
+                cardFields: ['file', 'sortOrder'],
+                linkToItem: true,
+                inlineConnect: true,
+                inlineCreate: {
+                    fields: ['file', 'sortOrder'],
+                },
+                inlineEdit: {
+                    fields: ['sortOrder'],
+                },
+                removeMode: 'disconnect',
             },
         }),
         videos: relationship({

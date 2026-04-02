@@ -492,6 +492,7 @@ model Photo {
   caption                  String    @default("")
   width                    Int?
   height                   Int?
+  sortOrder                Int?      @default(0)
   uploadedBy               Member?   @relation("Photo_uploadedBy", fields: [uploadedById], references: [id])
   uploadedById             Int?      @map("uploadedBy")
   postsAsHeroImages        Post[]    @relation("Photo_postsAsHeroImages")
