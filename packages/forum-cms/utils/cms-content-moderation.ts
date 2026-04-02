@@ -1,6 +1,7 @@
 /**
  * CMS 角色與內容審核規則（Admin / Editor）：
- * - 非官方作者之貼文／留言：僅可改譯文與前台顯示狀態等欄位
+ * - 非官方作者之貼文：僅可改譯文、狀態與主圖等（見各 Set）
+ * - 非官方作者之留言：可改譯文、狀態；**原文 content／language 亦允許**（供後台修正錯字、違規內容並觸發 message-services 翻譯）
  * - 投票：僅可改譯文，不可改說明／選項原文／票數
  *
  * 僅在部署環境 **ACCESS_CONTROL_STRATEGY=cms**（預設值）時生效；
@@ -38,9 +39,11 @@ const POST_UPDATE_ALLOWED_NON_OFFICIAL = new Set([
   'content_th',
 ])
 
-/** 非官方作者留言 update 時允許變更的欄位 */
+/** 非官方作者留言 update 時允許變更的欄位（含原文，否則無法寫入 DB、翻譯 hook 也不會觸發） */
 const COMMENT_UPDATE_ALLOWED_NON_OFFICIAL = new Set([
   'status',
+  'content',
+  'language',
   'content_zh',
   'content_en',
   'content_vi',
