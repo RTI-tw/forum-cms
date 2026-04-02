@@ -86,7 +86,8 @@ function getSourceText(
 /**
  * create：有原文就觸發翻譯。
  * update：僅在「原文欄位」有變更時觸發（翻譯欄位寫回不觸發，避免迴圈）。
- * Post：另見標題／正文邏輯。
+ * Post／Content：標題／正文與 resolvedData 比對。
+ * Comment：以 content 為原文；update 時併用 resolvedData.content 比對。
  */
 function shouldSyncTranslations(
   entityType: MessageServicesEntityType,
@@ -123,6 +124,24 @@ function shouldSyncTranslations(
     const nextTitle = readMergedText(item, originalItem, 'title')
     const nextContent = readMergedText(item, originalItem, 'content')
     return prevTitle !== nextTitle || prevContent !== nextContent
+  }
+
+  if (entityType === 'comment') {
+    const content = readMergedText(item, originalItem, 'content')
+    if (!content) return false
+    if (operation === 'create') return true
+    if (operation !== 'update' || !originalItem) return false
+
+    const rd = resolvedData
+    if (rd != null && rd.content !== undefined) {
+      const prevContent = normText(originalItem.content)
+      const submittedContent = normText(rd.content)
+      if (submittedContent !== prevContent) return true
+    }
+
+    const prevContent = normText(originalItem.content)
+    const nextContent = readMergedText(item, originalItem, 'content')
+    return prevContent !== nextContent
   }
 
   const src = getSourceText(entityType, item)
