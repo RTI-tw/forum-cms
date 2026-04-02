@@ -2,10 +2,19 @@
  * CMS 角色與內容審核規則（Admin / Editor）：
  * - 非官方作者之貼文／留言：僅可改譯文與前台顯示狀態等欄位
  * - 投票：僅可改譯文，不可改說明／選項原文／票數
+ *
+ * 僅在部署環境 **ACCESS_CONTROL_STRATEGY=cms**（預設值）時生效；
+ * `gql` / `preview` / `api` 等不套用此檔內任何欄位過濾。
  */
 import type { KeystoneContext } from '@keystone-6/core/types'
 
+import envVar from '../environment-variables'
 import { getSessionUserId } from './official-member-from-session'
+
+/** 與 `environment-variables` 的 `accessControlStrategy` 一致：僅 `cms` 時啟用本檔審核邏輯 */
+function isCmsContentModerationActive(): boolean {
+  return envVar.accessControlStrategy === 'cms'
+}
 
 /** 目前是否為已登入之 CMS User（Keystone session） */
 export function isCmsUserSession(context: KeystoneContext): boolean {
@@ -15,6 +24,8 @@ export function isCmsUserSession(context: KeystoneContext): boolean {
 /** 非官方作者貼文 update 時允許變更的欄位（含前台顯示狀態） */
 const POST_UPDATE_ALLOWED_NON_OFFICIAL = new Set([
   'status',
+  /** 主圖 M2M：updatePost 的 connect / disconnect / set 皆經此欄位寫入 */
+  'heroImages',
   'title_zh',
   'title_en',
   'title_vi',
@@ -74,6 +85,9 @@ export async function applyPostUpdateCmsRules(
   item: { id?: unknown } | undefined,
   resolvedData: Record<string, unknown>
 ): Promise<Record<string, unknown>> {
+  if (!isCmsContentModerationActive()) {
+    return resolvedData
+  }
   if (operation !== 'update' || !item?.id) {
     return resolvedData
   }
@@ -97,6 +111,9 @@ export async function applyCommentUpdateCmsRules(
   item: { id?: unknown } | undefined,
   resolvedData: Record<string, unknown>
 ): Promise<Record<string, unknown>> {
+  if (!isCmsContentModerationActive()) {
+    return resolvedData
+  }
   if (operation !== 'update' || !item?.id) {
     return resolvedData
   }
@@ -117,11 +134,17 @@ export async function applyCommentUpdateCmsRules(
 export function applyPollUpdateTranslationOnly(
   resolvedData: Record<string, unknown>
 ): Record<string, unknown> {
+  if (!isCmsContentModerationActive()) {
+    return resolvedData
+  }
   return pickKeys(resolvedData, POLL_UPDATE_TRANSLATION_ONLY)
 }
 
 export function applyPollOptionUpdateTranslationOnly(
   resolvedData: Record<string, unknown>
 ): Record<string, unknown> {
+  if (!isCmsContentModerationActive()) {
+    return resolvedData
+  }
   return pickKeys(resolvedData, POLL_OPTION_UPDATE_TRANSLATION_ONLY)
 }
