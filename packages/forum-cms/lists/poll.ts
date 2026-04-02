@@ -3,6 +3,7 @@ import { allowRoles, admin, moderator, editor } from '../utils/access-control'
 import { list } from '@keystone-6/core'
 import { text, integer, relationship, timestamp } from '@keystone-6/core/fields'
 import { createMessageServicesTranslationHook } from '../utils/message-services-translation-hook'
+import { applyPollUpdateTranslationOnly } from '../utils/cms-content-moderation'
 
 /**
  * 欄位規格：
@@ -119,6 +120,14 @@ const listConfigurations = list({
     },
   },
   hooks: {
+    resolveInput: ({ resolvedData, operation }) => {
+      if (operation === 'update') {
+        return applyPollUpdateTranslationOnly(
+          resolvedData as Record<string, unknown>
+        ) as typeof resolvedData
+      }
+      return resolvedData
+    },
     afterOperation: createMessageServicesTranslationHook('poll'),
   },
 })

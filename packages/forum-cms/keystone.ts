@@ -506,7 +506,7 @@ const memberAuthSchemaExtension = graphql.extend(() => ({
                             name: display.name,
                             nickname: display.nickname,
                             email: firebaseEmail ?? undefined,
-                            is_active: true,
+                            status: 'active',
                             verified: Boolean(decoded.email_verified),
                         },
                     });

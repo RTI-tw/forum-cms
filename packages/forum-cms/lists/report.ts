@@ -6,12 +6,15 @@ import { text, relationship, select, timestamp } from '@keystone-6/core/fields'
 /**
  * 檢舉規格（欄位對應）：
  * - 檢舉文章 / 檢舉留言：擇一（建立時不可皆空、不可同時指定）
- * - 檢舉時間：對應追蹤欄位 createdAt（覆寫標籤為「檢舉時間」）
- * - 檢舉人、檢舉人 IP、檢舉原因、處理狀態、管理員處理備註
+ * - 檢舉時間：`createdAt`（列表與單筆顯示為「檢舉時間」）
+ * - 處理狀態：`pending` / `resolved` / `dismissed`（見下方「成立認定」）
+ * - 檢舉人、檢舉人 IP、檢舉原因、管理員處理備註
  *
- * 成立檢舉：**Resolved** 時，將被檢舉的 **Post.status** 或 **Comment.status** 設為 **hidden**（與 Post／Comment 狀態列舉一致）。
- * **留言（Comment）**：若之後將檢舉自 **Resolved** 改為 **Pending／Dismissed**，將該留言恢復為 **published**（駁回或重審時不再隱藏）。
- * Post 僅在成立時設為 hidden；自 Resolved 改回時不強制改回（避免誤將 draft 改為 published）。
+ * 【待確認之結論／實作行為】管理員「認定檢舉成立」時，請將檢舉設為 **Resolved（已處理／成立）**。
+ * 系統在 **Resolved** 時會自動把被檢舉的 **Post** 或 **Comment** 的 `status` 設為 **hidden**（前台隱藏）。
+ *
+ * - **留言**：若之後將檢舉自 **Resolved** 改為 **Pending／Dismissed**，該留言會恢復為 **published**（駁回或重審時不再隱藏）。
+ * - **文章**：成立時設為 hidden；自 Resolved 改回 **Pending／Dismissed** 時**不**自動還原文章狀態（避免誤把草稿等改回 published）。
  */
 const listConfigurations = list({
   fields: {
@@ -50,18 +53,18 @@ const listConfigurations = list({
           value: 'pending',
         },
         {
-          label: 'Resolved（已處理／成立）',
+          label: 'Resolved（成立：隱藏該文章／留言）',
           value: 'resolved',
         },
         {
-          label: 'Dismissed（已駁回）',
+          label: 'Dismissed（駁回：不成立）',
           value: 'dismissed',
         },
       ],
       defaultValue: 'pending',
       ui: {
         description:
-          'Resolved：被檢舉文章／留言會設為 Hidden。若將 Resolved 改為 Dismissed／Pending，被檢舉留言會恢復為 Published（文章不自動還原）。',
+          '認定檢舉成立請選「Resolved」：系統會將被檢舉文章或留言設為 Hidden。改為 Dismissed／Pending 時，僅留言會自動恢復為 Published；文章不會自動還原。',
       },
     }),
     adminNotes: text({
@@ -74,13 +77,14 @@ const listConfigurations = list({
     listView: {
       initialColumns: [
         'createdAt',
+        'status',
         'post',
         'comment',
         'reporter',
-        'ip',
         'reason',
-        'status',
+        'ip',
       ],
+      initialSort: { field: 'createdAt', direction: 'DESC' },
     },
   },
   access: {

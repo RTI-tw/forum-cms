@@ -30,3 +30,20 @@ export async function syncPostCommentAndReactionCounts(
     data: { commentCount, reactionCount },
   })
 }
+
+/** 依 Reaction 重算單一留言的 reactionCount（對該留言的 Reaction 筆數）。 */
+export async function syncCommentReactionCount(
+  prisma: PrismaLike,
+  commentId: number | null | undefined
+): Promise<void> {
+  if (commentId == null || !Number.isFinite(commentId)) return
+
+  const count = await prisma.reaction.count({
+    where: { commentId },
+  })
+
+  await prisma.comment.update({
+    where: { id: commentId },
+    data: { reactionCount: count },
+  })
+}

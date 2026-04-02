@@ -18,6 +18,7 @@ import {
 import { getClientIpFromKeystoneContext } from '../utils/client-ip'
 import envVar from '../environment-variables'
 import { syncEditorChoiceStateForPostId } from '../utils/sync-editor-choice-state'
+import { applyPostUpdateCmsRules } from '../utils/cms-content-moderation'
 
 const translationAfterPost = createMessageServicesTranslationHook('post')
 
@@ -268,6 +269,7 @@ const listConfigurations = list({
                 'title',
                 'author',
                 'status',
+                'heroImages',
                 'commentCount',
                 'reactionCount',
                 'published_date',
@@ -365,6 +367,15 @@ const listConfigurations = list({
                 ) {
                     data.is_edited = true
                 }
+            }
+            if (operation === 'update') {
+                const moderated = await applyPostUpdateCmsRules(
+                    context,
+                    operation,
+                    item as { id?: unknown },
+                    data as Record<string, unknown>
+                )
+                return moderated as typeof data
             }
             return data
         },

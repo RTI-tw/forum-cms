@@ -200,12 +200,39 @@ const listConfigurations = list({
       ref: 'Post.heroImages',
       many: true,
       label: '作為主圖的文章',
+      ui: {
+        description:
+          '引用此圖為主圖的文章（與「文章」內主圖欄位為同一關聯，兩邊皆可檢視／連結）。',
+        displayMode: 'cards',
+        cardFields: ['title', 'status', 'published_date'],
+        linkToItem: true,
+        inlineConnect: true,
+        removeMode: 'disconnect',
+      },
+    }),
+    staticContents: relationship({
+      ref: 'Content.photos',
+      many: true,
+      label: '靜態頁面',
+      ui: {
+        description: '使用此圖的靜態頁（與「靜態頁面」之圖片欄位為同一關聯）。',
+        displayMode: 'cards',
+        cardFields: ['identifier', 'title', 'language'],
+        linkToItem: true,
+        inlineConnect: true,
+        removeMode: 'disconnect',
+      },
     }),
   },
   ui: {
     label: '圖片',
     listView: {
-      initialColumns: ['name', 'urlOriginal'],
+      initialColumns: [
+        'name',
+        'urlOriginal',
+        'postsAsHeroImages',
+        'staticContents',
+      ],
       initialSort: { field: 'name', direction: 'ASC' },
       pageSize: 50,
     },

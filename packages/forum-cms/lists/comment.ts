@@ -8,6 +8,7 @@ import {
   checkbox,
   select,
   float,
+  integer,
 } from '@keystone-6/core/fields';
 import { createMessageServicesTranslationHook } from '../utils/message-services-translation-hook'
 import { syncPostCommentAndReactionCounts } from '../utils/post-count-sync'
@@ -15,6 +16,10 @@ import {
   getOfficialMemberIdForSessionUser,
   hasExplicitMemberRelationInput,
 } from '../utils/official-member-from-session'
+import {
+  applyCommentUpdateCmsRules,
+  isCmsUserSession,
+} from '../utils/cms-content-moderation'
 
 const translationAfterComment =
   createMessageServicesTranslationHook('comment')
@@ -73,17 +78,26 @@ const listConfigurations = list({
         { label: 'Published', value: 'published' },
         { label: 'Archived', value: 'archived' },
         { label: 'Hidden', value: 'hidden' },
+        { label: 'Deleted（已刪除）', value: 'deleted' },
       ],
       defaultValue: 'published',
       ui: {
-        description: 'Published：公開；Archived：封存；Hidden：隱藏。',
+        description:
+          'Published：公開；Archived：封存；Hidden：隱藏；Deleted：已刪除。一般會員留言不可設為已刪除。',
       },
     }),
     reactions: relationship({ ref: 'Reaction.comment', many: true, label: '反應' }),
+    reactionCount: integer({
+      label: '反應數',
+      defaultValue: 0,
+      ui: {
+        description: '對此留言的 Reaction 筆數；由反應建立／變更／刪除時自動重算。',
+        createView: { fieldMode: 'hidden' },
+        itemView: { fieldMode: 'read' },
+        listView: { fieldMode: 'read' },
+      },
+    }),
     reports: relationship({ ref: 'Report.comment', many: true, label: '檢舉紀錄' }),
-    parent: relationship({ ref: 'Comment', many: false, label: '父留言' }),
-    root: relationship({ ref: 'Comment', many: false, label: '根留言' }),
-    like: relationship({ ref: 'Member.member_like', many: true, label: '按讚' }),
     published_date: timestamp({ validation: { isRequired: false }, label: '發布時間' }),
     is_edited: checkbox({
       defaultValue: false,
@@ -97,7 +111,13 @@ const listConfigurations = list({
   ui: {
     label: '留言',
     listView: {
-      initialColumns: ['content', 'member', 'status', 'published_date'],
+      initialColumns: [
+        'content',
+        'member',
+        'status',
+        'reactionCount',
+        'published_date',
+      ],
     },
   },
   access: {
@@ -109,11 +129,41 @@ const listConfigurations = list({
     },
   },
   hooks: {
+    validateInput: async ({
+      resolvedData,
+      addValidationError,
+      operation,
+      item,
+      context,
+    }) => {
+      if (operation === 'create' && isCmsUserSession(context)) {
+        addValidationError(
+          '請於前台以官方帳號登入後留言，勿在 CMS 建立留言。',
+        )
+        return
+      }
+      if (operation === 'update' && resolvedData.status === 'deleted' && item?.id) {
+        const commentId =
+          typeof item.id === 'number' ? item.id : parseInt(String(item.id), 10)
+        if (!Number.isNaN(commentId)) {
+          const row = await context.prisma.comment.findUnique({
+            where: { id: commentId },
+            include: { member: { select: { isOfficial: true } } },
+          })
+          if (row?.member && !row.member.isOfficial) {
+            addValidationError(
+              '一般會員留言不可設為「已刪除」；請使用隱藏／封存等狀態。',
+            )
+          }
+        }
+      }
+    },
     resolveInput: async ({
       resolvedData,
       operation,
       context,
       inputData,
+      item,
     }) => {
       const data = { ...resolvedData }
       if (operation === 'create') {
@@ -127,6 +177,17 @@ const listConfigurations = list({
             data.member = { connect: { id: memberId } }
           }
         }
+      }
+      if (operation === 'update') {
+        const noManualCount = { ...data } as Record<string, unknown>
+        delete noManualCount.reactionCount
+        const moderated = await applyCommentUpdateCmsRules(
+          context,
+          operation,
+          item as { id?: unknown },
+          noManualCount,
+        )
+        return moderated as typeof data
       }
       return data
     },

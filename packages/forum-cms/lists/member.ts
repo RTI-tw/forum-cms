@@ -1,7 +1,13 @@
 import { utils } from '@mirrormedia/lilith-core'
-import { allowRoles, admin, moderator, editor } from '../utils/access-control'
+import { allowAdminOnly } from '../utils/access-control'
 import { list } from '@keystone-6/core'
-import { text, relationship, checkbox, integer, select, timestamp } from '@keystone-6/core/fields'
+import { text, relationship, checkbox, select, timestamp } from '@keystone-6/core/fields'
+
+const hiddenFromCmsUi = {
+  createView: { fieldMode: 'hidden' as const },
+  itemView: { fieldMode: 'hidden' as const },
+  listView: { fieldMode: 'hidden' as const },
+}
 
 const listConfigurations = list({
   fields: {
@@ -22,13 +28,23 @@ const listConfigurations = list({
     name: text({
       label: '姓名',
       validation: { isRequired: true },
+      ui: hiddenFromCmsUi,
     }),
     nickname: text({ label: '暱稱', validation: { isRequired: true } }),
-    avatar: text({ label: '頭像', validation: { isRequired: false } }),
-    intro: text({ label: '介紹', validation: { isRequired: false } }),
+    avatar: text({
+      label: '頭像',
+      validation: { isRequired: false },
+      ui: hiddenFromCmsUi,
+    }),
+    intro: text({
+      label: '介紹',
+      validation: { isRequired: false },
+      ui: hiddenFromCmsUi,
+    }),
     avatar_image: relationship({
       label: '頭像圖片',
       ref: 'Photo',
+      ui: hiddenFromCmsUi,
     }),
     email: text({
       label: 'Email',
@@ -36,9 +52,20 @@ const listConfigurations = list({
       isFilterable: true,
       isIndexed: 'unique',
     }),
-    is_active: checkbox({
-      label: '啟用',
-      defaultValue: true,
+    status: select({
+      label: '狀態',
+      type: 'enum',
+      options: [
+        { label: '啟用', value: 'active' },
+        { label: '停用', value: 'inactive' },
+        { label: '停權', value: 'banned' },
+      ],
+      defaultValue: 'active',
+      validation: { isRequired: true },
+      ui: {
+        description:
+          '啟用：正常使用；停用：會員刪除帳號等；停權：後台停用該會員。',
+      },
     }),
     verified: checkbox({
       label: '已驗證',
@@ -47,11 +74,6 @@ const listConfigurations = list({
     comment: relationship({
       label: '留言',
       ref: 'Comment.member',
-      many: true,
-    }),
-    member_like: relationship({
-      label: '按讚',
-      ref: 'Comment.like',
       many: true,
     }),
     posts: relationship({
@@ -69,43 +91,9 @@ const listConfigurations = list({
       ref: 'Reaction.member',
       many: true,
     }),
-    follower: relationship({
-      label: '粉絲',
-      ref: 'Member.following',
-      many: true,
-    }),
-    following: relationship({
-      label: '追蹤中',
-      ref: 'Member.follower',
-      many: true,
-    }),
-    block: relationship({
-      label: '封鎖',
-      ref: 'Member.blocked',
-      many: true,
-    }),
-    blocked: relationship({
-      label: '被封鎖',
-      ref: 'Member.block',
-      many: true,
-    }),
-    following_category: relationship({
-      label: '追蹤分類',
-      ref: 'Category',
-      many: true,
-    }),
     isOfficial: checkbox({
       label: '官方帳號',
       defaultValue: false,
-    }),
-    status: select({
-      label: '帳號狀態',
-      type: 'enum',
-      options: [
-        { label: 'Active', value: 'active' },
-        { label: 'Banned', value: 'banned' },
-      ],
-      defaultValue: 'active',
     }),
     joinDate: timestamp({
       label: '加入日期',
@@ -143,15 +131,15 @@ const listConfigurations = list({
   ui: {
     label: '會員',
     listView: {
-      initialColumns: ['name', 'email', 'nationality'],
+      initialColumns: ['nickname', 'email', 'status', 'nationality'],
     },
   },
   access: {
     operation: {
-      query: allowRoles(admin, moderator, editor),
-      update: allowRoles(admin, moderator),
-      create: allowRoles(admin, moderator),
-      delete: allowRoles(admin),
+      query: allowAdminOnly(),
+      update: allowAdminOnly(),
+      create: allowAdminOnly(),
+      delete: allowAdminOnly(),
     },
   },
   hooks: {
@@ -161,19 +149,21 @@ const listConfigurations = list({
         resolvedData.nationality = raw.length === 0 ? null : raw.toUpperCase()
       }
       const typedItem = item as any
-      if (
-        typedItem?.is_active === true &&
-        resolvedData.is_active === false
-      ) {
-        resolvedData.email = `inactive: ${typedItem?.email}  ${typedItem?.firebaseId}`
-        resolvedData.firebaseId = `inactive: ${typedItem?.firebaseId}`
-      } else if (
-        typedItem?.is_active === false &&
-        resolvedData.is_active === true
-      ) {
-        const newId = typedItem?.firebaseId?.replace(/^inactive: /, '')
+      const prevStatus = typedItem?.status ?? 'active'
+      const nextStatus =
+        resolvedData.status !== undefined ? resolvedData.status : prevStatus
+
+      if (prevStatus !== 'inactive' && nextStatus === 'inactive') {
+        const srcEmail = typedItem?.email ?? resolvedData.email
+        const srcFirebase = typedItem?.firebaseId ?? resolvedData.firebaseId
+        resolvedData.email = `inactive: ${srcEmail}  ${srcFirebase}`
+        resolvedData.firebaseId = `inactive: ${srcFirebase}`
+      } else if (prevStatus === 'inactive' && nextStatus === 'active') {
+        const srcEmail = typedItem?.email ?? resolvedData.email
+        const srcFirebase = typedItem?.firebaseId ?? resolvedData.firebaseId
+        const newId = srcFirebase?.replace(/^inactive: /, '')
         resolvedData.firebaseId = newId
-        resolvedData.email = typedItem?.email
+        resolvedData.email = srcEmail
           ?.replace(/^inactive: /, '')
           .replace(`  ${newId}`, '')
       }

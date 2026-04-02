@@ -78,3 +78,31 @@ export const allowRolesForUsers: ListACLFunction = (...args) => {
   }
   return core.allowRolesForUsers(...args)
 }
+
+/** 僅 Admin 可操作 CMS「使用者」列表（資料庫尚無任何 User 時仍允許建立第一個帳號）。 */
+export const allowRolesForUsersAdminOnly: ListACLFunction = () => {
+  if (process.env.ACCESS_CONTROL_STRATEGY === 'api') {
+    return async (auth) => {
+      const canCreateFirstUser = await isNeedToTurnOffAccessControl(auth)
+      if (canCreateFirstUser) {
+        return true
+      }
+      const listKey = auth.listKey
+      const operation = getListOperation(auth)
+      return isApiAccessAllowed(listKey, operation)
+    }
+  }
+  return core.allowRolesForUsers(admin)
+}
+
+/** 僅 Admin（例如 Members、OfficialMapping 等僅限管理員之列表）。 */
+export const allowAdminOnly: ListACLFunction = () => {
+  if (process.env.ACCESS_CONTROL_STRATEGY === 'api') {
+    return async (auth) => {
+      const listKey = auth.listKey
+      const operation = getListOperation(auth)
+      return isApiAccessAllowed(listKey, operation)
+    }
+  }
+  return core.allowRoles(admin)
+}

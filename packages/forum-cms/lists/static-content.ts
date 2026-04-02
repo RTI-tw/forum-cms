@@ -1,7 +1,7 @@
 import { utils } from '@mirrormedia/lilith-core'
-import { allowRoles, admin, moderator, editor } from '../utils/access-control'
+import { allowAdminOnly } from '../utils/access-control'
 import { list } from '@keystone-6/core'
-import { text, select } from '@keystone-6/core/fields'
+import { text, select, relationship } from '@keystone-6/core/fields'
 import { createMessageServicesTranslationHook } from '../utils/message-services-translation-hook'
 
 const listConfigurations = list({
@@ -12,7 +12,11 @@ const listConfigurations = list({
     identifier: text({
       validation: { isRequired: true },
       isIndexed: 'unique',
-      label: '識別碼',
+      label: '網址名稱',
+      ui: {
+        description:
+          '對應前台靜態頁路徑或網址片段（原為識別碼；請使用英數、連字號等）。',
+      },
     }),
     title: text({
       label: '標題',
@@ -73,19 +77,45 @@ const listConfigurations = list({
       label: '內容（泰文）',
       ui: { displayMode: 'textarea' },
     }),
+    photos: relationship({
+      ref: 'Photo.staticContents',
+      many: true,
+      label: '圖片',
+      ui: {
+        description: '此靜態頁使用的圖片；亦可在「圖片」單筆頁連結至此頁。',
+        displayMode: 'cards',
+        cardFields: ['name', 'urlOriginal', 'sortOrder'],
+        linkToItem: true,
+        inlineConnect: true,
+        removeMode: 'disconnect',
+      },
+    }),
+    videos: relationship({
+      ref: 'Video.staticContents',
+      many: true,
+      label: '影片',
+      ui: {
+        description: '此靜態頁使用的影片；亦可在「影片」單筆頁連結至此頁。',
+        displayMode: 'cards',
+        cardFields: ['url', 'coverImage'],
+        linkToItem: true,
+        inlineConnect: true,
+        removeMode: 'disconnect',
+      },
+    }),
   },
   ui: {
     label: '靜態頁面',
     listView: {
-      initialColumns: ['identifier', 'title', 'language'],
+      initialColumns: ['identifier', 'title', 'language', 'photos', 'videos'],
     },
   },
   access: {
     operation: {
-      query: allowRoles(admin, moderator, editor),
-      update: allowRoles(admin),
-      create: allowRoles(admin),
-      delete: allowRoles(admin),
+      query: allowAdminOnly(),
+      update: allowAdminOnly(),
+      create: allowAdminOnly(),
+      delete: allowAdminOnly(),
     },
   },
   hooks: {

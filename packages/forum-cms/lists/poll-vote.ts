@@ -34,8 +34,9 @@ const listConfigurations = list({
   access: {
     operation: {
       query: allowRoles(admin, moderator, editor),
-      update: allowRoles(admin),
-      create: allowRoles(admin, moderator),
+      /** 投票紀錄不可於後台修改（避免竄改結果）；僅可查詢／維護性刪除由 Admin 處理。 */
+      update: async () => false,
+      create: allowRoles(admin, moderator, editor),
       delete: allowRoles(admin),
     },
   },

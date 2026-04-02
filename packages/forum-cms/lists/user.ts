@@ -16,12 +16,7 @@ import {
     addToPasswordHistory,
     passwordPolicy,
 } from "../utils/password-policy";
-import {
-    allowRolesForUsers,
-    admin,
-    moderator,
-    editor,
-} from "../utils/access-control";
+import { allowRolesForUsersAdminOnly, admin } from "../utils/access-control";
 
 const listConfigurations = list({
     fields: {
@@ -136,10 +131,10 @@ const listConfigurations = list({
     },
     access: {
         operation: {
-            query: allowRolesForUsers(admin, moderator, editor),
-            update: allowRolesForUsers(admin, moderator),
-            create: allowRolesForUsers(admin, moderator),
-            delete: allowRolesForUsers(admin),
+            query: allowRolesForUsersAdminOnly(),
+            update: allowRolesForUsersAdminOnly(),
+            create: allowRolesForUsersAdminOnly(),
+            delete: allowRolesForUsersAdminOnly(),
         },
     },
     hooks: {

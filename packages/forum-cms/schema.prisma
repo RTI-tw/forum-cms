@@ -79,20 +79,13 @@ model Member {
   avatar_image                        Photo?              @relation("Member_avatar_image", fields: [avatar_imageId], references: [id])
   avatar_imageId                      Int?                @map("avatar_image")
   email                               String              @unique @default("")
-  is_active                           Boolean             @default(true)
+  status                              MemberStatusType    @default(active)
   verified                            Boolean             @default(false)
   comment                             Comment[]           @relation("Comment_member")
-  member_like                         Comment[]           @relation("Comment_like")
   posts                               Post[]              @relation("Post_author")
   memberPolls                         Poll[]              @relation("Poll_member")
   reactions                           Reaction[]          @relation("Reaction_member")
-  follower                            Member[]            @relation("Member_follower")
-  following                           Member[]            @relation("Member_follower")
-  block                               Member[]            @relation("Member_block")
-  blocked                             Member[]            @relation("Member_block")
-  following_category                  Category[]          @relation("Member_following_category")
   isOfficial                          Boolean             @default(false)
-  status                              MemberStatusType?   @default(active)
   joinDate                            DateTime?           @default(now())
   language                            MemberLanguageType? @default(zh)
   nationality                         String?             @postgresql.VarChar(2)
@@ -227,44 +220,36 @@ model EditorChoice {
 }
 
 model Comment {
-  id                  Int                  @id @default(autoincrement())
-  content             String               @default("")
-  language            CommentLanguageType?
-  content_zh          String               @default("")
-  content_en          String               @default("")
-  content_vi          String               @default("")
-  content_id          String               @default("")
-  content_th          String               @default("")
-  post                Post?                @relation("Comment_post", fields: [postId], references: [id])
-  postId              Int?                 @map("post")
-  member              Member?              @relation("Comment_member", fields: [memberId], references: [id])
-  memberId            Int?                 @map("member")
-  ip                  String               @default("")
-  spamScore           Float?
-  status              CommentStatusType?   @default(published)
-  reactions           Reaction[]           @relation("Reaction_comment")
-  reports             Report[]             @relation("Report_comment")
-  parent              Comment?             @relation("Comment_parent", fields: [parentId], references: [id])
-  parentId            Int?                 @map("parent")
-  root                Comment?             @relation("Comment_root", fields: [rootId], references: [id])
-  rootId              Int?                 @map("root")
-  like                Member[]             @relation("Comment_like")
-  published_date      DateTime?
-  is_edited           Boolean              @default(false)
-  is_active           Boolean              @default(true)
-  createdAt           DateTime?
-  updatedAt           DateTime?
-  createdBy           User?                @relation("Comment_createdBy", fields: [createdById], references: [id])
-  createdById         Int?                 @map("createdBy")
-  updatedBy           User?                @relation("Comment_updatedBy", fields: [updatedById], references: [id])
-  updatedById         Int?                 @map("updatedBy")
-  from_Comment_parent Comment[]            @relation("Comment_parent")
-  from_Comment_root   Comment[]            @relation("Comment_root")
+  id             Int                  @id @default(autoincrement())
+  content        String               @default("")
+  language       CommentLanguageType?
+  content_zh     String               @default("")
+  content_en     String               @default("")
+  content_vi     String               @default("")
+  content_id     String               @default("")
+  content_th     String               @default("")
+  post           Post?                @relation("Comment_post", fields: [postId], references: [id])
+  postId         Int?                 @map("post")
+  member         Member?              @relation("Comment_member", fields: [memberId], references: [id])
+  memberId       Int?                 @map("member")
+  ip             String               @default("")
+  spamScore      Float?
+  status         CommentStatusType?   @default(published)
+  reactions      Reaction[]           @relation("Reaction_comment")
+  reactionCount  Int?                 @default(0)
+  reports        Report[]             @relation("Report_comment")
+  published_date DateTime?
+  is_edited      Boolean              @default(false)
+  is_active      Boolean              @default(true)
+  createdAt      DateTime?
+  updatedAt      DateTime?
+  createdBy      User?                @relation("Comment_createdBy", fields: [createdById], references: [id])
+  createdById    Int?                 @map("createdBy")
+  updatedBy      User?                @relation("Comment_updatedBy", fields: [updatedById], references: [id])
+  updatedById    Int?                 @map("updatedBy")
 
   @@index([postId])
   @@index([memberId])
-  @@index([parentId])
-  @@index([rootId])
   @@index([createdById])
   @@index([updatedById])
 }
@@ -401,6 +386,8 @@ model Content {
   content_vi  String               @default("")
   content_id  String               @default("")
   content_th  String               @default("")
+  photos      Photo[]              @relation("Content_photos")
+  videos      Video[]              @relation("Content_videos")
   createdAt   DateTime?
   updatedAt   DateTime?
   createdBy   User?                @relation("Content_createdBy", fields: [createdById], references: [id])
@@ -462,17 +449,18 @@ model ForbiddenKeyword {
 }
 
 model Video {
-  id          Int       @id @default(autoincrement())
-  url         String    @default("")
-  coverImage  String    @default("")
-  post        Post?     @relation("Video_post", fields: [postId], references: [id])
-  postId      Int?      @map("post")
-  createdAt   DateTime?
-  updatedAt   DateTime?
-  createdBy   User?     @relation("Video_createdBy", fields: [createdById], references: [id])
-  createdById Int?      @map("createdBy")
-  updatedBy   User?     @relation("Video_updatedBy", fields: [updatedById], references: [id])
-  updatedById Int?      @map("updatedBy")
+  id             Int       @id @default(autoincrement())
+  url            String    @default("")
+  coverImage     String    @default("")
+  post           Post?     @relation("Video_post", fields: [postId], references: [id])
+  postId         Int?      @map("post")
+  staticContents Content[] @relation("Content_videos")
+  createdAt      DateTime?
+  updatedAt      DateTime?
+  createdBy      User?     @relation("Video_createdBy", fields: [createdById], references: [id])
+  createdById    Int?      @map("createdBy")
+  updatedBy      User?     @relation("Video_updatedBy", fields: [updatedById], references: [id])
+  updatedById    Int?      @map("updatedBy")
 
   @@index([postId])
   @@index([createdById])
@@ -496,6 +484,7 @@ model Photo {
   uploadedBy               Member?   @relation("Photo_uploadedBy", fields: [uploadedById], references: [id])
   uploadedById             Int?      @map("uploadedBy")
   postsAsHeroImages        Post[]    @relation("Photo_postsAsHeroImages")
+  staticContents           Content[] @relation("Content_photos")
   createdAt                DateTime?
   updatedAt                DateTime?
   createdBy                User?     @relation("Photo_createdBy", fields: [createdById], references: [id])
@@ -512,18 +501,17 @@ model Photo {
 }
 
 model Category {
-  id                             Int       @id @default(autoincrement())
-  title                          String    @default("")
-  slug                           String    @unique @default("")
-  summary                        String    @default("")
-  priority                       Int       @default(0)
-  createdAt                      DateTime?
-  updatedAt                      DateTime?
-  createdBy                      User?     @relation("Category_createdBy", fields: [createdById], references: [id])
-  createdById                    Int?      @map("createdBy")
-  updatedBy                      User?     @relation("Category_updatedBy", fields: [updatedById], references: [id])
-  updatedById                    Int?      @map("updatedBy")
-  from_Member_following_category Member[]  @relation("Member_following_category")
+  id          Int       @id @default(autoincrement())
+  title       String    @default("")
+  slug        String    @unique @default("")
+  summary     String    @default("")
+  priority    Int       @default(0)
+  createdAt   DateTime?
+  updatedAt   DateTime?
+  createdBy   User?     @relation("Category_createdBy", fields: [createdById], references: [id])
+  createdById Int?      @map("createdBy")
+  updatedBy   User?     @relation("Category_updatedBy", fields: [updatedById], references: [id])
+  updatedById Int?      @map("updatedBy")
 
   @@index([createdById])
   @@index([updatedById])
@@ -567,6 +555,7 @@ model Ad {
 
 enum MemberStatusType {
   active
+  inactive
   banned
 }
 
@@ -623,6 +612,7 @@ enum CommentStatusType {
   published
   archived
   hidden
+  deleted
 }
 
 enum ReactionTypeType {

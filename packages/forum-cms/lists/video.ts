@@ -17,11 +17,24 @@ const listConfigurations = list({
       many: false,
       label: '關聯文章',
     }),
+    staticContents: relationship({
+      ref: 'Content.videos',
+      many: true,
+      label: '靜態頁面',
+      ui: {
+        description: '使用此影片的靜態頁（與「靜態頁面」之影片欄位為同一關聯）。',
+        displayMode: 'cards',
+        cardFields: ['identifier', 'title', 'language'],
+        linkToItem: true,
+        inlineConnect: true,
+        removeMode: 'disconnect',
+      },
+    }),
   },
   ui: {
     label: '影片',
     listView: {
-      initialColumns: ['url', 'coverImage'],
+      initialColumns: ['url', 'coverImage', 'post', 'staticContents'],
     },
   },
   access: {

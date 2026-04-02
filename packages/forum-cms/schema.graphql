@@ -217,30 +217,17 @@ type Member {
   intro: String
   avatar_image: Photo
   email: String
-  is_active: Boolean
+  status: MemberStatusType
   verified: Boolean
   comment(where: CommentWhereInput! = {}, orderBy: [CommentOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: CommentWhereUniqueInput): [Comment!]
   commentCount(where: CommentWhereInput! = {}): Int
-  member_like(where: CommentWhereInput! = {}, orderBy: [CommentOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: CommentWhereUniqueInput): [Comment!]
-  member_likeCount(where: CommentWhereInput! = {}): Int
   posts(where: PostWhereInput! = {}, orderBy: [PostOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: PostWhereUniqueInput): [Post!]
   postsCount(where: PostWhereInput! = {}): Int
   memberPolls(where: PollWhereInput! = {}, orderBy: [PollOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: PollWhereUniqueInput): [Poll!]
   memberPollsCount(where: PollWhereInput! = {}): Int
   reactions(where: ReactionWhereInput! = {}, orderBy: [ReactionOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: ReactionWhereUniqueInput): [Reaction!]
   reactionsCount(where: ReactionWhereInput! = {}): Int
-  follower(where: MemberWhereInput! = {}, orderBy: [MemberOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: MemberWhereUniqueInput): [Member!]
-  followerCount(where: MemberWhereInput! = {}): Int
-  following(where: MemberWhereInput! = {}, orderBy: [MemberOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: MemberWhereUniqueInput): [Member!]
-  followingCount(where: MemberWhereInput! = {}): Int
-  block(where: MemberWhereInput! = {}, orderBy: [MemberOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: MemberWhereUniqueInput): [Member!]
-  blockCount(where: MemberWhereInput! = {}): Int
-  blocked(where: MemberWhereInput! = {}, orderBy: [MemberOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: MemberWhereUniqueInput): [Member!]
-  blockedCount(where: MemberWhereInput! = {}): Int
-  following_category(where: CategoryWhereInput! = {}, orderBy: [CategoryOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: CategoryWhereUniqueInput): [Category!]
-  following_categoryCount(where: CategoryWhereInput! = {}): Int
   isOfficial: Boolean
-  status: MemberStatusType
   joinDate: DateTime
   language: MemberLanguageType
   nationality: String
@@ -252,6 +239,7 @@ type Member {
 
 enum MemberStatusType {
   active
+  inactive
   banned
 }
 
@@ -283,20 +271,13 @@ input MemberWhereInput {
   intro: StringFilter
   avatar_image: PhotoWhereInput
   email: StringFilter
-  is_active: BooleanFilter
+  status: MemberStatusTypeNullableFilter
   verified: BooleanFilter
   comment: CommentManyRelationFilter
-  member_like: CommentManyRelationFilter
   posts: PostManyRelationFilter
   memberPolls: PollManyRelationFilter
   reactions: ReactionManyRelationFilter
-  follower: MemberManyRelationFilter
-  following: MemberManyRelationFilter
-  block: MemberManyRelationFilter
-  blocked: MemberManyRelationFilter
-  following_category: CategoryManyRelationFilter
   isOfficial: BooleanFilter
-  status: MemberStatusTypeNullableFilter
   joinDate: DateTimeNullableFilter
   language: MemberLanguageTypeNullableFilter
   nationality: StringNullableFilter
@@ -304,6 +285,13 @@ input MemberWhereInput {
   updatedAt: DateTimeNullableFilter
   createdBy: UserWhereInput
   updatedBy: UserWhereInput
+}
+
+input MemberStatusTypeNullableFilter {
+  equals: MemberStatusType
+  in: [MemberStatusType!]
+  notIn: [MemberStatusType!]
+  not: MemberStatusTypeNullableFilter
 }
 
 input CommentManyRelationFilter {
@@ -328,25 +316,6 @@ input ReactionManyRelationFilter {
   every: ReactionWhereInput
   some: ReactionWhereInput
   none: ReactionWhereInput
-}
-
-input MemberManyRelationFilter {
-  every: MemberWhereInput
-  some: MemberWhereInput
-  none: MemberWhereInput
-}
-
-input CategoryManyRelationFilter {
-  every: CategoryWhereInput
-  some: CategoryWhereInput
-  none: CategoryWhereInput
-}
-
-input MemberStatusTypeNullableFilter {
-  equals: MemberStatusType
-  in: [MemberStatusType!]
-  notIn: [MemberStatusType!]
-  not: MemberStatusTypeNullableFilter
 }
 
 input MemberLanguageTypeNullableFilter {
@@ -380,10 +349,9 @@ input MemberOrderByInput {
   avatar: OrderDirection
   intro: OrderDirection
   email: OrderDirection
-  is_active: OrderDirection
+  status: OrderDirection
   verified: OrderDirection
   isOfficial: OrderDirection
-  status: OrderDirection
   joinDate: OrderDirection
   language: OrderDirection
   nationality: OrderDirection
@@ -400,20 +368,13 @@ input MemberUpdateInput {
   intro: String
   avatar_image: PhotoRelateToOneForUpdateInput
   email: String
-  is_active: Boolean
+  status: MemberStatusType
   verified: Boolean
   comment: CommentRelateToManyForUpdateInput
-  member_like: CommentRelateToManyForUpdateInput
   posts: PostRelateToManyForUpdateInput
   memberPolls: PollRelateToManyForUpdateInput
   reactions: ReactionRelateToManyForUpdateInput
-  follower: MemberRelateToManyForUpdateInput
-  following: MemberRelateToManyForUpdateInput
-  block: MemberRelateToManyForUpdateInput
-  blocked: MemberRelateToManyForUpdateInput
-  following_category: CategoryRelateToManyForUpdateInput
   isOfficial: Boolean
-  status: MemberStatusType
   joinDate: DateTime
   language: MemberLanguageType
   nationality: String
@@ -457,20 +418,6 @@ input ReactionRelateToManyForUpdateInput {
   connect: [ReactionWhereUniqueInput!]
 }
 
-input MemberRelateToManyForUpdateInput {
-  disconnect: [MemberWhereUniqueInput!]
-  set: [MemberWhereUniqueInput!]
-  create: [MemberCreateInput!]
-  connect: [MemberWhereUniqueInput!]
-}
-
-input CategoryRelateToManyForUpdateInput {
-  disconnect: [CategoryWhereUniqueInput!]
-  set: [CategoryWhereUniqueInput!]
-  create: [CategoryCreateInput!]
-  connect: [CategoryWhereUniqueInput!]
-}
-
 input UserRelateToOneForUpdateInput {
   create: UserCreateInput
   connect: UserWhereUniqueInput
@@ -491,20 +438,13 @@ input MemberCreateInput {
   intro: String
   avatar_image: PhotoRelateToOneForCreateInput
   email: String
-  is_active: Boolean
+  status: MemberStatusType
   verified: Boolean
   comment: CommentRelateToManyForCreateInput
-  member_like: CommentRelateToManyForCreateInput
   posts: PostRelateToManyForCreateInput
   memberPolls: PollRelateToManyForCreateInput
   reactions: ReactionRelateToManyForCreateInput
-  follower: MemberRelateToManyForCreateInput
-  following: MemberRelateToManyForCreateInput
-  block: MemberRelateToManyForCreateInput
-  blocked: MemberRelateToManyForCreateInput
-  following_category: CategoryRelateToManyForCreateInput
   isOfficial: Boolean
-  status: MemberStatusType
   joinDate: DateTime
   language: MemberLanguageType
   nationality: String
@@ -537,16 +477,6 @@ input PollRelateToManyForCreateInput {
 input ReactionRelateToManyForCreateInput {
   create: [ReactionCreateInput!]
   connect: [ReactionWhereUniqueInput!]
-}
-
-input MemberRelateToManyForCreateInput {
-  create: [MemberCreateInput!]
-  connect: [MemberWhereUniqueInput!]
-}
-
-input CategoryRelateToManyForCreateInput {
-  create: [CategoryCreateInput!]
-  connect: [CategoryWhereUniqueInput!]
 }
 
 input UserRelateToOneForCreateInput {
@@ -1209,12 +1139,9 @@ type Comment {
   status: CommentStatusType
   reactions(where: ReactionWhereInput! = {}, orderBy: [ReactionOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: ReactionWhereUniqueInput): [Reaction!]
   reactionsCount(where: ReactionWhereInput! = {}): Int
+  reactionCount: Int
   reports(where: ReportWhereInput! = {}, orderBy: [ReportOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: ReportWhereUniqueInput): [Report!]
   reportsCount(where: ReportWhereInput! = {}): Int
-  parent: Comment
-  root: Comment
-  like(where: MemberWhereInput! = {}, orderBy: [MemberOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: MemberWhereUniqueInput): [Member!]
-  likeCount(where: MemberWhereInput! = {}): Int
   published_date: DateTime
   is_edited: Boolean
   is_active: Boolean
@@ -1236,6 +1163,7 @@ enum CommentStatusType {
   published
   archived
   hidden
+  deleted
 }
 
 input CommentWhereUniqueInput {
@@ -1260,10 +1188,8 @@ input CommentWhereInput {
   spamScore: FloatNullableFilter
   status: CommentStatusTypeNullableFilter
   reactions: ReactionManyRelationFilter
+  reactionCount: IntNullableFilter
   reports: ReportManyRelationFilter
-  parent: CommentWhereInput
-  root: CommentWhereInput
-  like: MemberManyRelationFilter
   published_date: DateTimeNullableFilter
   is_edited: BooleanFilter
   is_active: BooleanFilter
@@ -1299,6 +1225,7 @@ input CommentOrderByInput {
   ip: OrderDirection
   spamScore: OrderDirection
   status: OrderDirection
+  reactionCount: OrderDirection
   published_date: OrderDirection
   is_edited: OrderDirection
   is_active: OrderDirection
@@ -1320,10 +1247,8 @@ input CommentUpdateInput {
   spamScore: Float
   status: CommentStatusType
   reactions: ReactionRelateToManyForUpdateInput
+  reactionCount: Int
   reports: ReportRelateToManyForUpdateInput
-  parent: CommentRelateToOneForUpdateInput
-  root: CommentRelateToOneForUpdateInput
-  like: MemberRelateToManyForUpdateInput
   published_date: DateTime
   is_edited: Boolean
   is_active: Boolean
@@ -1331,12 +1256,6 @@ input CommentUpdateInput {
   updatedAt: DateTime
   createdBy: UserRelateToOneForUpdateInput
   updatedBy: UserRelateToOneForUpdateInput
-}
-
-input CommentRelateToOneForUpdateInput {
-  create: CommentCreateInput
-  connect: CommentWhereUniqueInput
-  disconnect: Boolean
 }
 
 input CommentUpdateArgs {
@@ -1358,10 +1277,8 @@ input CommentCreateInput {
   spamScore: Float
   status: CommentStatusType
   reactions: ReactionRelateToManyForCreateInput
+  reactionCount: Int
   reports: ReportRelateToManyForCreateInput
-  parent: CommentRelateToOneForCreateInput
-  root: CommentRelateToOneForCreateInput
-  like: MemberRelateToManyForCreateInput
   published_date: DateTime
   is_edited: Boolean
   is_active: Boolean
@@ -1369,11 +1286,6 @@ input CommentCreateInput {
   updatedAt: DateTime
   createdBy: UserRelateToOneForCreateInput
   updatedBy: UserRelateToOneForCreateInput
-}
-
-input CommentRelateToOneForCreateInput {
-  create: CommentCreateInput
-  connect: CommentWhereUniqueInput
 }
 
 type Reaction {
@@ -1442,6 +1354,12 @@ input ReactionUpdateInput {
   updatedBy: UserRelateToOneForUpdateInput
 }
 
+input CommentRelateToOneForUpdateInput {
+  create: CommentCreateInput
+  connect: CommentWhereUniqueInput
+  disconnect: Boolean
+}
+
 input ReactionUpdateArgs {
   where: ReactionWhereUniqueInput!
   data: ReactionUpdateInput!
@@ -1456,6 +1374,11 @@ input ReactionCreateInput {
   updatedAt: DateTime
   createdBy: UserRelateToOneForCreateInput
   updatedBy: UserRelateToOneForCreateInput
+}
+
+input CommentRelateToOneForCreateInput {
+  create: CommentCreateInput
+  connect: CommentWhereUniqueInput
 }
 
 type Bookmark {
@@ -1808,6 +1731,10 @@ type Content {
   content_vi: String
   content_id: String
   content_th: String
+  photos(where: PhotoWhereInput! = {}, orderBy: [PhotoOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: PhotoWhereUniqueInput): [Photo!]
+  photosCount(where: PhotoWhereInput! = {}): Int
+  videos(where: VideoWhereInput! = {}, orderBy: [VideoOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: VideoWhereUniqueInput): [Video!]
+  videosCount(where: VideoWhereInput! = {}): Int
   createdAt: DateTime
   updatedAt: DateTime
   createdBy: User
@@ -1846,6 +1773,8 @@ input ContentWhereInput {
   content_vi: StringFilter
   content_id: StringFilter
   content_th: StringFilter
+  photos: PhotoManyRelationFilter
+  videos: VideoManyRelationFilter
   createdAt: DateTimeNullableFilter
   updatedAt: DateTimeNullableFilter
   createdBy: UserWhereInput
@@ -1894,6 +1823,8 @@ input ContentUpdateInput {
   content_vi: String
   content_id: String
   content_th: String
+  photos: PhotoRelateToManyForUpdateInput
+  videos: VideoRelateToManyForUpdateInput
   createdAt: DateTime
   updatedAt: DateTime
   createdBy: UserRelateToOneForUpdateInput
@@ -1920,6 +1851,8 @@ input ContentCreateInput {
   content_vi: String
   content_id: String
   content_th: String
+  photos: PhotoRelateToManyForCreateInput
+  videos: VideoRelateToManyForCreateInput
   createdAt: DateTime
   updatedAt: DateTime
   createdBy: UserRelateToOneForCreateInput
@@ -2133,6 +2066,8 @@ type Video {
   url: String
   coverImage: String
   post: Post
+  staticContents(where: ContentWhereInput! = {}, orderBy: [ContentOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: ContentWhereUniqueInput): [Content!]
+  staticContentsCount(where: ContentWhereInput! = {}): Int
   createdAt: DateTime
   updatedAt: DateTime
   createdBy: User
@@ -2151,10 +2086,17 @@ input VideoWhereInput {
   url: StringFilter
   coverImage: StringFilter
   post: PostWhereInput
+  staticContents: ContentManyRelationFilter
   createdAt: DateTimeNullableFilter
   updatedAt: DateTimeNullableFilter
   createdBy: UserWhereInput
   updatedBy: UserWhereInput
+}
+
+input ContentManyRelationFilter {
+  every: ContentWhereInput
+  some: ContentWhereInput
+  none: ContentWhereInput
 }
 
 input VideoOrderByInput {
@@ -2169,10 +2111,18 @@ input VideoUpdateInput {
   url: String
   coverImage: String
   post: PostRelateToOneForUpdateInput
+  staticContents: ContentRelateToManyForUpdateInput
   createdAt: DateTime
   updatedAt: DateTime
   createdBy: UserRelateToOneForUpdateInput
   updatedBy: UserRelateToOneForUpdateInput
+}
+
+input ContentRelateToManyForUpdateInput {
+  disconnect: [ContentWhereUniqueInput!]
+  set: [ContentWhereUniqueInput!]
+  create: [ContentCreateInput!]
+  connect: [ContentWhereUniqueInput!]
 }
 
 input VideoUpdateArgs {
@@ -2184,10 +2134,16 @@ input VideoCreateInput {
   url: String
   coverImage: String
   post: PostRelateToOneForCreateInput
+  staticContents: ContentRelateToManyForCreateInput
   createdAt: DateTime
   updatedAt: DateTime
   createdBy: UserRelateToOneForCreateInput
   updatedBy: UserRelateToOneForCreateInput
+}
+
+input ContentRelateToManyForCreateInput {
+  create: [ContentCreateInput!]
+  connect: [ContentWhereUniqueInput!]
 }
 
 type Photo {
@@ -2205,6 +2161,8 @@ type Photo {
   uploadedBy: Member
   postsAsHeroImages(where: PostWhereInput! = {}, orderBy: [PostOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: PostWhereUniqueInput): [Post!]
   postsAsHeroImagesCount(where: PostWhereInput! = {}): Int
+  staticContents(where: ContentWhereInput! = {}, orderBy: [ContentOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: ContentWhereUniqueInput): [Content!]
+  staticContentsCount(where: ContentWhereInput! = {}): Int
   createdAt: DateTime
   updatedAt: DateTime
   createdBy: User
@@ -2263,6 +2221,7 @@ input PhotoWhereInput {
   sortOrder: IntNullableFilter
   uploadedBy: MemberWhereInput
   postsAsHeroImages: PostManyRelationFilter
+  staticContents: ContentManyRelationFilter
   createdAt: DateTimeNullableFilter
   updatedAt: DateTimeNullableFilter
   createdBy: UserWhereInput
@@ -2293,6 +2252,7 @@ input PhotoUpdateInput {
   sortOrder: Int
   uploadedBy: MemberRelateToOneForUpdateInput
   postsAsHeroImages: PostRelateToManyForUpdateInput
+  staticContents: ContentRelateToManyForUpdateInput
   createdAt: DateTime
   updatedAt: DateTime
   createdBy: UserRelateToOneForUpdateInput
@@ -2322,6 +2282,7 @@ input PhotoCreateInput {
   sortOrder: Int
   uploadedBy: MemberRelateToOneForCreateInput
   postsAsHeroImages: PostRelateToManyForCreateInput
+  staticContents: ContentRelateToManyForCreateInput
   createdAt: DateTime
   updatedAt: DateTime
   createdBy: UserRelateToOneForCreateInput
