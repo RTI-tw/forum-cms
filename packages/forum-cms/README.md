@@ -87,7 +87,7 @@ IS_UI_DISABLED=true npm run dev
 | `cms`（預設） | 依 Admin 登入 session 的 role（admin / moderator / editor 等）決定各 list 的 query／mutation 權限。 |
 | `gql` | 不檢查登入；**所有 list 的 GraphQL 操作一律允許**（等同全開）。僅適合有嚴格網路隔離的場景。 |
 | `preview` | 與 `gql` 相同（全開），供預覽等用途。 |
-| `api` | 不檢查 CMS role；改依環境變數 **`ACCESS_CONTROL_API_RULES_JSON`** 逐 **list** 設定只讀、可寫或關閉（見下方）。實作在 **`utils/access-control.ts`**。另對 **`/api/graphql`** 依 **`NODE_ENV`** 與 **`ACCESS_CONTROL_API_BEARER_TOKEN`** 做服務端 Bearer 驗證（見下方）。 |
+| `api` | 不檢查 CMS role；改依環境變數 **`ACCESS_CONTROL_API_RULES_JSON`** 逐 **list** 設定只讀、可寫或關閉（見下方）。實作在 **`utils/access-control.ts`**。 |
 
 #### `gql` 模式（全開）
 ```
@@ -106,15 +106,6 @@ ACCESS_CONTROL_STRATEGY=gql npm run dev
 | `ACCESS_CONTROL_STRATEGY` | 是 | 設為 `api`。 |
 | `ACCESS_CONTROL_API_RULES_JSON` | 強烈建議 | JSON 字串：物件的 **key** 為 list key，**value** 為下列字串之一。 |
 | `ACCESS_CONTROL_API_DEFAULT` | 否 | 當某個 list **未**出現在 JSON 且也**沒有**使用 `"*"` 時的預設等級；可為 `none`、`read`、`read_write`。未設定時預設為 **`none`**（最安全）。 |
-| `NODE_ENV` | 建議明確設定 | 慣例為 `development`（本機）或 **`production`**（部署）。見下方 **GraphQL 服務端 Bearer**。 |
-| `ACCESS_CONTROL_API_BEARER_TOKEN` | **production 時必填** | 與呼叫端（例如 FE server）約定的秘密字串；請求 **`/api/graphql`** 須帶 `Authorization: Bearer <此值>`。非 production 且未設定時**不**檢查 Bearer（方便本機開發）；若有設定則仍會驗證。實作在 **`utils/graphql-api-bearer-auth.ts`**。 |
-
-#### GraphQL 服務端 Bearer（`api` 專用）
-
-- **`NODE_ENV=production`** 且 **`ACCESS_CONTROL_STRATEGY=api`**：必須設定 **`ACCESS_CONTROL_API_BEARER_TOKEN`**。未設定時對 `/api/graphql` 回 **503**；設定錯誤或缺標頭時回 **401**。
-- **非 production**（例如本機 `npm run dev`，通常為 `development`）：未設定 `ACCESS_CONTROL_API_BEARER_TOKEN` 時**略過** Bearer 檢查；若已設定則與正式環境相同，會驗證 `Authorization`（可用於模擬部署行為）。
-- **`OPTIONS`** 請求至 `/api/graphql` 不檢查 Bearer（CORS preflight）。
-- 此為 **服務端對服務端** 金鑰，請勿與瀏覽器會員的 Firebase／member session token 混用；並建議搭配 **僅內網／同 VPC subnet** 等網路隔離。
 
 **每個 list 的等級（`ACCESS_CONTROL_API_RULES_JSON` 的值）**
 
@@ -138,7 +129,7 @@ npm run dev
 
 **說明**：上例中 `Post`、`Photo` 僅可查詢；`Comment` 可查可寫；`User` 與其他未列名的 list 為 `none`（若某 list 未出現在 JSON，且設了 `"*":"none"`，則走 `none`）。
 
-**注意**：`ACCESS_CONTROL_API_RULES_JSON` 仍不驗證「哪一位會員／使用者」；僅限制 list 讀寫。身分與來源請搭配 **`ACCESS_CONTROL_API_BEARER_TOKEN` + `NODE_ENV`**（見上表與 **GraphQL 服務端 Bearer**）以及網路層（例如 **API Gateway、Cloud Run IAM、同 subnet**）。
+**注意**：`api` 仍不驗證「哪一位會員／使用者」；僅限制 list 讀寫。部署時請在 **網路與雲端身分**上限制誰能打到 GraphQL（例如 **Cloud Run 需驗證 + `roles/run.invoker`、內部 LB、VPC／subnet、IAP** 等），勿將 endpoint 暴露在未受控的公網。
 
 ### Troubleshootings
 #### Q1: 我在 `packages/*` 資料夾底下跑 `yarn install` 時，在 `yarn postinstall` 階段發生錯誤。

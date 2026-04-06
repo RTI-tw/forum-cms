@@ -13,7 +13,6 @@ import responseCachePlugin from "@apollo/server-plugin-response-cache";
 import { KeystoneContext } from "@keystone-6/core/types";
 import { utils } from "@mirrormedia/lilith-core";
 import { createLoginLoggingPlugin } from "./utils/login-logging";
-import { createGraphqlApiBearerMiddleware } from "./utils/graphql-api-bearer-auth";
 import {
     assertPasswordStrength,
     isPasswordExpired,
@@ -2459,39 +2458,6 @@ const baseKeystoneConfig = config({
         maxFileSize: 2000 * 1024 * 1024,
         extendExpressApp: (app, context) => {
             app.use(express.json({ limit: "500mb" }));
-
-            if (envVar.accessControlStrategy === "api") {
-                if (envVar.isProduction && !envVar.accessControlApiBearerToken) {
-                    console.error(
-                        JSON.stringify({
-                            severity: "ERROR",
-                            message:
-                                "ACCESS_CONTROL_API_BEARER_TOKEN is required when ACCESS_CONTROL_STRATEGY=api and NODE_ENV=production",
-                            timestamp: new Date().toISOString(),
-                        }),
-                    );
-                } else if (
-                    !envVar.isProduction &&
-                    !envVar.accessControlApiBearerToken
-                ) {
-                    console.warn(
-                        JSON.stringify({
-                            severity: "WARN",
-                            message:
-                                "ACCESS_CONTROL_API_BEARER_TOKEN is not set; GraphQL bearer auth is skipped (non-production only)",
-                            timestamp: new Date().toISOString(),
-                        }),
-                    );
-                }
-            }
-
-            app.use(
-                createGraphqlApiBearerMiddleware({
-                    strategy: envVar.accessControlStrategy,
-                    expectedBearerToken: envVar.accessControlApiBearerToken,
-                    isProduction: envVar.isProduction,
-                }),
-            );
 
             app.get("/health_check", (_req, res) => {
                 res.status(200).json({ status: "healthy" });

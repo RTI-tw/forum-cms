@@ -1,8 +1,6 @@
 const {
-  NODE_ENV,
   IS_UI_DISABLED,
   ACCESS_CONTROL_STRATEGY,
-  ACCESS_CONTROL_API_BEARER_TOKEN,
   PREVIEW_SERVER_ORIGIN,
   DATABASE_PROVIDER,
   DATABASE_URL,
@@ -64,11 +62,6 @@ export default {
     ? 300
     : Number(MEMORY_CACHE_SIZE),
   accessControlStrategy: ACCESS_CONTROL_STRATEGY || 'cms', // the value could be one of 'cms', 'gql' or 'preview'
-  /** Node 執行環境；`production` 時 `api` 策略會強制驗證 GraphQL 服務端 Bearer */
-  nodeEnv: NODE_ENV || 'development',
-  isProduction: NODE_ENV === 'production',
-  /** ACCESS_CONTROL_STRATEGY=api 時，/api/graphql 的 Authorization: Bearer（服務端對服務端）；production 必填，非 production 未設定則不檢查 */
-  accessControlApiBearerToken: (ACCESS_CONTROL_API_BEARER_TOKEN || '').trim(),
   previewServerOrigin: PREVIEW_SERVER_ORIGIN || 'http://localhost:3001',
   database: {
     provider:
