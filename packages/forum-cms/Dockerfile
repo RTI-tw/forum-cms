@@ -33,6 +33,8 @@ COPY . $APP_DIR
 ## Install application dependencies
 RUN yarn install
 RUN yarn postinstall
+## 確保 @prisma/client 與目前 schema.prisma 一致（enum @@map／欄位變更時避免沿用快取或舊層）
+RUN npx prisma generate
 
 ## Build arguments for frontend-embedded config (public keys only)
 ARG RECAPTCHA_ENABLED=false

@@ -592,20 +592,14 @@ enum TopicLanguageType {
   th
 }
 
-/// PostgreSQL 實際型別名為 TopicState（見 migration 20260401160000）；必須 @@map 否則 Prisma 會查不存在的 TopicStateType
 enum TopicStateType {
   active
   inactive
-
-  @@map("TopicState")
 }
 
-/// PostgreSQL 實際型別名為 EditorChoiceState（見 migration 20260401150000）
 enum EditorChoiceStateType {
   active
   inactive
-
-  @@map("EditorChoiceState")
 }
 
 enum CommentLanguageType {
