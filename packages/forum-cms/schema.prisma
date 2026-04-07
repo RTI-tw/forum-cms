@@ -594,11 +594,15 @@ enum TopicLanguageType {
 enum TopicStateType {
   active
   inactive
+
+  @@map("TopicState")
 }
 
 enum EditorChoiceStateType {
   active
   inactive
+
+  @@map("EditorChoiceState")
 }
 
 enum CommentLanguageType {
