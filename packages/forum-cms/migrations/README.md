@@ -18,6 +18,7 @@ yarn db-migrate
 | `20260225074406_align_schema_with_spec` | 對齊 spec |
 | `20260326120000_add_spam_score_post_comment` | `Post`、`Comment` 新增可為 null 的 `spamScore`（`DOUBLE PRECISION`） |
 | `20260327200000_add_post_title_translations` | `Post` 新增 `title_zh` / `title_en` / `title_vi` / `title_id` / `title_th`（與 commit 多語標題欄位對齊） |
+| `20260408000000_post_is_boost` | `Post` 新增 `isBoost`（置頂／boost 旗標，`BOOLEAN NOT NULL DEFAULT false`） |
 
 ## 為何「自動翻譯 hook」沒有對應 migration？
 

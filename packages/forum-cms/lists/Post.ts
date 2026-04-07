@@ -29,7 +29,7 @@ function normText(value: unknown): string {
 /**
  * 欄位對應需求：標題原文（必填、≤80 字）、五語標題、貼文原文（必填）、五語內容、
  * 原始語言（必填）、作者（央廣後台預設 OfficialMapping 會員）、發文時間、已編輯、IP、SPAM、
- * 編輯精選／生活須知（checkbox 旗標）、暫停自動翻譯、主題（選填，可多選）、狀態、主圖（多張 Photo）、關聯影片、
+ * 編輯精選／生活須知／置頂 boost（checkbox 旗標）、暫停自動翻譯、主題（選填，可多選）、狀態、主圖（多張 Photo）、關聯影片、
  * 投票、留言、留言數、反應、反應數、檢舉。留言數／反應數由 Comment／Reaction 的 hook 同步。
  */
 const listConfigurations = list({
@@ -160,6 +160,14 @@ const listConfigurations = list({
                 description: '生活須知相關旗標（僅標記於文章，供前台或 API 使用）。',
             },
         }),
+        isBoost: checkbox({
+            label: '置頂（boost）',
+            defaultValue: false,
+            ui: {
+                description:
+                    '勾選後供前台或 API 將此文優先排序／置頂顯示（實際排序邏輯由前端或查詢決定）。',
+            },
+        }),
         editorChoices: relationship({
             ref: 'EditorChoice.post',
             many: true,
@@ -269,6 +277,7 @@ const listConfigurations = list({
                 'title',
                 'author',
                 'status',
+                'isBoost',
                 'heroImages',
                 'commentCount',
                 'reactionCount',

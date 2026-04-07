@@ -579,6 +579,7 @@ type Post {
   spamScore: Float
   isEditorChoice: Boolean
   isLifeGuide: Boolean
+  isBoost: Boolean
   editorChoices(where: EditorChoiceWhereInput! = {}, orderBy: [EditorChoiceOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: EditorChoiceWhereUniqueInput): [EditorChoice!]
   editorChoicesCount(where: EditorChoiceWhereInput! = {}): Int
   topics(where: TopicWhereInput! = {}, orderBy: [TopicOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: TopicWhereUniqueInput): [Topic!]
@@ -649,6 +650,7 @@ input PostWhereInput {
   spamScore: FloatNullableFilter
   isEditorChoice: BooleanFilter
   isLifeGuide: BooleanFilter
+  isBoost: BooleanFilter
   editorChoices: EditorChoiceManyRelationFilter
   topics: TopicManyRelationFilter
   status: PostStatusTypeNullableFilter
@@ -743,6 +745,7 @@ input PostOrderByInput {
   spamScore: OrderDirection
   isEditorChoice: OrderDirection
   isLifeGuide: OrderDirection
+  isBoost: OrderDirection
   status: OrderDirection
   commentCount: OrderDirection
   reactionCount: OrderDirection
@@ -772,6 +775,7 @@ input PostUpdateInput {
   spamScore: Float
   isEditorChoice: Boolean
   isLifeGuide: Boolean
+  isBoost: Boolean
   editorChoices: EditorChoiceRelateToManyForUpdateInput
   topics: TopicRelateToManyForUpdateInput
   status: PostStatusType
@@ -857,6 +861,7 @@ input PostCreateInput {
   spamScore: Float
   isEditorChoice: Boolean
   isLifeGuide: Boolean
+  isBoost: Boolean
   editorChoices: EditorChoiceRelateToManyForCreateInput
   topics: TopicRelateToManyForCreateInput
   status: PostStatusType
