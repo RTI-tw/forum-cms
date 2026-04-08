@@ -25,6 +25,8 @@ export function isCmsUserSession(context: KeystoneContext): boolean {
 /** 非官方作者貼文 update 時允許變更的欄位（含前台顯示狀態） */
 const POST_UPDATE_ALLOWED_NON_OFFICIAL = new Set([
   'status',
+  // Allow CMS editors to mark posts into EditorChoice candidates.
+  'isEditorChoice',
   /** 主圖 M2M：updatePost 的 connect / disconnect / set 皆經此欄位寫入 */
   'heroImages',
   'title_zh',

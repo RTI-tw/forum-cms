@@ -308,6 +308,23 @@ export function FilteredRelationshipSelect({
       })
     ) || []
 
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'production') return
+    if (typeof window === 'undefined') return
+    if (!window.location.pathname.includes('/editor-choices/create')) return
+    const isEditorChoiceFilter =
+      (baseWhere as { isEditorChoice?: { equals?: boolean } })?.isEditorChoice
+        ?.equals === true
+    if (!isEditorChoiceFilter) return
+    console.info('[EditorChoice dropdown debug]', {
+      where,
+      count,
+      optionsLength: options.length,
+      optionIds: options.map((x) => x.value),
+      optionLabels: options.map((x) => x.label),
+    })
+  }, [baseWhere, count, options, where])
+
   const loadingIndicatorContextVal = useMemo(
     () => ({
       count,

@@ -27,7 +27,7 @@ const listConfigurations = list({
     }),
     name: text({
       label: '姓名',
-      validation: { isRequired: true },
+      validation: { isRequired: false },
       ui: hiddenFromCmsUi,
     }),
     nickname: text({ label: '暱稱', validation: { isRequired: true } }),
@@ -121,6 +121,7 @@ const listConfigurations = list({
   },
   ui: {
     label: '會員',
+    labelField: 'customId',
     listView: {
       initialColumns: ['nickname', 'email', 'status', 'nationality'],
     },
