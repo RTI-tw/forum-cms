@@ -293,12 +293,16 @@ const listConfigurations = list({
             delete: allowRoles(admin),
         },
         /**
-         * ACCESS_CONTROL_STRATEGY 非 `cms`（例如 gql、preview、api）時，列表／單筆 query 僅能讀到
-         * `status: published`，避免公開 API 暴露草稿與未發布內容。
+         * 在 CMS / gql / preview 策略下，後台可查詢所有狀態；
+         * 僅在 `api` 策略收斂為 published，避免對外 API 暴露草稿。
          */
         filter: {
             query: () => {
-                if (envVar.accessControlStrategy === 'cms') {
+                if (
+                    envVar.accessControlStrategy === 'cms' ||
+                    envVar.accessControlStrategy === 'gql' ||
+                    envVar.accessControlStrategy === 'preview'
+                ) {
                     return true
                 }
                 return { status: { equals: 'published' } }

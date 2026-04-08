@@ -287,8 +287,10 @@ export function FilteredRelationshipSelect({
     [link, list.gqlNames.listQueryName]
   )
 
-  const initialItemsToLoad = Math.min(list.pageSize, 10)
-  const subsequentItemsToLoad = Math.min(list.pageSize, 50)
+  // Keep relationship dropdowns predictable regardless of list.pageSize.
+  // A small pageSize can otherwise hide valid options until infinite scroll fires.
+  const initialItemsToLoad = 50
+  const subsequentItemsToLoad = 50
   const { data, error, loading, fetchMore } = useQuery(QUERY, {
     fetchPolicy: 'network-only',
     variables: { where, take: initialItemsToLoad, skip: 0 },
