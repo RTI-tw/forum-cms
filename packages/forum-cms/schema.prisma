@@ -30,6 +30,8 @@ model User {
   passwordResetRedeemedAt         DateTime?
   from_Member_createdBy           Member[]           @relation("Member_createdBy")
   from_Member_updatedBy           Member[]           @relation("Member_updatedBy")
+  from_Nationality_createdBy      Nationality[]      @relation("Nationality_createdBy")
+  from_Nationality_updatedBy      Nationality[]      @relation("Nationality_updatedBy")
   from_OfficialMapping_createdBy  OfficialMapping[]  @relation("OfficialMapping_createdBy")
   from_OfficialMapping_updatedBy  OfficialMapping[]  @relation("OfficialMapping_updatedBy")
   from_Post_createdBy             Post[]             @relation("Post_createdBy")
@@ -88,7 +90,8 @@ model Member {
   isOfficial                          Boolean             @default(false)
   joinDate                            DateTime?           @default(now())
   language                            MemberLanguageType? @default(zh)
-  nationality                         String?             @postgresql.VarChar(2)
+  nationality                         Nationality?        @relation("Member_nationality", fields: [nationalityId], references: [id])
+  nationalityId                       Int?                @map("nationality")
   createdAt                           DateTime?
   updatedAt                           DateTime?
   createdBy                           User?               @relation("Member_createdBy", fields: [createdById], references: [id])
@@ -102,6 +105,26 @@ model Member {
   from_Photo_uploadedBy               Photo[]             @relation("Photo_uploadedBy")
 
   @@index([avatar_imageId])
+  @@index([nationalityId])
+  @@index([createdById])
+  @@index([updatedById])
+}
+
+model Nationality {
+  id             Int                   @id @default(autoincrement())
+  displayName    String                @unique @default("")
+  nationalFlag   Photo?                @relation("Nationality_nationalFlag", fields: [nationalFlagId], references: [id])
+  nationalFlagId Int?                  @map("nationalFlag")
+  status         NationalityStatusType @default(active)
+  members        Member[]              @relation("Member_nationality")
+  createdAt      DateTime?
+  updatedAt      DateTime?
+  createdBy      User?                 @relation("Nationality_createdBy", fields: [createdById], references: [id])
+  createdById    Int?                  @map("createdBy")
+  updatedBy      User?                 @relation("Nationality_updatedBy", fields: [updatedById], references: [id])
+  updatedById    Int?                  @map("updatedBy")
+
+  @@index([nationalFlagId])
   @@index([createdById])
   @@index([updatedById])
 }
@@ -470,31 +493,32 @@ model Video {
 }
 
 model Photo {
-  id                       Int       @id @default(autoincrement())
-  name                     String    @default("")
-  file_id                  String?
-  file_filesize            Int?
-  file_width               Int?
-  file_height              Int?
-  file_extension           String?
-  urlOriginal              String    @default("")
-  altText                  String    @default("")
-  caption                  String    @default("")
-  width                    Int?
-  height                   Int?
-  sortOrder                Int?      @default(0)
-  uploadedBy               Member?   @relation("Photo_uploadedBy", fields: [uploadedById], references: [id])
-  uploadedById             Int?      @map("uploadedBy")
-  postsAsHeroImages        Post[]    @relation("Photo_postsAsHeroImages")
-  staticContents           Content[] @relation("Content_photos")
-  createdAt                DateTime?
-  updatedAt                DateTime?
-  createdBy                User?     @relation("Photo_createdBy", fields: [createdById], references: [id])
-  createdById              Int?      @map("createdBy")
-  updatedBy                User?     @relation("Photo_updatedBy", fields: [updatedById], references: [id])
-  updatedById              Int?      @map("updatedBy")
-  from_Member_avatar_image Member[]  @relation("Member_avatar_image")
-  from_Ad_image            Ad[]      @relation("Ad_image")
+  id                            Int           @id @default(autoincrement())
+  name                          String        @default("")
+  file_id                       String?
+  file_filesize                 Int?
+  file_width                    Int?
+  file_height                   Int?
+  file_extension                String?
+  urlOriginal                   String        @default("")
+  altText                       String        @default("")
+  caption                       String        @default("")
+  width                         Int?
+  height                        Int?
+  sortOrder                     Int?          @default(0)
+  uploadedBy                    Member?       @relation("Photo_uploadedBy", fields: [uploadedById], references: [id])
+  uploadedById                  Int?          @map("uploadedBy")
+  postsAsHeroImages             Post[]        @relation("Photo_postsAsHeroImages")
+  staticContents                Content[]     @relation("Content_photos")
+  createdAt                     DateTime?
+  updatedAt                     DateTime?
+  createdBy                     User?         @relation("Photo_createdBy", fields: [createdById], references: [id])
+  createdById                   Int?          @map("createdBy")
+  updatedBy                     User?         @relation("Photo_updatedBy", fields: [updatedById], references: [id])
+  updatedById                   Int?          @map("updatedBy")
+  from_Member_avatar_image      Member[]      @relation("Member_avatar_image")
+  from_Nationality_nationalFlag Nationality[] @relation("Nationality_nationalFlag")
+  from_Ad_image                 Ad[]          @relation("Ad_image")
 
   @@index([uploadedById])
   @@index([createdById])
@@ -567,6 +591,11 @@ enum MemberLanguageType {
   vi
   id
   th
+}
+
+enum NationalityStatusType {
+  active
+  inactive
 }
 
 enum PostLanguageType {

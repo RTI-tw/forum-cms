@@ -111,20 +111,11 @@ const listConfigurations = list({
       ],
       defaultValue: 'zh',
     }),
-    nationality: text({
+    nationality: relationship({
       label: '國籍',
-      db: { isNullable: true, nativeType: 'VarChar(2)' },
+      ref: 'Nationality.members',
       ui: {
-        description:
-          'ISO 3166-1 alpha-2 國碼（例：TW、US、JP）。註冊完成填寫個人資料時可選填。',
-      },
-      validation: {
-        length: { max: 2 },
-        match: {
-          regex: /^$|^[A-Za-z]{2}$/,
-          explanation:
-            '須為兩個英文字母（ISO 3166-1 alpha-2）或留空',
-        },
+        description: '註冊完成填寫個人資料時可選填。',
       },
     }),
   },
@@ -144,10 +135,6 @@ const listConfigurations = list({
   },
   hooks: {
     resolveInput: ({ resolvedData, item }) => {
-      if (resolvedData.nationality !== undefined) {
-        const raw = String(resolvedData.nationality ?? '').trim()
-        resolvedData.nationality = raw.length === 0 ? null : raw.toUpperCase()
-      }
       const typedItem = item as any
       const prevStatus = typedItem?.status ?? 'active'
       const nextStatus =

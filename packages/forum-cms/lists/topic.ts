@@ -1,7 +1,7 @@
 import { utils } from '@mirrormedia/lilith-core'
 import { allowRoles, admin, moderator, editor } from '../utils/access-control'
-import { list } from '@keystone-6/core'
-import { text, integer, relationship, select } from '@keystone-6/core/fields'
+import { list, graphql } from '@keystone-6/core'
+import { text, integer, relationship, select, virtual } from '@keystone-6/core/fields'
 import { createMessageServicesTranslationHook } from '../utils/message-services-translation-hook'
 
 const listConfigurations = list({
@@ -53,11 +53,36 @@ const listConfigurations = list({
       many: true,
       label: '文章',
     }),
+    todayPostsCount: virtual({
+      label: '今日新增文章數',
+      field: graphql.field({
+        type: graphql.Int,
+        resolve: async (item, _args, context) => {
+          const topic = item as { id?: number | string | null }
+          const topicId = Number(topic.id)
+          if (!Number.isFinite(topicId)) return 0
+
+          const startOfToday = new Date()
+          startOfToday.setHours(0, 0, 0, 0)
+
+          return context.db.Post.count({
+            where: {
+              createdAt: { gte: startOfToday.toISOString() },
+              topics: { some: { id: { equals: topicId } } },
+            },
+          })
+        },
+      }),
+      ui: {
+        itemView: { fieldMode: 'read' },
+        listView: { fieldMode: 'read' },
+      },
+    }),
   },
   ui: {
     label: '主題分類',
     listView: {
-      initialColumns: ['name', 'slug', 'state', 'sortOrder'],
+      initialColumns: ['name', 'slug', 'state', 'todayPostsCount', 'sortOrder'],
     },
   },
   access: {
