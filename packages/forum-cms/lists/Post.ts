@@ -273,6 +273,7 @@ const listConfigurations = list({
         label: '文章',
         labelField: 'title',
         listView: {
+            initialSort: { field: 'published_date', direction: 'DESC' },
             initialColumns: [
                 'title',
                 'author',
