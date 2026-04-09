@@ -30,8 +30,6 @@ model User {
   passwordResetRedeemedAt         DateTime?
   from_Member_createdBy           Member[]           @relation("Member_createdBy")
   from_Member_updatedBy           Member[]           @relation("Member_updatedBy")
-  from_Nationality_createdBy      Nationality[]      @relation("Nationality_createdBy")
-  from_Nationality_updatedBy      Nationality[]      @relation("Nationality_updatedBy")
   from_OfficialMapping_createdBy  OfficialMapping[]  @relation("OfficialMapping_createdBy")
   from_OfficialMapping_updatedBy  OfficialMapping[]  @relation("OfficialMapping_updatedBy")
   from_Post_createdBy             Post[]             @relation("Post_createdBy")
@@ -71,60 +69,39 @@ model User {
 }
 
 model Member {
-  id                                  Int                 @id @default(autoincrement())
-  firebaseId                          String              @unique @default("")
-  customId                            String              @unique @default("")
-  name                                String              @default("")
-  nickname                            String              @default("")
-  avatar                              String              @default("")
-  intro                               String              @default("")
-  avatar_image                        Photo?              @relation("Member_avatar_image", fields: [avatar_imageId], references: [id])
-  avatar_imageId                      Int?                @map("avatar_image")
-  email                               String              @unique @default("")
-  status                              MemberStatusType    @default(active)
-  verified                            Boolean             @default(false)
-  comment                             Comment[]           @relation("Comment_member")
-  posts                               Post[]              @relation("Post_author")
-  memberPolls                         Poll[]              @relation("Poll_member")
-  reactions                           Reaction[]          @relation("Reaction_member")
-  isOfficial                          Boolean             @default(false)
-  joinDate                            DateTime?           @default(now())
-  language                            MemberLanguageType? @default(zh)
-  nationality                         Nationality?        @relation("Member_nationality", fields: [nationalityId], references: [id])
-  nationalityId                       Int?                @map("nationality")
+  id                                  Int                    @id @default(autoincrement())
+  firebaseId                          String                 @unique @default("")
+  customId                            String                 @unique @default("")
+  name                                String                 @default("")
+  nickname                            String                 @default("")
+  avatar                              String                 @default("")
+  intro                               String                 @default("")
+  avatar_image                        Photo?                 @relation("Member_avatar_image", fields: [avatar_imageId], references: [id])
+  avatar_imageId                      Int?                   @map("avatar_image")
+  email                               String                 @unique @default("")
+  status                              MemberStatusType       @default(active)
+  verified                            Boolean                @default(false)
+  comment                             Comment[]              @relation("Comment_member")
+  posts                               Post[]                 @relation("Post_author")
+  memberPolls                         Poll[]                 @relation("Poll_member")
+  reactions                           Reaction[]             @relation("Reaction_member")
+  isOfficial                          Boolean                @default(false)
+  joinDate                            DateTime?              @default(now())
+  language                            MemberLanguageType?    @default(zh)
+  nationality                         MemberNationalityType?
   createdAt                           DateTime?
   updatedAt                           DateTime?
-  createdBy                           User?               @relation("Member_createdBy", fields: [createdById], references: [id])
-  createdById                         Int?                @map("createdBy")
-  updatedBy                           User?               @relation("Member_updatedBy", fields: [updatedById], references: [id])
-  updatedById                         Int?                @map("updatedBy")
-  from_OfficialMapping_officialMember OfficialMapping[]   @relation("OfficialMapping_officialMember")
-  from_Bookmark_member                Bookmark[]          @relation("Bookmark_member")
-  from_PollVote_member                PollVote[]          @relation("PollVote_member")
-  from_Report_reporter                Report[]            @relation("Report_reporter")
-  from_Photo_uploadedBy               Photo[]             @relation("Photo_uploadedBy")
+  createdBy                           User?                  @relation("Member_createdBy", fields: [createdById], references: [id])
+  createdById                         Int?                   @map("createdBy")
+  updatedBy                           User?                  @relation("Member_updatedBy", fields: [updatedById], references: [id])
+  updatedById                         Int?                   @map("updatedBy")
+  from_OfficialMapping_officialMember OfficialMapping[]      @relation("OfficialMapping_officialMember")
+  from_Bookmark_member                Bookmark[]             @relation("Bookmark_member")
+  from_PollVote_member                PollVote[]             @relation("PollVote_member")
+  from_Report_reporter                Report[]               @relation("Report_reporter")
+  from_Photo_uploadedBy               Photo[]                @relation("Photo_uploadedBy")
 
   @@index([avatar_imageId])
-  @@index([nationalityId])
-  @@index([createdById])
-  @@index([updatedById])
-}
-
-model Nationality {
-  id             Int                   @id @default(autoincrement())
-  displayName    String                @unique @default("")
-  nationalFlag   Photo?                @relation("Nationality_nationalFlag", fields: [nationalFlagId], references: [id])
-  nationalFlagId Int?                  @map("nationalFlag")
-  status         NationalityStatusType @default(active)
-  members        Member[]              @relation("Member_nationality")
-  createdAt      DateTime?
-  updatedAt      DateTime?
-  createdBy      User?                 @relation("Nationality_createdBy", fields: [createdById], references: [id])
-  createdById    Int?                  @map("createdBy")
-  updatedBy      User?                 @relation("Nationality_updatedBy", fields: [updatedById], references: [id])
-  updatedById    Int?                  @map("updatedBy")
-
-  @@index([nationalFlagId])
   @@index([createdById])
   @@index([updatedById])
 }
@@ -493,32 +470,31 @@ model Video {
 }
 
 model Photo {
-  id                            Int           @id @default(autoincrement())
-  name                          String        @default("")
-  file_id                       String?
-  file_filesize                 Int?
-  file_width                    Int?
-  file_height                   Int?
-  file_extension                String?
-  urlOriginal                   String        @default("")
-  altText                       String        @default("")
-  caption                       String        @default("")
-  width                         Int?
-  height                        Int?
-  sortOrder                     Int?          @default(0)
-  uploadedBy                    Member?       @relation("Photo_uploadedBy", fields: [uploadedById], references: [id])
-  uploadedById                  Int?          @map("uploadedBy")
-  postsAsHeroImages             Post[]        @relation("Photo_postsAsHeroImages")
-  staticContents                Content[]     @relation("Content_photos")
-  createdAt                     DateTime?
-  updatedAt                     DateTime?
-  createdBy                     User?         @relation("Photo_createdBy", fields: [createdById], references: [id])
-  createdById                   Int?          @map("createdBy")
-  updatedBy                     User?         @relation("Photo_updatedBy", fields: [updatedById], references: [id])
-  updatedById                   Int?          @map("updatedBy")
-  from_Member_avatar_image      Member[]      @relation("Member_avatar_image")
-  from_Nationality_nationalFlag Nationality[] @relation("Nationality_nationalFlag")
-  from_Ad_image                 Ad[]          @relation("Ad_image")
+  id                       Int       @id @default(autoincrement())
+  name                     String    @default("")
+  file_id                  String?
+  file_filesize            Int?
+  file_width               Int?
+  file_height              Int?
+  file_extension           String?
+  urlOriginal              String    @default("")
+  altText                  String    @default("")
+  caption                  String    @default("")
+  width                    Int?
+  height                   Int?
+  sortOrder                Int?      @default(0)
+  uploadedBy               Member?   @relation("Photo_uploadedBy", fields: [uploadedById], references: [id])
+  uploadedById             Int?      @map("uploadedBy")
+  postsAsHeroImages        Post[]    @relation("Photo_postsAsHeroImages")
+  staticContents           Content[] @relation("Content_photos")
+  createdAt                DateTime?
+  updatedAt                DateTime?
+  createdBy                User?     @relation("Photo_createdBy", fields: [createdById], references: [id])
+  createdById              Int?      @map("createdBy")
+  updatedBy                User?     @relation("Photo_updatedBy", fields: [updatedById], references: [id])
+  updatedById              Int?      @map("updatedBy")
+  from_Member_avatar_image Member[]  @relation("Member_avatar_image")
+  from_Ad_image            Ad[]      @relation("Ad_image")
 
   @@index([uploadedById])
   @@index([createdById])
@@ -593,9 +569,257 @@ enum MemberLanguageType {
   th
 }
 
-enum NationalityStatusType {
-  active
-  inactive
+enum MemberNationalityType {
+  TT
+  TR
+  TM
+  BT
+  CF
+  CN
+  DK
+  EC
+  ER
+  PG
+  BR
+  BB
+  PY
+  BH
+  BS
+  PA
+  PS
+  PK
+  JP
+  BE
+  JM
+  IL
+  CA
+  GA
+  MP
+  MK
+  QA
+  CU
+  TW
+  SZ
+  NE
+  NI
+  NP
+  BF
+  BV
+  GT
+  GP
+  WF
+  GM
+  BY
+  PN
+  LT
+  IQ
+  IR
+  IS
+  LI
+  HU
+  ID
+  IN
+  DJ
+  KI
+  KG
+  TV
+  DM
+  DO
+  TG
+  AI
+  AG
+  AO
+  AD
+  TK
+  BM
+  ET
+  ES
+  HR
+  LY
+  HN
+  GR
+  BN
+  SA
+  BZ
+  BJ
+  GQ
+  ZW
+  AM
+  AZ
+  TZ
+  NG
+  NA
+  VE
+  BD
+  ZM
+  PW
+  LV
+  TL
+  FR
+  FO
+  PF
+  TF
+  MF
+  GF
+  BW
+  PR
+  BA
+  PL
+  GI
+  KE
+  FI
+  EH
+  AR
+  OM
+  AF
+  DZ
+  AL
+  AW
+  AE
+  RU
+  BG
+  ZA
+  GS
+  AQ
+  SS
+  KZ
+  TD
+  KH
+  BO
+  KW
+  CC
+  XK
+  TN
+  JO
+  US
+  UM
+  VI
+  AS
+  GB
+  IO
+  VG
+  MR
+  GH
+  HK
+  CG
+  CD
+  CO
+  CR
+  EG
+  CK
+  CW
+  NO
+  GG
+  GL
+  GD
+  TH
+  HT
+  UG
+  UA
+  UY
+  UZ
+  TC
+  RE
+  PE
+  NZ
+  NU
+  SO
+  SB
+  MT
+  MY
+  MW
+  YT
+  IM
+  MH
+  MQ
+  ML
+  MG
+  MV
+  FM
+  CZ
+  SY
+  VA
+  SX
+  NL
+  BQ
+  MZ
+  CM
+  GE
+  GN
+  GW
+  FJ
+  SJ
+  LK
+  SK
+  SI
+  CL
+  KP
+  TO
+  PH
+  CI
+  VN
+  KY
+  ME
+  TJ
+  SN
+  SC
+  CY
+  RS
+  AT
+  AX
+  EE
+  IE
+  SG
+  NC
+  SL
+  CH
+  SE
+  VU
+  IT
+  BL
+  VC
+  PM
+  ST
+  KN
+  SM
+  SH
+  CX
+  LC
+  YE
+  KM
+  PT
+  FK
+  CV
+  MN
+  MS
+  BI
+  GY
+  HM
+  LA
+  DE
+  MA
+  MC
+  MD
+  MU
+  MM
+  LB
+  MX
+  JE
+  AU
+  MO
+  RW
+  LU
+  NF
+  NR
+  LR
+  LS
+  KR
+  SV
+  WS
+  RO
+  GU
+  SD
+  SR
 }
 
 enum PostLanguageType {

@@ -1,6 +1,5 @@
 import User from './user'
 import Member from './member'
-import Nationality from './nationality'
 import OfficialMapping from './official-mapping'
 import Post from './Post'
 import Topic from './topic'
@@ -23,7 +22,6 @@ import Ad from './ad'
 export const listDefinition = {
   User,
   Member,
-  Nationality,
   OfficialMapping,
   Post,
   Topic,

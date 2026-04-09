@@ -2,6 +2,7 @@ import { utils } from '@mirrormedia/lilith-core'
 import { allowAdminOnly } from '../utils/access-control'
 import { list } from '@keystone-6/core'
 import { text, relationship, checkbox, select, timestamp } from '@keystone-6/core/fields'
+import { nationalitySelectOptions } from '../utils/countries-data'
 
 const hiddenFromCmsUi = {
   createView: { fieldMode: 'hidden' as const },
@@ -111,11 +112,15 @@ const listConfigurations = list({
       ],
       defaultValue: 'zh',
     }),
-    nationality: relationship({
+    nationality: select({
       label: '國籍',
-      ref: 'Nationality.members',
+      type: 'enum',
+      options: nationalitySelectOptions,
+      db: { isNullable: true },
+      validation: { isRequired: false },
       ui: {
-        description: '註冊完成填寫個人資料時可選填。',
+        description:
+          'ISO 3166-1 alpha-2；選項與五語名稱維護於 public/files/countries.json。',
       },
     }),
   },

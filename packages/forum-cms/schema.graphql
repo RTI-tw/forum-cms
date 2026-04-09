@@ -230,7 +230,7 @@ type Member {
   isOfficial: Boolean
   joinDate: DateTime
   language: MemberLanguageType
-  nationality: Nationality
+  nationality: MemberNationalityType
   createdAt: DateTime
   updatedAt: DateTime
   createdBy: User
@@ -249,6 +249,259 @@ enum MemberLanguageType {
   vi
   id
   th
+}
+
+enum MemberNationalityType {
+  TT
+  TR
+  TM
+  BT
+  CF
+  CN
+  DK
+  EC
+  ER
+  PG
+  BR
+  BB
+  PY
+  BH
+  BS
+  PA
+  PS
+  PK
+  JP
+  BE
+  JM
+  IL
+  CA
+  GA
+  MP
+  MK
+  QA
+  CU
+  TW
+  SZ
+  NE
+  NI
+  NP
+  BF
+  BV
+  GT
+  GP
+  WF
+  GM
+  BY
+  PN
+  LT
+  IQ
+  IR
+  IS
+  LI
+  HU
+  ID
+  IN
+  DJ
+  KI
+  KG
+  TV
+  DM
+  DO
+  TG
+  AI
+  AG
+  AO
+  AD
+  TK
+  BM
+  ET
+  ES
+  HR
+  LY
+  HN
+  GR
+  BN
+  SA
+  BZ
+  BJ
+  GQ
+  ZW
+  AM
+  AZ
+  TZ
+  NG
+  NA
+  VE
+  BD
+  ZM
+  PW
+  LV
+  TL
+  FR
+  FO
+  PF
+  TF
+  MF
+  GF
+  BW
+  PR
+  BA
+  PL
+  GI
+  KE
+  FI
+  EH
+  AR
+  OM
+  AF
+  DZ
+  AL
+  AW
+  AE
+  RU
+  BG
+  ZA
+  GS
+  AQ
+  SS
+  KZ
+  TD
+  KH
+  BO
+  KW
+  CC
+  XK
+  TN
+  JO
+  US
+  UM
+  VI
+  AS
+  GB
+  IO
+  VG
+  MR
+  GH
+  HK
+  CG
+  CD
+  CO
+  CR
+  EG
+  CK
+  CW
+  NO
+  GG
+  GL
+  GD
+  TH
+  HT
+  UG
+  UA
+  UY
+  UZ
+  TC
+  RE
+  PE
+  NZ
+  NU
+  SO
+  SB
+  MT
+  MY
+  MW
+  YT
+  IM
+  MH
+  MQ
+  ML
+  MG
+  MV
+  FM
+  CZ
+  SY
+  VA
+  SX
+  NL
+  BQ
+  MZ
+  CM
+  GE
+  GN
+  GW
+  FJ
+  SJ
+  LK
+  SK
+  SI
+  CL
+  KP
+  TO
+  PH
+  CI
+  VN
+  KY
+  ME
+  TJ
+  SN
+  SC
+  CY
+  RS
+  AT
+  AX
+  EE
+  IE
+  SG
+  NC
+  SL
+  CH
+  SE
+  VU
+  IT
+  BL
+  VC
+  PM
+  ST
+  KN
+  SM
+  SH
+  CX
+  LC
+  YE
+  KM
+  PT
+  FK
+  CV
+  MN
+  MS
+  BI
+  GY
+  HM
+  LA
+  DE
+  MA
+  MC
+  MD
+  MU
+  MM
+  LB
+  MX
+  JE
+  AU
+  MO
+  RW
+  LU
+  NF
+  NR
+  LR
+  LS
+  KR
+  SV
+  WS
+  RO
+  GU
+  SD
+  SR
 }
 
 input MemberWhereUniqueInput {
@@ -280,7 +533,7 @@ input MemberWhereInput {
   isOfficial: BooleanFilter
   joinDate: DateTimeNullableFilter
   language: MemberLanguageTypeNullableFilter
-  nationality: NationalityWhereInput
+  nationality: MemberNationalityTypeNullableFilter
   createdAt: DateTimeNullableFilter
   updatedAt: DateTimeNullableFilter
   createdBy: UserWhereInput
@@ -325,6 +578,13 @@ input MemberLanguageTypeNullableFilter {
   not: MemberLanguageTypeNullableFilter
 }
 
+input MemberNationalityTypeNullableFilter {
+  equals: MemberNationalityType
+  in: [MemberNationalityType!]
+  notIn: [MemberNationalityType!]
+  not: MemberNationalityTypeNullableFilter
+}
+
 input MemberOrderByInput {
   id: OrderDirection
   firebaseId: OrderDirection
@@ -339,6 +599,7 @@ input MemberOrderByInput {
   isOfficial: OrderDirection
   joinDate: OrderDirection
   language: OrderDirection
+  nationality: OrderDirection
   createdAt: OrderDirection
   updatedAt: OrderDirection
 }
@@ -361,7 +622,7 @@ input MemberUpdateInput {
   isOfficial: Boolean
   joinDate: DateTime
   language: MemberLanguageType
-  nationality: NationalityRelateToOneForUpdateInput
+  nationality: MemberNationalityType
   createdAt: DateTime
   updatedAt: DateTime
   createdBy: UserRelateToOneForUpdateInput
@@ -402,12 +663,6 @@ input ReactionRelateToManyForUpdateInput {
   connect: [ReactionWhereUniqueInput!]
 }
 
-input NationalityRelateToOneForUpdateInput {
-  create: NationalityCreateInput
-  connect: NationalityWhereUniqueInput
-  disconnect: Boolean
-}
-
 input UserRelateToOneForUpdateInput {
   create: UserCreateInput
   connect: UserWhereUniqueInput
@@ -437,7 +692,7 @@ input MemberCreateInput {
   isOfficial: Boolean
   joinDate: DateTime
   language: MemberLanguageType
-  nationality: NationalityRelateToOneForCreateInput
+  nationality: MemberNationalityType
   createdAt: DateTime
   updatedAt: DateTime
   createdBy: UserRelateToOneForCreateInput
@@ -469,112 +724,9 @@ input ReactionRelateToManyForCreateInput {
   connect: [ReactionWhereUniqueInput!]
 }
 
-input NationalityRelateToOneForCreateInput {
-  create: NationalityCreateInput
-  connect: NationalityWhereUniqueInput
-}
-
 input UserRelateToOneForCreateInput {
   create: UserCreateInput
   connect: UserWhereUniqueInput
-}
-
-type Nationality {
-  id: ID!
-  displayName: String
-  nationalFlag: Photo
-  status: NationalityStatusType
-  members(where: MemberWhereInput! = {}, orderBy: [MemberOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: MemberWhereUniqueInput): [Member!]
-  membersCount(where: MemberWhereInput! = {}): Int
-  createdAt: DateTime
-  updatedAt: DateTime
-  createdBy: User
-  updatedBy: User
-}
-
-enum NationalityStatusType {
-  active
-  inactive
-}
-
-input NationalityWhereUniqueInput {
-  id: ID
-  displayName: String
-}
-
-input NationalityWhereInput {
-  AND: [NationalityWhereInput!]
-  OR: [NationalityWhereInput!]
-  NOT: [NationalityWhereInput!]
-  id: IDFilter
-  displayName: StringFilter
-  nationalFlag: PhotoWhereInput
-  status: NationalityStatusTypeNullableFilter
-  members: MemberManyRelationFilter
-  createdAt: DateTimeNullableFilter
-  updatedAt: DateTimeNullableFilter
-  createdBy: UserWhereInput
-  updatedBy: UserWhereInput
-}
-
-input NationalityStatusTypeNullableFilter {
-  equals: NationalityStatusType
-  in: [NationalityStatusType!]
-  notIn: [NationalityStatusType!]
-  not: NationalityStatusTypeNullableFilter
-}
-
-input MemberManyRelationFilter {
-  every: MemberWhereInput
-  some: MemberWhereInput
-  none: MemberWhereInput
-}
-
-input NationalityOrderByInput {
-  id: OrderDirection
-  displayName: OrderDirection
-  status: OrderDirection
-  createdAt: OrderDirection
-  updatedAt: OrderDirection
-}
-
-input NationalityUpdateInput {
-  displayName: String
-  nationalFlag: PhotoRelateToOneForUpdateInput
-  status: NationalityStatusType
-  members: MemberRelateToManyForUpdateInput
-  createdAt: DateTime
-  updatedAt: DateTime
-  createdBy: UserRelateToOneForUpdateInput
-  updatedBy: UserRelateToOneForUpdateInput
-}
-
-input MemberRelateToManyForUpdateInput {
-  disconnect: [MemberWhereUniqueInput!]
-  set: [MemberWhereUniqueInput!]
-  create: [MemberCreateInput!]
-  connect: [MemberWhereUniqueInput!]
-}
-
-input NationalityUpdateArgs {
-  where: NationalityWhereUniqueInput!
-  data: NationalityUpdateInput!
-}
-
-input NationalityCreateInput {
-  displayName: String
-  nationalFlag: PhotoRelateToOneForCreateInput
-  status: NationalityStatusType
-  members: MemberRelateToManyForCreateInput
-  createdAt: DateTime
-  updatedAt: DateTime
-  createdBy: UserRelateToOneForCreateInput
-  updatedBy: UserRelateToOneForCreateInput
-}
-
-input MemberRelateToManyForCreateInput {
-  create: [MemberCreateInput!]
-  connect: [MemberWhereUniqueInput!]
 }
 
 type OfficialMapping {
@@ -2640,12 +2792,6 @@ type Mutation {
   updateMembers(data: [MemberUpdateArgs!]!): [Member]
   deleteMember(where: MemberWhereUniqueInput!): Member
   deleteMembers(where: [MemberWhereUniqueInput!]!): [Member]
-  createNationality(data: NationalityCreateInput!): Nationality
-  createNationalities(data: [NationalityCreateInput!]!): [Nationality]
-  updateNationality(where: NationalityWhereUniqueInput!, data: NationalityUpdateInput!): Nationality
-  updateNationalities(data: [NationalityUpdateArgs!]!): [Nationality]
-  deleteNationality(where: NationalityWhereUniqueInput!): Nationality
-  deleteNationalities(where: [NationalityWhereUniqueInput!]!): [Nationality]
   createOfficialMapping(data: OfficialMappingCreateInput!): OfficialMapping
   createOfficialMappings(data: [OfficialMappingCreateInput!]!): [OfficialMapping]
   updateOfficialMapping(where: OfficialMappingWhereUniqueInput!, data: OfficialMappingUpdateInput!): OfficialMapping
@@ -2831,9 +2977,6 @@ type Query {
   member(where: MemberWhereUniqueInput!): Member
   members(where: MemberWhereInput! = {}, orderBy: [MemberOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: MemberWhereUniqueInput): [Member!]
   membersCount(where: MemberWhereInput! = {}): Int
-  nationality(where: NationalityWhereUniqueInput!): Nationality
-  nationalities(where: NationalityWhereInput! = {}, orderBy: [NationalityOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: NationalityWhereUniqueInput): [Nationality!]
-  nationalitiesCount(where: NationalityWhereInput! = {}): Int
   officialMapping(where: OfficialMappingWhereUniqueInput!): OfficialMapping
   officialMappings(where: OfficialMappingWhereInput! = {}, orderBy: [OfficialMappingOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: OfficialMappingWhereUniqueInput): [OfficialMapping!]
   officialMappingsCount(where: OfficialMappingWhereInput! = {}): Int
