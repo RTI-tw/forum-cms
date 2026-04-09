@@ -7,7 +7,7 @@
     "start": "keystone start",
     "db-migrate": "keystone prisma migrate deploy",
     "build": "keystone build",
-    "postinstall": "test -n \"$WINDOWS_ONLY\" || patch-package --patch-dir ../../patches && keystone postinstall --fix"
+    "postinstall": "test -n \"$WINDOWS_ONLY\" || patch-package --patch-dir ../../patches && node -e \"require('fs').mkdirSync('public/files',{recursive:true});require('fs').copyFileSync('data/countries.json','public/files/countries.json')\" && keystone postinstall --fix"
   },
   "repository": {
     "type": "git",

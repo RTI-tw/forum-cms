@@ -30,6 +30,9 @@ WORKDIR $APP_DIR
 
 COPY . $APP_DIR
 
+## 國籍 JSON：bundler 讀取 data/；靜態網址 /files/countries.json 需 public/files
+RUN mkdir -p public/files && cp data/countries.json public/files/countries.json
+
 ## Install application dependencies
 RUN yarn install
 RUN yarn postinstall

@@ -1,4 +1,4 @@
-import countriesJson from '../public/files/countries.json'
+import countriesJson from '../data/countries.json'
 
 export type CountryName = {
   zh: string

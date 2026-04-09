@@ -120,7 +120,7 @@ const listConfigurations = list({
       validation: { isRequired: false },
       ui: {
         description:
-          'ISO 3166-1 alpha-2；選項與五語名稱維護於 public/files/countries.json。',
+          'ISO 3166-1 alpha-2；選項與五語名稱維護於 data/countries.json。',
       },
     }),
   },
