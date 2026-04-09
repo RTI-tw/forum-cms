@@ -1,5 +1,4 @@
-import * as fs from 'fs'
-import * as path from 'path'
+import countriesJson from '../public/files/countries.json'
 
 export type CountryName = {
   zh: string
@@ -14,14 +13,7 @@ export type CountryRow = {
   name: CountryName
 }
 
-const jsonPath = path.join(__dirname, '../public/files/countries.json')
-
-function loadCountries(): CountryRow[] {
-  const raw = fs.readFileSync(jsonPath, 'utf8')
-  return JSON.parse(raw) as CountryRow[]
-}
-
-export const countries: CountryRow[] = loadCountries()
+export const countries: CountryRow[] = countriesJson as CountryRow[]
 
 /** CMS 國籍下拉：中文名稱 + code，依中文排序 */
 export const nationalitySelectOptions = countries
