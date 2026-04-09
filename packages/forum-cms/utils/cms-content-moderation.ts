@@ -1,8 +1,8 @@
 /**
  * CMS 角色與內容審核規則（Admin / Editor）：
- * - 非官方作者之貼文：僅可改譯文、狀態與主圖等（見各 Set）
- * - 非官方作者之留言：可改譯文、狀態、暫停自動翻譯；**原文 content／language 亦允許**（供後台修正錯字、違規內容並觸發 message-services 翻譯）
- * - 投票：僅可改譯文，不可改說明／選項原文／票數
+ * - 非官方作者之貼文／留言：**不可**透過後台修改使用者貼上的**原文標題與內文**
+ *   （Post：`title`、`content`；Comment：`content`）；譯文、原始語言、狀態、旗標、主圖、關聯等其餘欄位可更新。
+ * - 投票：僅可改譯文，不可改說明／選項原文／票數（仍以白名單實作）。
  *
  * 僅在部署環境 **ACCESS_CONTROL_STRATEGY=cms**（預設值）時生效；
  * `gql` / `preview` / `api` 等不套用此檔內任何欄位過濾。
@@ -22,40 +22,11 @@ export function isCmsUserSession(context: KeystoneContext): boolean {
   return getSessionUserId(context) !== null
 }
 
-/** 非官方作者貼文 update 時允許變更的欄位（含前台顯示狀態） */
-const POST_UPDATE_ALLOWED_NON_OFFICIAL = new Set([
-  'status',
-  // Allow CMS editors to mark posts into EditorChoice candidates.
-  'isEditorChoice',
-  /** 與編輯精選相同：非官方作者貼文亦允許後台標記生活須知／置頂旗標 */
-  'isLifeGuide',
-  'isBoost',
-  /** 主圖 M2M：updatePost 的 connect / disconnect / set 皆經此欄位寫入 */
-  'heroImages',
-  'title_zh',
-  'title_en',
-  'title_vi',
-  'title_id',
-  'title_th',
-  'content_zh',
-  'content_en',
-  'content_vi',
-  'content_id',
-  'content_th',
-])
+/** 非官方作者貼文：鎖使用者原文「標題／內文」；譯文為 title_* / content_* */
+const POST_UPDATE_DENIED_NON_OFFICIAL_ORIGINAL = new Set(['title', 'content'])
 
-/** 非官方作者留言 update 時允許變更的欄位（含原文，否則無法寫入 DB、翻譯 hook 也不會觸發） */
-const COMMENT_UPDATE_ALLOWED_NON_OFFICIAL = new Set([
-  'status',
-  'content',
-  'language',
-  'pauseAutoTranslation',
-  'content_zh',
-  'content_en',
-  'content_vi',
-  'content_id',
-  'content_th',
-])
+/** 非官方作者留言：鎖使用者原文「內文」；譯文為 content_* */
+const COMMENT_UPDATE_DENIED_NON_OFFICIAL_ORIGINAL = new Set(['content'])
 
 /** 投票 update 僅允許譯文標題 */
 const POLL_UPDATE_TRANSLATION_ONLY = new Set([
@@ -74,6 +45,17 @@ const POLL_OPTION_UPDATE_TRANSLATION_ONLY = new Set([
   'text_id',
   'text_th',
 ])
+
+function omitKeys<T extends Record<string, unknown>>(
+  data: T,
+  denied: Set<string>
+): T {
+  const out = { ...data }
+  for (const key of denied) {
+    delete out[key]
+  }
+  return out
+}
 
 function pickKeys<T extends Record<string, unknown>>(
   data: T,
@@ -111,7 +93,7 @@ export async function applyPostUpdateCmsRules(
   if (!post?.author || post.author.isOfficial) {
     return resolvedData
   }
-  return pickKeys(resolvedData, POST_UPDATE_ALLOWED_NON_OFFICIAL)
+  return omitKeys(resolvedData, POST_UPDATE_DENIED_NON_OFFICIAL_ORIGINAL)
 }
 
 export async function applyCommentUpdateCmsRules(
@@ -137,7 +119,7 @@ export async function applyCommentUpdateCmsRules(
   if (!row?.member || row.member.isOfficial) {
     return resolvedData
   }
-  return pickKeys(resolvedData, COMMENT_UPDATE_ALLOWED_NON_OFFICIAL)
+  return omitKeys(resolvedData, COMMENT_UPDATE_DENIED_NON_OFFICIAL_ORIGINAL)
 }
 
 export function applyPollUpdateTranslationOnly(
