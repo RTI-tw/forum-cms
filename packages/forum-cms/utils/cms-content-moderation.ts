@@ -27,6 +27,9 @@ const POST_UPDATE_ALLOWED_NON_OFFICIAL = new Set([
   'status',
   // Allow CMS editors to mark posts into EditorChoice candidates.
   'isEditorChoice',
+  /** 與編輯精選相同：非官方作者貼文亦允許後台標記生活須知／置頂旗標 */
+  'isLifeGuide',
+  'isBoost',
   /** 主圖 M2M：updatePost 的 connect / disconnect / set 皆經此欄位寫入 */
   'heroImages',
   'title_zh',
