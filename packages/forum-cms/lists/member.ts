@@ -32,11 +32,6 @@ const listConfigurations = list({
       ui: hiddenFromCmsUi,
     }),
     nickname: text({ label: '暱稱', validation: { isRequired: true } }),
-    avatar: text({
-      label: '頭像',
-      validation: { isRequired: false },
-      ui: hiddenFromCmsUi,
-    }),
     intro: text({
       label: '介紹',
       validation: { isRequired: false },
@@ -45,7 +40,6 @@ const listConfigurations = list({
     avatar_image: relationship({
       label: '頭像圖片',
       ref: 'Photo',
-      ui: hiddenFromCmsUi,
     }),
     email: text({
       label: 'Email',

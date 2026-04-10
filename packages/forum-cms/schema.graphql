@@ -213,7 +213,6 @@ type Member {
   customId: String
   name: String
   nickname: String
-  avatar: String
   intro: String
   avatar_image: Photo
   email: String
@@ -520,7 +519,6 @@ input MemberWhereInput {
   customId: StringFilter
   name: StringFilter
   nickname: StringFilter
-  avatar: StringFilter
   intro: StringFilter
   avatar_image: PhotoWhereInput
   email: StringFilter
@@ -591,7 +589,6 @@ input MemberOrderByInput {
   customId: OrderDirection
   name: OrderDirection
   nickname: OrderDirection
-  avatar: OrderDirection
   intro: OrderDirection
   email: OrderDirection
   status: OrderDirection
@@ -609,7 +606,6 @@ input MemberUpdateInput {
   customId: String
   name: String
   nickname: String
-  avatar: String
   intro: String
   avatar_image: PhotoRelateToOneForUpdateInput
   email: String
@@ -679,7 +675,6 @@ input MemberCreateInput {
   customId: String
   name: String
   nickname: String
-  avatar: String
   intro: String
   avatar_image: PhotoRelateToOneForCreateInput
   email: String
