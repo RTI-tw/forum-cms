@@ -2213,6 +2213,7 @@ type ForbiddenKeyword {
   word_id: String
   word_th: String
   note: String
+  exemptions: String
   isEnabled: Boolean
   createdAt: DateTime
   updatedAt: DateTime
@@ -2246,6 +2247,7 @@ input ForbiddenKeywordWhereInput {
   word_id: StringFilter
   word_th: StringFilter
   note: StringFilter
+  exemptions: StringFilter
   isEnabled: BooleanFilter
   createdAt: DateTimeNullableFilter
   updatedAt: DateTimeNullableFilter
@@ -2270,6 +2272,7 @@ input ForbiddenKeywordOrderByInput {
   word_id: OrderDirection
   word_th: OrderDirection
   note: OrderDirection
+  exemptions: OrderDirection
   isEnabled: OrderDirection
   createdAt: OrderDirection
   updatedAt: OrderDirection
@@ -2284,6 +2287,7 @@ input ForbiddenKeywordUpdateInput {
   word_id: String
   word_th: String
   note: String
+  exemptions: String
   isEnabled: Boolean
   createdAt: DateTime
   updatedAt: DateTime
@@ -2305,6 +2309,7 @@ input ForbiddenKeywordCreateInput {
   word_id: String
   word_th: String
   note: String
+  exemptions: String
   isEnabled: Boolean
   createdAt: DateTime
   updatedAt: DateTime

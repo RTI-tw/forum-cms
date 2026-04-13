@@ -437,6 +437,7 @@ model ForbiddenKeyword {
   word_id     String                       @default("")
   word_th     String                       @default("")
   note        String                       @default("")
+  exemptions  String                       @default("")
   isEnabled   Boolean                      @default(true)
   createdAt   DateTime?
   updatedAt   DateTime?

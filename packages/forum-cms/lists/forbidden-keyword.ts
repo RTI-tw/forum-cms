@@ -39,6 +39,12 @@ const listConfigurations = list({
     word_id: text({ label: '關鍵字（印尼文）' }),
     word_th: text({ label: '關鍵字（泰文）' }),
     note: text({ label: '備註' }),
+    exemptions: text({
+      label: '白名單豁免',
+      ui: {
+        description: '以逗號分隔的豁免詞組',
+      },
+    }),
     isEnabled: checkbox({
       label: '啟用',
       defaultValue: true,
@@ -47,7 +53,7 @@ const listConfigurations = list({
   ui: {
     label: '禁用關鍵字',
     listView: {
-      initialColumns: ['word', 'language', 'isEnabled', 'note'],
+      initialColumns: ['word', 'language', 'isEnabled', 'note', 'exemptions'],
     },
   },
   access: {
