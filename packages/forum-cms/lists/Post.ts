@@ -29,7 +29,7 @@ function normText(value: unknown): string {
 /**
  * 欄位對應需求：標題原文（必填、≤80 字）、五語標題、貼文原文（必填）、五語內容、
  * 原始語言（必填）、作者（央廣後台預設 OfficialMapping 會員）、發文時間、已編輯、IP、SPAM、
- * 編輯精選／生活須知／置頂 boost（checkbox 旗標）、暫停自動翻譯、主題（選填，可多選）、狀態、主圖（多張 Photo）、關聯影片、
+ * 編輯精選／生活須知／置頂 boost（checkbox 旗標）、暫停自動翻譯、主題（選填，僅能單選）、狀態、主圖（多張 Photo）、關聯影片、
  * 投票、留言、留言數、反應、反應數、檢舉。留言數／反應數由 Comment／Reaction 的 hook 同步。
  */
 const listConfigurations = list({
@@ -180,10 +180,10 @@ const listConfigurations = list({
         }),
         topics: relationship({
             ref: 'Topic.posts',
-            many: true,
+            many: false,
             label: '主題分類',
             ui: {
-                description: '選填；可選多個主題。',
+                description: '選填；僅能單選。',
             },
         }),
         status: select({

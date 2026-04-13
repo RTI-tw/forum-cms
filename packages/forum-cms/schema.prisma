@@ -151,7 +151,8 @@ model Post {
   isLifeGuide          Boolean          @default(false)
   isBoost              Boolean          @default(false)
   editorChoices        EditorChoice[]   @relation("EditorChoice_post")
-  topics               Topic[]          @relation("Post_topics")
+  topics               Topic?           @relation("Post_topics", fields: [topicsId], references: [id])
+  topicsId             Int?             @map("topics")
   status               PostStatusType?  @default(draft)
   heroImages           Photo[]          @relation("Photo_postsAsHeroImages")
   videos               Video[]          @relation("Video_post")
@@ -170,6 +171,7 @@ model Post {
   from_Bookmark_post   Bookmark[]       @relation("Bookmark_post")
 
   @@index([authorId])
+  @@index([topicsId])
   @@index([commentCount])
   @@index([reactionCount])
   @@index([createdById])

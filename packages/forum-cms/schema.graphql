@@ -822,8 +822,7 @@ type Post {
   isBoost: Boolean
   editorChoices(where: EditorChoiceWhereInput! = {}, orderBy: [EditorChoiceOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: EditorChoiceWhereUniqueInput): [EditorChoice!]
   editorChoicesCount(where: EditorChoiceWhereInput! = {}): Int
-  topics(where: TopicWhereInput! = {}, orderBy: [TopicOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: TopicWhereUniqueInput): [Topic!]
-  topicsCount(where: TopicWhereInput! = {}): Int
+  topics: Topic
   status: PostStatusType
   heroImages(where: PhotoWhereInput! = {}, orderBy: [PhotoOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: PhotoWhereUniqueInput): [Photo!]
   heroImagesCount(where: PhotoWhereInput! = {}): Int
@@ -892,7 +891,7 @@ input PostWhereInput {
   isLifeGuide: BooleanFilter
   isBoost: BooleanFilter
   editorChoices: EditorChoiceManyRelationFilter
-  topics: TopicManyRelationFilter
+  topics: TopicWhereInput
   status: PostStatusTypeNullableFilter
   heroImages: PhotoManyRelationFilter
   videos: VideoManyRelationFilter
@@ -930,12 +929,6 @@ input EditorChoiceManyRelationFilter {
   every: EditorChoiceWhereInput
   some: EditorChoiceWhereInput
   none: EditorChoiceWhereInput
-}
-
-input TopicManyRelationFilter {
-  every: TopicWhereInput
-  some: TopicWhereInput
-  none: TopicWhereInput
 }
 
 input PostStatusTypeNullableFilter {
@@ -1017,7 +1010,7 @@ input PostUpdateInput {
   isLifeGuide: Boolean
   isBoost: Boolean
   editorChoices: EditorChoiceRelateToManyForUpdateInput
-  topics: TopicRelateToManyForUpdateInput
+  topics: TopicRelateToOneForUpdateInput
   status: PostStatusType
   heroImages: PhotoRelateToManyForUpdateInput
   videos: VideoRelateToManyForUpdateInput
@@ -1040,11 +1033,10 @@ input EditorChoiceRelateToManyForUpdateInput {
   connect: [EditorChoiceWhereUniqueInput!]
 }
 
-input TopicRelateToManyForUpdateInput {
-  disconnect: [TopicWhereUniqueInput!]
-  set: [TopicWhereUniqueInput!]
-  create: [TopicCreateInput!]
-  connect: [TopicWhereUniqueInput!]
+input TopicRelateToOneForUpdateInput {
+  create: TopicCreateInput
+  connect: TopicWhereUniqueInput
+  disconnect: Boolean
 }
 
 input PhotoRelateToManyForUpdateInput {
@@ -1103,7 +1095,7 @@ input PostCreateInput {
   isLifeGuide: Boolean
   isBoost: Boolean
   editorChoices: EditorChoiceRelateToManyForCreateInput
-  topics: TopicRelateToManyForCreateInput
+  topics: TopicRelateToOneForCreateInput
   status: PostStatusType
   heroImages: PhotoRelateToManyForCreateInput
   videos: VideoRelateToManyForCreateInput
@@ -1124,9 +1116,9 @@ input EditorChoiceRelateToManyForCreateInput {
   connect: [EditorChoiceWhereUniqueInput!]
 }
 
-input TopicRelateToManyForCreateInput {
-  create: [TopicCreateInput!]
-  connect: [TopicWhereUniqueInput!]
+input TopicRelateToOneForCreateInput {
+  create: TopicCreateInput
+  connect: TopicWhereUniqueInput
 }
 
 input PhotoRelateToManyForCreateInput {

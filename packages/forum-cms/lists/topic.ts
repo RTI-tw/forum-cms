@@ -68,7 +68,7 @@ const listConfigurations = list({
           return context.db.Post.count({
             where: {
               createdAt: { gte: startOfToday.toISOString() },
-              topics: { some: { id: { equals: topicId } } },
+              topics: { id: { equals: topicId } },
             },
           })
         },
