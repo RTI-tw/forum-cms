@@ -78,7 +78,7 @@ model Member {
   avatar_image                        Photo?                 @relation("Member_avatar_image", fields: [avatar_imageId], references: [id])
   avatar_imageId                      Int?                   @map("avatar_image")
   email                               String                 @unique @default("")
-  status                              MemberStatusType       @default(active)
+  status                              MemberStatusType       @default(inactive)
   verified                            Boolean                @default(false)
   comment                             Comment[]              @relation("Comment_member")
   posts                               Post[]                 @relation("Post_author")
@@ -558,7 +558,6 @@ model Ad {
 }
 
 enum MemberStatusType {
-  pending
   active
   inactive
   banned

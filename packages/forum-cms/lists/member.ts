@@ -51,16 +51,15 @@ const listConfigurations = list({
       label: '狀態',
       type: 'enum',
       options: [
-        { label: '待完成資料', value: 'pending' },
         { label: '啟用', value: 'active' },
         { label: '停用', value: 'inactive' },
         { label: '停權', value: 'banned' },
       ],
-      defaultValue: 'active',
+      defaultValue: 'inactive',
       validation: { isRequired: true },
       ui: {
         description:
-          '待完成資料：尚未完成註冊；啟用：正常使用；停用：會員刪除帳號等；停權：後台停用該會員。',
+          '啟用：正常使用；停用：會員待完成註冊或刪除帳號等；停權：後台停用該會員。',
       },
     }),
     verified: checkbox({
@@ -137,6 +136,10 @@ const listConfigurations = list({
   hooks: {
     resolveInput: ({ resolvedData, item }) => {
       const typedItem = item as any
+      if (!typedItem) {
+        // Create flow: keep firebaseId/email as-is.
+        return resolvedData
+      }
       const prevStatus = typedItem?.status ?? 'active'
       const nextStatus =
         resolvedData.status !== undefined ? resolvedData.status : prevStatus

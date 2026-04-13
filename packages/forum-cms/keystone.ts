@@ -266,7 +266,6 @@ const AuthenticateMemberWithFirebaseInput = graphql.inputObject({
         name: graphql.arg({ type: graphql.String }),
         nickname: graphql.arg({ type: graphql.String }),
         customId: graphql.arg({ type: graphql.String }),
-        activate: graphql.arg({ type: graphql.Boolean }),
     },
 });
 
@@ -415,7 +414,6 @@ const memberAuthSchemaExtension = graphql.extend(() => ({
                         name?: string | null;
                         nickname?: string | null;
                         customId?: string | null;
-                        activate?: boolean | null;
                     };
                 },
                 context: KeystoneContext,
@@ -437,7 +435,6 @@ const memberAuthSchemaExtension = graphql.extend(() => ({
                 const customIdInput = normalizeMemberMemberField(data?.customId);
                 const nameInput = normalizeMemberMemberField(data?.name);
                 const nicknameInput = normalizeMemberMemberField(data?.nickname);
-                const shouldActivate = Boolean(data?.activate);
                 const display = resolveMemberDisplayName({
                     name: nameInput,
                     nickname: nicknameInput,
@@ -482,8 +479,6 @@ const memberAuthSchemaExtension = graphql.extend(() => ({
 
                 if (existingMember) {
                     const updateData: Record<string, any> = {};
-                    const shouldActivatePending =
-                        shouldActivate && existingMember.status === "pending";
                     if (nameInput) {
                         updateData.name = display.name;
                     }
@@ -500,9 +495,6 @@ const memberAuthSchemaExtension = graphql.extend(() => ({
                     ) {
                         updateData.email = firebaseEmail;
                     }
-                    if (shouldActivatePending) {
-                        updateData.status = "active";
-                    }
 
                     member = Object.keys(updateData).length
                         ? await context.sudo().db.Member.updateOne({
@@ -518,7 +510,7 @@ const memberAuthSchemaExtension = graphql.extend(() => ({
                             name: display.name,
                             nickname: display.nickname,
                             email: firebaseEmail ?? undefined,
-                            status: shouldActivate ? "active" : "pending",
+                            status: "inactive",
                             verified: Boolean(decoded.email_verified),
                         },
                     });
