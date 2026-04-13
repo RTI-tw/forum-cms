@@ -16,9 +16,13 @@ import {
     hasExplicitMemberRelationInput,
 } from '../utils/official-member-from-session'
 import { getClientIpFromKeystoneContext } from '../utils/client-ip'
-import envVar from '../environment-variables'
 import { syncEditorChoiceStateForPostId } from '../utils/sync-editor-choice-state'
 import { applyPostUpdateCmsRules } from '../utils/cms-content-moderation'
+import {
+    buildPostVisibilityWhere,
+    getAuthenticatedMemberId,
+    isCmsRequest,
+} from '../utils/post-visibility'
 
 const translationAfterPost = createMessageServicesTranslationHook('post')
 
@@ -298,13 +302,13 @@ const listConfigurations = list({
          * `status: published`，避免公開 API 暴露草稿與未發布內容。
          */
         filter: {
-            query: ({ session }: { session?: unknown }) => {
-                // CMS logged-in users should be able to query all post statuses,
-                // even when ACCESS_CONTROL_STRATEGY is not `cms` in local setups.
-                if (session != null || envVar.accessControlStrategy === 'cms') {
+            query: ({ context }) => {
+                // CMS logged-in users should be able to query all post statuses.
+                if (isCmsRequest(context)) {
                     return true
                 }
-                return { status: { equals: 'published' } }
+                const memberId = getAuthenticatedMemberId(context)
+                return buildPostVisibilityWhere(memberId)
             },
         },
     },

@@ -20,6 +20,11 @@ import {
   applyCommentUpdateCmsRules,
   isCmsUserSession,
 } from '../utils/cms-content-moderation'
+import {
+  buildPostVisibilityWhere,
+  getAuthenticatedMemberId,
+  isCmsRequest,
+} from '../utils/post-visibility'
 
 const translationAfterComment =
   createMessageServicesTranslationHook('comment')
@@ -134,6 +139,15 @@ const listConfigurations = list({
       update: allowRoles(admin, moderator),
       create: allowRoles(admin, moderator),
       delete: allowRoles(admin),
+    },
+    filter: {
+      query: ({ context }) => {
+        if (isCmsRequest(context)) return true
+        const memberId = getAuthenticatedMemberId(context)
+        return {
+          post: buildPostVisibilityWhere(memberId),
+        }
+      },
     },
   },
   hooks: {

@@ -131,6 +131,61 @@ npm run dev
 
 **注意**：`api` 仍不驗證「哪一位會員／使用者」；僅限制 list 讀寫。部署時請在 **網路與雲端身分**上限制誰能打到 GraphQL（例如 **Cloud Run 需驗證 + `roles/run.invoker`、內部 LB、VPC／subnet、IAP** 等），勿將 endpoint 暴露在未受控的公網。
 
+### Profile 分頁：hidden 內容可見性規則（前端必讀）
+
+為了解決 Profile「我的留言 / 我的投票 / 我的收藏」中，`hidden` 貼文需要區分「自己的」與「別人的」這個情境，後端已在 list access filter 統一加入貼文可見性規則（不需前端再手動寫跨層 OR）：
+
+- `Post`、`Comment`、`Bookmark`、`PollVote` 都會套用同一套貼文可見性判斷。
+- 未登入（無有效 member Bearer token）：只能看到 `post.status = published`。
+- 已登入會員：
+  - 可看到 `post.status = published`。
+  - 也可看到 `post.status = hidden` 且 `post.author = 自己`。
+  - **看不到** `post.status = hidden` 且 `post.author != 自己`。
+- CMS 請求（Keystone session）不受此前台可見性限制。
+
+#### 前端 where 寫法建議
+
+Profile 分頁請只保留「我的資料」條件，不要再自行加 `post.status = published`（或 `poll.post.status = published`）：
+
+1. 我的留言（`comments`）
+   - 保留：`member.id = myId`
+   - 保留（若要含留言本身隱藏態）：`status in ['published', 'hidden']`
+   - 移除：`post.status = published`
+
+2. 我的收藏（`bookmarks`）
+   - 保留：`member.id = myId`
+   - 移除：`post.status = published`
+
+3. 我的投票（`pollVotes`）
+   - 保留：`member.id = myId`
+   - 移除：`poll.post.status = published`
+
+範例（我的留言）：
+
+```graphql
+query MyComments($myId: ID!) {
+  comments(
+    where: {
+      member: { id: { equals: $myId } }
+      status: { in: [published, hidden] }
+    }
+  ) {
+    id
+    content
+    status
+    post {
+      id
+      status
+      author {
+        id
+      }
+    }
+  }
+}
+```
+
+> 顯示層建議：若回傳的 `post.status = hidden`，前端可加上 overlay（例如「此內容已隱藏」），但資料是否可見由後端規則決定。
+
 ### Troubleshootings
 #### Q1: 我在 `packages/*` 資料夾底下跑 `yarn install` 時，在 `yarn postinstall` 階段發生錯誤。
 

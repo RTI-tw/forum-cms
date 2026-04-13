@@ -2,6 +2,11 @@ import { utils } from '@mirrormedia/lilith-core'
 import { allowRoles, admin, moderator, editor } from '../utils/access-control'
 import { list } from '@keystone-6/core'
 import { relationship } from '@keystone-6/core/fields'
+import {
+  buildPostVisibilityWhere,
+  getAuthenticatedMemberId,
+  isCmsRequest,
+} from '../utils/post-visibility'
 
 const listConfigurations = list({
   fields: {
@@ -28,6 +33,15 @@ const listConfigurations = list({
       update: allowRoles(admin, moderator),
       create: allowRoles(admin, moderator),
       delete: allowRoles(admin),
+    },
+    filter: {
+      query: ({ context }) => {
+        if (isCmsRequest(context)) return true
+        const memberId = getAuthenticatedMemberId(context)
+        return {
+          post: buildPostVisibilityWhere(memberId),
+        }
+      },
     },
   },
 })

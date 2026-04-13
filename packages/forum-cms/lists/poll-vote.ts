@@ -6,6 +6,11 @@ import {
     getPollVotePollAndOptionIds,
     syncPollVoteAggregates,
 } from '../utils/poll-vote-count-sync'
+import {
+    buildPostVisibilityWhere,
+    getAuthenticatedMemberId,
+    isCmsRequest,
+} from '../utils/post-visibility'
 
 const listConfigurations = list({
   fields: {
@@ -38,6 +43,17 @@ const listConfigurations = list({
       update: async () => false,
       create: allowRoles(admin, moderator, editor),
       delete: allowRoles(admin),
+    },
+    filter: {
+      query: ({ context }) => {
+        if (isCmsRequest(context)) return true
+        const memberId = getAuthenticatedMemberId(context)
+        return {
+          poll: {
+            post: buildPostVisibilityWhere(memberId),
+          },
+        }
+      },
     },
   },
   hooks: {
