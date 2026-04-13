@@ -37,11 +37,14 @@ yarn install
 
 ### 驗證流程（Firebase -> Keystone）
 1. 前端用 Firebase Client SDK 登入，取得 `idToken`。
-2. 呼叫 `authenticateMemberWithFirebase` 取得會員資料與後端 session token。
+2. 呼叫 `authenticateMemberWithFirebase` 取得會員資料與後端 session token（首次註冊預設為 `pending`）。
 3. 後續請求帶 `Authorization: Bearer <sessionToken>`。
 
 ### Mutation：authenticateMemberWithFirebase
 - 功能：驗證 Firebase ID token、建立/更新 Member、回傳後端 session token。
+- 註冊狀態：
+  - 首次建立且未啟用時，Member `status` 會是 `pending`。
+  - `complete-profile` 完成後可傳入 `activate: true`，將 `pending` 會員升為 `active`。
 
 ```
 mutation AuthenticateMemberWithFirebase($data: AuthenticateMemberWithFirebaseInput!) {
@@ -67,7 +70,8 @@ mutation AuthenticateMemberWithFirebase($data: AuthenticateMemberWithFirebaseInp
     "idToken": "FIREBASE_ID_TOKEN",
     "name": "使用者名稱",
     "nickname": "暱稱",
-    "customId": "自訂ID"
+    "customId": "自訂ID",
+    "activate": true
   }
 }
 ```
@@ -77,6 +81,7 @@ mutation AuthenticateMemberWithFirebase($data: AuthenticateMemberWithFirebaseInp
 - `customId` 若未提供，預設為 `uid`。
 - `name` / `nickname` 若未提供，依序使用 `Firebase displayName` / `email local-part` / `uid`。
 - 若 `customId` 或 `email` 與其他 Firebase 帳號重複，會回錯誤。
+- `activate` 預設 `false`；當 `activate: true` 時，若會員目前為 `pending` 會更新為 `active`。
 
 ### Query：authenticatedMember
 - 功能：用後端 session token 取得目前登入會員。

@@ -51,6 +51,7 @@ const listConfigurations = list({
       label: '狀態',
       type: 'enum',
       options: [
+        { label: '待完成資料', value: 'pending' },
         { label: '啟用', value: 'active' },
         { label: '停用', value: 'inactive' },
         { label: '停權', value: 'banned' },
@@ -59,7 +60,7 @@ const listConfigurations = list({
       validation: { isRequired: true },
       ui: {
         description:
-          '啟用：正常使用；停用：會員刪除帳號等；停權：後台停用該會員。',
+          '待完成資料：尚未完成註冊；啟用：正常使用；停用：會員刪除帳號等；停權：後台停用該會員。',
       },
     }),
     verified: checkbox({

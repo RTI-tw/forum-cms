@@ -558,6 +558,7 @@ model Ad {
 }
 
 enum MemberStatusType {
+  pending
   active
   inactive
   banned

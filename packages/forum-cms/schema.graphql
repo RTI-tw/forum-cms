@@ -237,6 +237,7 @@ type Member {
 }
 
 enum MemberStatusType {
+  pending
   active
   inactive
   banned
@@ -2913,6 +2914,7 @@ type MemberSessionMember {
   customId: String!
   name: String!
   nickname: String!
+  status: String!
   email: String
 }
 
@@ -2921,6 +2923,7 @@ input AuthenticateMemberWithFirebaseInput {
   name: String
   nickname: String
   customId: String
+  activate: Boolean
 }
 
 type ChangeMyPasswordResult {
