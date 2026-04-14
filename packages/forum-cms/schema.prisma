@@ -561,6 +561,7 @@ enum MemberStatusType {
   active
   inactive
   banned
+  deleted
 }
 
 enum MemberLanguageType {

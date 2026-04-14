@@ -10,6 +10,27 @@ const hiddenFromCmsUi = {
   listView: { fieldMode: 'hidden' as const },
 }
 
+const INACTIVE_PREFIX = 'inactive: '
+
+function markInactiveValue(value?: string | null, fallback = '') {
+  const normalized = value ?? fallback
+  return `${INACTIVE_PREFIX}${normalized}`
+}
+
+function restoreInactiveEmail(email?: string | null, firebaseId?: string | null) {
+  const rawEmail = email ?? ''
+  const rawFirebaseId = firebaseId ?? ''
+  const restoredFirebaseId = rawFirebaseId.replace(/^inactive: /, '')
+  const restoredEmail = rawEmail
+    .replace(/^inactive: /, '')
+    .replace(`  ${restoredFirebaseId}`, '')
+
+  return {
+    email: restoredEmail,
+    firebaseId: restoredFirebaseId,
+  }
+}
+
 const listConfigurations = list({
   fields: {
     firebaseId: text({
@@ -54,12 +75,13 @@ const listConfigurations = list({
         { label: '啟用', value: 'active' },
         { label: '停用', value: 'inactive' },
         { label: '停權', value: 'banned' },
+        { label: '已刪帳', value: 'deleted' },
       ],
       defaultValue: 'inactive',
       validation: { isRequired: true },
       ui: {
         description:
-          '啟用：正常使用；停用：會員待完成註冊或刪除帳號等；停權：後台停用該會員。',
+          '啟用：正常使用；停用：會員待完成註冊；停權：禁止登入且保留原 email；已刪帳：禁止重新註冊且保留原 email。',
       },
     }),
     verified: checkbox({
@@ -147,16 +169,14 @@ const listConfigurations = list({
       if (prevStatus !== 'inactive' && nextStatus === 'inactive') {
         const srcEmail = typedItem?.email ?? resolvedData.email
         const srcFirebase = typedItem?.firebaseId ?? resolvedData.firebaseId
-        resolvedData.email = `inactive: ${srcEmail}  ${srcFirebase}`
-        resolvedData.firebaseId = `inactive: ${srcFirebase}`
-      } else if (prevStatus === 'inactive' && nextStatus === 'active') {
+        resolvedData.email = `${markInactiveValue(srcEmail)}  ${srcFirebase ?? ''}`
+        resolvedData.firebaseId = markInactiveValue(srcFirebase)
+      } else if (prevStatus === 'inactive' && nextStatus !== 'inactive') {
         const srcEmail = typedItem?.email ?? resolvedData.email
         const srcFirebase = typedItem?.firebaseId ?? resolvedData.firebaseId
-        const newId = srcFirebase?.replace(/^inactive: /, '')
-        resolvedData.firebaseId = newId
-        resolvedData.email = srcEmail
-          ?.replace(/^inactive: /, '')
-          .replace(`  ${newId}`, '')
+        const restored = restoreInactiveEmail(srcEmail, srcFirebase)
+        resolvedData.firebaseId = restored.firebaseId
+        resolvedData.email = restored.email
       }
 
       return resolvedData

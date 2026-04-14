@@ -275,7 +275,7 @@ const MemberSessionMember = graphql.object<{
     customId: string;
     name: string;
     nickname: string;
-    status: "pending" | "active" | "inactive" | "banned";
+    status: "active" | "inactive" | "banned" | "deleted";
     email?: string | null;
 }>()({
     name: "MemberSessionMember",
@@ -299,7 +299,7 @@ const AuthenticateMemberWithFirebaseResult = graphql.object<{
         customId: string;
         name: string;
         nickname: string;
-        status: "pending" | "active" | "inactive" | "banned";
+        status: "active" | "inactive" | "banned" | "deleted";
         email?: string | null;
     };
 }>()({
@@ -349,6 +349,10 @@ function mapMemberSessionMember(member: any) {
         status: member.status,
         email: member.email ?? null,
     };
+}
+
+function isMemberRegistrationBlocked(status?: string | null) {
+    return status === "banned" || status === "deleted";
 }
 
 function getBearerToken(context: KeystoneContext) {
@@ -467,6 +471,11 @@ const memberAuthSchemaExtension = graphql.extend(() => ({
                         existingByEmail &&
                         existingByEmail.firebaseId !== firebaseId
                     ) {
+                        if (isMemberRegistrationBlocked(existingByEmail.status)) {
+                            throw new Error(
+                                "This email cannot be used to register",
+                            );
+                        }
                         throw new Error("Email already exists");
                     }
                 }
@@ -478,6 +487,9 @@ const memberAuthSchemaExtension = graphql.extend(() => ({
                 let member;
 
                 if (existingMember) {
+                    if (isMemberRegistrationBlocked(existingMember.status)) {
+                        throw new Error("This member account is not available");
+                    }
                     const updateData: Record<string, any> = {};
                     if (nameInput) {
                         updateData.name = display.name;
