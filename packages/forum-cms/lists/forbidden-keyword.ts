@@ -3,6 +3,7 @@ import { allowRoles, admin, moderator, editor } from '../utils/access-control'
 import { list } from '@keystone-6/core'
 import { text, checkbox, select } from '@keystone-6/core/fields'
 import { createMessageServicesTranslationHook } from '../utils/message-services-translation-hook'
+import { createForbiddenKeywordsJsonSyncHook } from '../utils/forbidden-keywords-json'
 
 /**
  * 關鍵字（原文）唯一；五國翻譯 word_zh … word_th 可由 message-services 依原文同步。
@@ -65,7 +66,10 @@ const listConfigurations = list({
     },
   },
   hooks: {
-    afterOperation: createMessageServicesTranslationHook('forbiddenKeyword'),
+    afterOperation: async (args) => {
+      await createMessageServicesTranslationHook('forbiddenKeyword')(args)
+      await createForbiddenKeywordsJsonSyncHook()(args)
+    },
   },
 })
 
