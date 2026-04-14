@@ -2,7 +2,7 @@ import envVar from '../environment-variables'
 import { list, graphql } from '@keystone-6/core'
 import { image, text, virtual, integer, relationship } from '@keystone-6/core/fields'
 import { utils } from '@mirrormedia/lilith-core'
-import { getFileURL } from '../utils/common'
+import { getImagePublicUrl } from '../utils/common'
 import { allowRoles, admin, moderator, editor } from '../utils/access-control'
 
 const listConfigurations = list({
@@ -79,14 +79,16 @@ const listConfigurations = list({
               : ['w480', 'w800', 'w1200', 'w1600']
 
           resizedTargets.forEach((target) => {
-            rtn[target] = getFileURL(
+            rtn[target] = getImagePublicUrl(
+              envVar.gcs.publicBaseUrl,
               envVar.gcs.bucket,
               envVar.images.baseUrl,
               `${filename}-${target}${extension}`
             )
           })
 
-          rtn['original'] = getFileURL(
+          rtn['original'] = getImagePublicUrl(
+            envVar.gcs.publicBaseUrl,
             envVar.gcs.bucket,
             envVar.images.baseUrl,
             `${filename}${extension}`
@@ -158,14 +160,16 @@ const listConfigurations = list({
               : ['w480', 'w800', 'w1200', 'w1600']
 
           resizedTargets.forEach((target) => {
-            rtn[target] = getFileURL(
+            rtn[target] = getImagePublicUrl(
+              envVar.gcs.publicBaseUrl,
               envVar.gcs.bucket,
               envVar.images.baseUrl,
               `${filename}-${target}${extension}`
             )
           })
 
-          rtn['original'] = getFileURL(
+          rtn['original'] = getImagePublicUrl(
+            envVar.gcs.publicBaseUrl,
             envVar.gcs.bucket,
             envVar.images.baseUrl,
             `${filename}${extension}`

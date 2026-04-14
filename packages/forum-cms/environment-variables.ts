@@ -7,6 +7,7 @@ const {
   SESSION_SECRET,
   SESSION_MAX_AGE,
   GCS_BUCKET,
+  GCS_BASE_URL,
   FILES_BASE_URL,
   FILES_STORAGE_PATH,
   IMAGES_BASE_URL,
@@ -78,6 +79,9 @@ export default {
   },
   gcs: {
     bucket: GCS_BUCKET || 'static-mesh-tw-dev',
+    /** 例如 https://storage.googleapis.com/rti-forum-cms；有設定時 Image resized 公開網址以前綴組出 */
+    publicBaseUrl:
+      (GCS_BASE_URL && GCS_BASE_URL.trim().replace(/\/+$/, '')) || '',
   },
   files: {
     baseUrl: FILES_BASE_URL || '/files',
