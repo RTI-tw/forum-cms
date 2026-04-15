@@ -1,5 +1,10 @@
 import type { ListHooks } from '@keystone-6/core/types'
 import envVar from '../environment-variables'
+import {
+  publishMessageServicesTranslationJob,
+  shouldPublishTranslationViaPubSub,
+  warnMissingPubSubTopicOnce,
+} from './message-services-translation-pubsub'
 
 /** Keystone 的 afterOperation 可為函式或依操作分流物件；此 hook 僅為前者。 */
 type AfterOperationHookFn = Extract<
@@ -214,6 +219,32 @@ export function createMessageServicesTranslationHook(
         : ''
 
     try {
+      if (entityType === 'post' || entityType === 'comment') {
+        if (shouldPublishTranslationViaPubSub(entityType)) {
+          const publishRes = await publishMessageServicesTranslationJob({
+            type: entityType,
+            id,
+            source_text: sourceText,
+            ...(entityType === 'post' ? { source_title: sourceTitle } : {}),
+          })
+
+          console.info(
+            JSON.stringify({
+              severity: 'INFO',
+              message: 'message-services translation job 已發布到 Pub/Sub',
+              entityType,
+              id,
+              topic: publishRes.topicPath,
+              messageIds: publishRes.messageIds,
+              timestamp: new Date().toISOString(),
+            })
+          )
+          return
+        }
+
+        warnMissingPubSubTopicOnce()
+      }
+
       const syncRes = await fetch(`${baseUrl}/hooks/sync-translations`, {
         method: 'POST',
         headers: {

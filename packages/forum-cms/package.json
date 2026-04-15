@@ -21,6 +21,7 @@
     "@aws-sdk/client-ses": "^3.965.0",
     "@emotion/react": "^11.7.1",
     "@emotion/styled": "11.11.0",
+    "google-auth-library": "^8.9.0",
     "@keystone-6/auth": "^8.1.0",
     "@keystone-6/core": "^6.5.1",
     "@keystone-6/fields-document": "^9.1.1",

@@ -41,6 +41,8 @@ const {
   MEMBER_SESSION_MAX_AGE,
   GRAPHQL_DISABLE_CSRF_PREVENTION,
   MESSAGE_SERVICES_URL,
+  MESSAGE_SERVICES_TRANSLATION_PUBSUB_TOPIC,
+  MESSAGE_SERVICES_TRANSLATION_PUBSUB_PROJECT_ID,
 } = process.env
 
 enum DatabaseProvider {
@@ -142,4 +144,10 @@ export default {
   graphqlDisableCsrfPrevention: GRAPHQL_DISABLE_CSRF_PREVENTION === 'true',
   /** message-services 根 URL（例如 https://xxx.run.app），未設定則不觸發翻譯 hook */
   messageServicesUrl: (MESSAGE_SERVICES_URL || '').trim() || undefined,
+  messageServices: {
+    translationPubsubTopic:
+      (MESSAGE_SERVICES_TRANSLATION_PUBSUB_TOPIC || '').trim() || undefined,
+    translationPubsubProjectId:
+      (MESSAGE_SERVICES_TRANSLATION_PUBSUB_PROJECT_ID || '').trim() || undefined,
+  },
 }
