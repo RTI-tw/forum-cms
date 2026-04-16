@@ -1962,6 +1962,8 @@ input PollOptionRelateToOneForCreateInput {
 type Content {
   id: ID!
   identifier: String
+  sortOrder: Int
+  status: ContentStatusType
   title: String
   title_zh: String
   title_en: String
@@ -1985,6 +1987,11 @@ type Content {
   updatedBy: User
 }
 
+enum ContentStatusType {
+  published
+  draft
+}
+
 enum ContentLanguageType {
   zh
   en
@@ -2004,6 +2011,8 @@ input ContentWhereInput {
   NOT: [ContentWhereInput!]
   id: IDFilter
   identifier: StringFilter
+  sortOrder: IntFilter
+  status: ContentStatusTypeNullableFilter
   title: StringFilter
   title_zh: StringFilter
   title_en: StringFilter
@@ -2025,6 +2034,24 @@ input ContentWhereInput {
   updatedBy: UserWhereInput
 }
 
+input IntFilter {
+  equals: Int
+  in: [Int!]
+  notIn: [Int!]
+  lt: Int
+  lte: Int
+  gt: Int
+  gte: Int
+  not: IntFilter
+}
+
+input ContentStatusTypeNullableFilter {
+  equals: ContentStatusType
+  in: [ContentStatusType!]
+  notIn: [ContentStatusType!]
+  not: ContentStatusTypeNullableFilter
+}
+
 input ContentLanguageTypeNullableFilter {
   equals: ContentLanguageType
   in: [ContentLanguageType!]
@@ -2035,6 +2062,8 @@ input ContentLanguageTypeNullableFilter {
 input ContentOrderByInput {
   id: OrderDirection
   identifier: OrderDirection
+  sortOrder: OrderDirection
+  status: OrderDirection
   title: OrderDirection
   title_zh: OrderDirection
   title_en: OrderDirection
@@ -2054,6 +2083,8 @@ input ContentOrderByInput {
 
 input ContentUpdateInput {
   identifier: String
+  sortOrder: Int
+  status: ContentStatusType
   title: String
   title_zh: String
   title_en: String
@@ -2082,6 +2113,8 @@ input ContentUpdateArgs {
 
 input ContentCreateInput {
   identifier: String
+  sortOrder: Int
+  status: ContentStatusType
   title: String
   title_zh: String
   title_en: String
@@ -2568,17 +2601,6 @@ input CategoryWhereInput {
   updatedAt: DateTimeNullableFilter
   createdBy: UserWhereInput
   updatedBy: UserWhereInput
-}
-
-input IntFilter {
-  equals: Int
-  in: [Int!]
-  notIn: [Int!]
-  lt: Int
-  lte: Int
-  gt: Int
-  gte: Int
-  not: IntFilter
 }
 
 input CategoryOrderByInput {

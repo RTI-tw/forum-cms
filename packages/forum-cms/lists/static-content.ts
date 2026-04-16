@@ -1,7 +1,7 @@
 import { utils } from '@mirrormedia/lilith-core'
 import { allowAdminOnly } from '../utils/access-control'
 import { list } from '@keystone-6/core'
-import { text, select, relationship } from '@keystone-6/core/fields'
+import { text, select, relationship, integer } from '@keystone-6/core/fields'
 import { createMessageServicesTranslationHook } from '../utils/message-services-translation-hook'
 
 const listConfigurations = list({
@@ -16,6 +16,27 @@ const listConfigurations = list({
       ui: {
         description:
           '對應前台靜態頁路徑或網址片段（原為識別碼；請使用英數、連字號等）。',
+      },
+    }),
+    sortOrder: integer({
+      label: '排序',
+      defaultValue: 0,
+      validation: { isRequired: true, min: 0 },
+      ui: {
+        description: '數字越小越前面；供 CMS 列表或前台排序使用。',
+      },
+    }),
+    status: select({
+      label: '狀態',
+      type: 'enum',
+      options: [
+        { label: 'Published', value: 'published' },
+        { label: 'Draft', value: 'draft' },
+      ],
+      defaultValue: 'published',
+      validation: { isRequired: true },
+      ui: {
+        description: 'Published：可供前台使用；Draft：草稿暫不發布。',
       },
     }),
     title: text({
@@ -107,7 +128,15 @@ const listConfigurations = list({
   ui: {
     label: '靜態頁面',
     listView: {
-      initialColumns: ['identifier', 'title', 'language', 'photos', 'videos'],
+      initialColumns: [
+        'identifier',
+        'sortOrder',
+        'status',
+        'title',
+        'language',
+        'photos',
+        'videos',
+      ],
     },
   },
   access: {

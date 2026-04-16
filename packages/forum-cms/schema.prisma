@@ -376,6 +376,8 @@ model PollVote {
 model Content {
   id          Int                  @id @default(autoincrement())
   identifier  String               @unique @default("")
+  sortOrder   Int                  @default(0)
+  status      ContentStatusType    @default(published)
   title       String               @default("")
   title_zh    String               @default("")
   title_en    String               @default("")
@@ -881,6 +883,11 @@ enum ReactionTypeType {
   angry
   scared
   wow
+}
+
+enum ContentStatusType {
+  published
+  draft
 }
 
 enum ContentLanguageType {
