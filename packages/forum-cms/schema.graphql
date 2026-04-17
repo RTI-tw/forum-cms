@@ -1405,7 +1405,7 @@ enum CommentStatusType {
   published
   archived
   hidden
-  deleted
+  reject
 }
 
 input CommentWhereUniqueInput {

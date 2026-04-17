@@ -91,12 +91,12 @@ const listConfigurations = list({
         { label: 'Published', value: 'published' },
         { label: 'Archived', value: 'archived' },
         { label: 'Hidden', value: 'hidden' },
-        { label: 'Deleted（已刪除）', value: 'deleted' },
+        { label: 'Reject（退回）', value: 'reject' },
       ],
       defaultValue: 'published',
       ui: {
         description:
-          'Published：公開；Archived：封存；Hidden：隱藏；Deleted：已刪除。一般會員留言不可設為已刪除。',
+          'Published：公開；Archived：封存；Hidden：隱藏；Reject：退回。一般會員留言不可設為退回。',
       },
     }),
     reactions: relationship({ ref: 'Reaction.comment', many: true, label: '反應' }),
@@ -164,7 +164,7 @@ const listConfigurations = list({
         )
         return
       }
-      if (operation === 'update' && resolvedData.status === 'deleted' && item?.id) {
+      if (operation === 'update' && resolvedData.status === 'reject' && item?.id) {
         const commentId =
           typeof item.id === 'number' ? item.id : parseInt(String(item.id), 10)
         if (!Number.isNaN(commentId)) {
@@ -174,7 +174,7 @@ const listConfigurations = list({
           })
           if (row?.member && !row.member.isOfficial) {
             addValidationError(
-              '一般會員留言不可設為「已刪除」；請使用隱藏／封存等狀態。',
+              '一般會員留言不可設為「退回」；請使用隱藏／封存等狀態。',
             )
           }
         }
