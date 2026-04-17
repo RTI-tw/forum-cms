@@ -855,6 +855,8 @@ enum PostLanguageType {
 enum PostStatusType {
   published
   draft
+  pending
+  reject
   archived
   hidden
 }

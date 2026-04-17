@@ -23,6 +23,7 @@ import {
     getAuthenticatedMemberId,
     isCmsRequest,
 } from '../utils/post-visibility'
+import envVar from '../environment-variables'
 
 const translationAfterPost = createMessageServicesTranslationHook('post')
 
@@ -196,6 +197,8 @@ const listConfigurations = list({
             options: [
                 { label: 'Published', value: 'published' },
                 { label: 'Draft', value: 'draft' },
+                { label: 'Pending', value: 'pending' },
+                { label: 'Reject', value: 'reject' },
                 { label: 'Archived', value: 'archived' },
                 { label: 'Hidden', value: 'hidden' },
             ],
@@ -345,6 +348,12 @@ const listConfigurations = list({
         }) => {
             const data = { ...resolvedData }
             if (operation === 'create') {
+                if (data.status === undefined) {
+                    data.status =
+                        envVar.accessControlStrategy === 'cms'
+                            ? 'draft'
+                            : 'pending'
+                }
                 const explicit = hasExplicitMemberRelationInput(
                     inputData as Record<string, unknown>,
                     'author',
