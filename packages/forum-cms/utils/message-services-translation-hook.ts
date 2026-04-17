@@ -284,45 +284,6 @@ export function createMessageServicesTranslationHook(
           })
         )
 
-        // content 在翻譯寫回後，立即觸發 JSON 匯出到 GCS（單筆 id）
-        if (entityType === 'content') {
-          const exportRes = await fetch(`${baseUrl}/export/contents-to-gcs`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              id,
-            }),
-          })
-
-          if (!exportRes.ok) {
-            const exportBodyText = await exportRes.text()
-            console.error(
-              JSON.stringify({
-                severity: 'ERROR',
-                message: 'message-services export/contents-to-gcs failed',
-                status: exportRes.status,
-                entityType,
-                id,
-                detail: exportBodyText.slice(0, 2000),
-                timestamp: new Date().toISOString(),
-              })
-            )
-          } else {
-            console.info(
-              JSON.stringify({
-                severity: 'INFO',
-                message: 'message-services export/contents-to-gcs 已請求',
-                status: exportRes.status,
-                entityType,
-                id,
-                bucket: envVar.gcs.bucket,
-                timestamp: new Date().toISOString(),
-              })
-            )
-          }
-        }
       }
     } catch (error) {
       console.error(

@@ -3,6 +3,10 @@ import { allowAdminOnly } from '../utils/access-control'
 import { list } from '@keystone-6/core'
 import { text, select, relationship, integer } from '@keystone-6/core/fields'
 import { createMessageServicesTranslationHook } from '../utils/message-services-translation-hook'
+import { createContentJsonExportHook } from '../utils/content-json-export-hook'
+
+const translationAfterContent = createMessageServicesTranslationHook('content')
+const exportContentJsonAfterOperation = createContentJsonExportHook()
 
 const listConfigurations = list({
   db: {
@@ -148,7 +152,10 @@ const listConfigurations = list({
     },
   },
   hooks: {
-    afterOperation: createMessageServicesTranslationHook('content'),
+    afterOperation: async (args) => {
+      await translationAfterContent(args)
+      await exportContentJsonAfterOperation(args)
+    },
   },
 })
 
