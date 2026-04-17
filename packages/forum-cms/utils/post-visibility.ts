@@ -41,7 +41,7 @@ export function isCmsRequest(context: KeystoneContext): boolean {
 /**
  * 文章可見性：
  * - published：所有人可見
- * - hidden：僅文章作者本人可見（memberId 必須相符）
+ * - 作者本人：可見自己所有非 archived 狀態文章
  */
 export function buildPostVisibilityWhere(memberId: number | null): WhereInput {
   if (memberId == null) {
@@ -52,7 +52,7 @@ export function buildPostVisibilityWhere(memberId: number | null): WhereInput {
       { status: { equals: 'published' } },
       {
         AND: [
-          { status: { equals: 'hidden' } },
+          { status: { not: { equals: 'archived' } } },
           { author: { id: { equals: memberId } } },
         ],
       },

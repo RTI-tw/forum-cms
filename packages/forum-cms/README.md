@@ -139,8 +139,8 @@ npm run dev
 - 未登入（無有效 member Bearer token）：只能看到 `post.status = published`。
 - 已登入會員：
   - 可看到 `post.status = published`。
-  - 也可看到 `post.status = hidden` 且 `post.author = 自己`。
-  - **看不到** `post.status = hidden` 且 `post.author != 自己`。
+  - 也可看到 `post.author = 自己` 且 `post.status != archived` 的文章。
+  - **看不到** `post.status != published` 且 `post.author != 自己` 的文章。
 - CMS 請求（Keystone session）不受此前台可見性限制。
 
 #### 前端 where 寫法建議
