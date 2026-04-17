@@ -10,7 +10,10 @@
 import type { KeystoneContext } from '@keystone-6/core/types'
 
 import envVar from '../environment-variables'
-import { getSessionUserId } from './official-member-from-session'
+import {
+  getOfficialMemberIdForSessionUser,
+  getSessionUserId,
+} from './official-member-from-session'
 
 /** 與 `environment-variables` 的 `accessControlStrategy` 一致：僅 `cms` 時啟用本檔審核邏輯 */
 function isCmsContentModerationActive(): boolean {
@@ -70,6 +73,18 @@ function pickKeys<T extends Record<string, unknown>>(
   return out
 }
 
+async function canEditOwnOfficialMemberContent(
+  context: KeystoneContext,
+  member: { id: number; isOfficial: boolean } | null | undefined
+): Promise<boolean> {
+  if (!member?.isOfficial) {
+    return false
+  }
+
+  const officialMemberId = await getOfficialMemberIdForSessionUser(context)
+  return officialMemberId != null && officialMemberId === member.id
+}
+
 export async function applyPostUpdateCmsRules(
   context: KeystoneContext,
   operation: string,
@@ -88,9 +103,9 @@ export async function applyPostUpdateCmsRules(
 
   const post = await context.prisma.post.findUnique({
     where: { id: postId },
-    include: { author: { select: { isOfficial: true } } },
+    include: { author: { select: { id: true, isOfficial: true } } },
   })
-  if (!post?.author || post.author.isOfficial) {
+  if (await canEditOwnOfficialMemberContent(context, post?.author)) {
     return resolvedData
   }
   return omitKeys(resolvedData, POST_UPDATE_DENIED_NON_OFFICIAL_ORIGINAL)
@@ -114,9 +129,9 @@ export async function applyCommentUpdateCmsRules(
 
   const row = await context.prisma.comment.findUnique({
     where: { id: commentId },
-    include: { member: { select: { isOfficial: true } } },
+    include: { member: { select: { id: true, isOfficial: true } } },
   })
-  if (!row?.member || row.member.isOfficial) {
+  if (await canEditOwnOfficialMemberContent(context, row?.member)) {
     return resolvedData
   }
   return omitKeys(resolvedData, COMMENT_UPDATE_DENIED_NON_OFFICIAL_ORIGINAL)
