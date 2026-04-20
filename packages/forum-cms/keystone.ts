@@ -2479,6 +2479,46 @@ const baseKeystoneConfig = config({
                 res.status(200).json({ status: "healthy" });
             });
 
+            app.get("/api/admin-navigation-counts", async (req, res) => {
+                try {
+                    const keystoneContext = await context.withRequest(req, res);
+
+                    if (!keystoneContext.session?.itemId) {
+                        return res.status(401).json({ message: "Unauthorized" });
+                    }
+
+                    const [pendingReports, pendingPosts] = await Promise.all([
+                        keystoneContext.prisma.report.count({
+                            where: { status: "pending" },
+                        }),
+                        keystoneContext.prisma.post.count({
+                            where: { status: "pending" },
+                        }),
+                    ]);
+
+                    return res.status(200).json({
+                        pendingReports,
+                        pendingPosts,
+                    });
+                } catch (error) {
+                    console.error(
+                        JSON.stringify({
+                            severity: "ERROR",
+                            message: "Failed to build admin navigation counters",
+                            type: "ADMIN_NAVIGATION_COUNTS",
+                            error:
+                                error instanceof Error
+                                    ? error.message
+                                    : String(error),
+                            timestamp: new Date().toISOString(),
+                        }),
+                    );
+                    return res.status(500).json({
+                        message: "Failed to load admin navigation counters",
+                    });
+                }
+            });
+
             app.use(async (req, res, next) => {
                 try {
                     const path = req.path || "";
