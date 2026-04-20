@@ -2487,18 +2487,34 @@ const baseKeystoneConfig = config({
                         return res.status(401).json({ message: "Unauthorized" });
                     }
 
-                    const [pendingReports, pendingPosts] = await Promise.all([
+                    const todayStart = new Date();
+                    todayStart.setHours(0, 0, 0, 0);
+                    const tomorrowStart = new Date(todayStart);
+                    tomorrowStart.setDate(todayStart.getDate() + 1);
+
+                    const [pendingReports, pendingPosts, rejectedPostsToday] =
+                        await Promise.all([
                         keystoneContext.prisma.report.count({
                             where: { status: "pending" },
                         }),
                         keystoneContext.prisma.post.count({
                             where: { status: "pending" },
                         }),
+                        keystoneContext.prisma.post.count({
+                            where: {
+                                status: "reject",
+                                updatedAt: {
+                                    gte: todayStart,
+                                    lt: tomorrowStart,
+                                },
+                            },
+                        }),
                     ]);
 
                     return res.status(200).json({
                         pendingReports,
                         pendingPosts,
+                        rejectedPostsToday,
                     });
                 } catch (error) {
                     console.error(

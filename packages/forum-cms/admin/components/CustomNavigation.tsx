@@ -6,14 +6,16 @@ import {
   type NavigationProps,
 } from '@keystone-6/core/admin-ui/components'
 
-type PendingCounts = {
+type NavigationCounts = {
   pendingReports: number
   pendingPosts: number
+  rejectedPostsToday: number
 }
 
-const EMPTY_COUNTS: PendingCounts = {
+const EMPTY_COUNTS: NavigationCounts = {
   pendingReports: 0,
   pendingPosts: 0,
+  rejectedPostsToday: 0,
 }
 
 function SectionTitle({ title }: { title: string }) {
@@ -34,7 +36,7 @@ function SectionTitle({ title }: { title: string }) {
 }
 
 export function CustomNavigation({ lists }: NavigationProps) {
-  const [counts, setCounts] = useState<PendingCounts>(EMPTY_COUNTS)
+  const [counts, setCounts] = useState<NavigationCounts>(EMPTY_COUNTS)
 
   useEffect(() => {
     let isActive = true
@@ -53,7 +55,7 @@ export function CustomNavigation({ lists }: NavigationProps) {
           return
         }
 
-        const payload = (await response.json()) as Partial<PendingCounts>
+        const payload = (await response.json()) as Partial<NavigationCounts>
 
         if (!isActive) {
           return
@@ -66,6 +68,10 @@ export function CustomNavigation({ lists }: NavigationProps) {
               : 0,
           pendingPosts:
             typeof payload.pendingPosts === 'number' ? payload.pendingPosts : 0,
+          rejectedPostsToday:
+            typeof payload.rejectedPostsToday === 'number'
+              ? payload.rejectedPostsToday
+              : 0,
         })
       } catch (_error) {
         // Keep sidebar usable even if count API fails.
@@ -88,20 +94,34 @@ export function CustomNavigation({ lists }: NavigationProps) {
     [lists]
   )
 
+  const getStatusEmoji = (count: number) => {
+    if (count <= 5) {
+      return '🟢'
+    }
+    if (count <= 10) {
+      return '🟡'
+    }
+    return '🔴'
+  }
+
   return (
     <NavigationContainer>
       <NavItem href="/">Dashboard</NavItem>
 
       {hasReportList ? (
         <>
-          <SectionTitle title={`檢舉管理 🔴 ${counts.pendingReports}`} />
+          <SectionTitle
+            title={`檢舉管理 ${getStatusEmoji(counts.pendingReports)} ${counts.pendingReports}`}
+          />
           <ListNavItems lists={lists} include={['Report']} />
         </>
       ) : null}
 
       {hasPostList ? (
         <>
-          <SectionTitle title={`貼文待審 🔵 ${counts.pendingPosts}`} />
+          <SectionTitle
+            title={`貼文待審 ${getStatusEmoji(counts.pendingPosts)} ${counts.pendingPosts}${getStatusEmoji(counts.rejectedPostsToday)} ${counts.rejectedPostsToday}`}
+          />
           <ListNavItems lists={lists} include={['Post']} />
         </>
       ) : null}
