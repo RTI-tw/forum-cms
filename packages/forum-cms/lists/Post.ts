@@ -141,13 +141,12 @@ const listConfigurations = list({
         }),
         ip: text({ label: '發文 IP' }),
         spamScore: float({
-            label: 'SPAM 分數（0–1）',
+            label: 'AI 違規分數（0–1）',
             validation: { min: 0, max: 1 },
             db: { isNullable: true },
             ui: {
-                createView: { fieldMode: 'hidden' },
-                itemView: { fieldMode: 'hidden' },
-                listView: { fieldMode: 'hidden' },
+                itemView: { fieldMode: 'read' },
+                listView: { fieldMode: 'read' },
             },
         }),
         isEditorChoice: checkbox({
@@ -285,6 +284,7 @@ const listConfigurations = list({
                 'title',
                 'author',
                 'status',
+                'spamScore',
                 'isBoost',
                 'heroImages',
                 'commentCount',
