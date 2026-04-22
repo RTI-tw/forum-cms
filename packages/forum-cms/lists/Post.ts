@@ -31,10 +31,17 @@ function normText(value: unknown): string {
     return String(value ?? '').trim()
 }
 
+function toFiniteNumber(value: unknown): number | null {
+    if (typeof value === 'number') return Number.isFinite(value) ? value : null
+    if (value == null) return null
+    const n = Number(value)
+    return Number.isFinite(n) ? n : null
+}
+
 /**
  * 欄位對應需求：標題原文（必填、≤80 字）、五語標題、貼文原文（必填）、五語內容、
  * 原始語言（必填）、作者（央廣後台預設 OfficialMapping 會員）、發文時間、已編輯、IP、SPAM、
- * 編輯精選／生活須知／置頂 boost（checkbox 旗標）、暫停自動翻譯、主題（選填，僅能單選）、狀態、主圖（多張 Photo）、關聯影片、
+ * 編輯精選／生活須知／置頂 boost（checkbox 旗標）、主題（選填，僅能單選）、狀態、主圖（多張 Photo）、關聯影片、
  * 投票、留言、留言數、反應、反應數、檢舉。留言數／反應數由 Comment／Reaction 的 hook 同步。
  */
 const listConfigurations = list({
@@ -105,14 +112,6 @@ const listConfigurations = list({
         content_th: text({
             label: '貼文（泰文）',
             ui: { displayMode: 'textarea' },
-        }),
-        pauseAutoTranslation: checkbox({
-            label: '暫停自動翻譯',
-            defaultValue: false,
-            ui: {
-                description:
-                    '勾選後不會觸發 message-services 自動翻譯（標題／內文五語）。可自行編輯譯文。',
-            },
         }),
         author: relationship({
             ref: 'Member.posts',
@@ -408,6 +407,19 @@ const listConfigurations = list({
             await translationAfterPost(args)
             const { operation, item, context } = args
             if (operation === 'delete') return
+            const row = item as {
+                id?: unknown
+                spamScore?: unknown
+                status?: unknown
+            }
+            const spamScore = toFiniteNumber(row.spamScore)
+            const status = typeof row.status === 'string' ? row.status : null
+            const nextStatus =
+                spamScore != null && spamScore > 0.8
+                    ? 'reject'
+                    : spamScore != null && spamScore < 0.5 && status === 'pending'
+                      ? 'published'
+                      : null
             const rawId = (item as { id?: unknown })?.id
             const postId =
                 typeof rawId === 'number'
@@ -415,6 +427,16 @@ const listConfigurations = list({
                     : rawId != null
                       ? Number(rawId)
                       : NaN
+            if (
+                nextStatus != null &&
+                Number.isFinite(postId) &&
+                nextStatus !== status
+            ) {
+                await context.prisma.post.update({
+                    where: { id: postId },
+                    data: { status: nextStatus },
+                })
+            }
             if (Number.isFinite(postId)) {
                 await syncEditorChoiceStateForPostId(context, postId)
             }

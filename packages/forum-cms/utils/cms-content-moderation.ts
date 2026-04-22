@@ -1,6 +1,7 @@
 /**
  * CMS 角色與內容審核規則（Admin / Editor）：
- * - 非官方作者之貼文／留言：**不可**透過後台修改使用者貼上的**原文標題與內文**
+ * - 非目前 CMS 使用者 OfficialMapping 對應前台會員之貼文／留言：
+ *   **不可**透過後台修改使用者貼上的**原文標題與內文**
  *   （Post：`title`、`content`；Comment：`content`）；譯文、原始語言、狀態、旗標、主圖、關聯等其餘欄位可更新。
  * - 投票：僅可改譯文，不可改說明／選項原文／票數（仍以白名單實作）。
  *
@@ -73,11 +74,11 @@ function pickKeys<T extends Record<string, unknown>>(
   return out
 }
 
-async function canEditOwnOfficialMemberContent(
+async function canEditMappedMemberContent(
   context: KeystoneContext,
-  member: { id: number; isOfficial: boolean } | null | undefined
+  member: { id: number } | null | undefined
 ): Promise<boolean> {
-  if (!member?.isOfficial) {
+  if (!member?.id) {
     return false
   }
 
@@ -103,9 +104,9 @@ export async function applyPostUpdateCmsRules(
 
   const post = await context.prisma.post.findUnique({
     where: { id: postId },
-    include: { author: { select: { id: true, isOfficial: true } } },
+    include: { author: { select: { id: true } } },
   })
-  if (await canEditOwnOfficialMemberContent(context, post?.author)) {
+  if (await canEditMappedMemberContent(context, post?.author)) {
     return resolvedData
   }
   return omitKeys(resolvedData, POST_UPDATE_DENIED_NON_OFFICIAL_ORIGINAL)
@@ -129,9 +130,9 @@ export async function applyCommentUpdateCmsRules(
 
   const row = await context.prisma.comment.findUnique({
     where: { id: commentId },
-    include: { member: { select: { id: true, isOfficial: true } } },
+    include: { member: { select: { id: true } } },
   })
-  if (await canEditOwnOfficialMemberContent(context, row?.member)) {
+  if (await canEditMappedMemberContent(context, row?.member)) {
     return resolvedData
   }
   return omitKeys(resolvedData, COMMENT_UPDATE_DENIED_NON_OFFICIAL_ORIGINAL)

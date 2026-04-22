@@ -812,7 +812,6 @@ type Post {
   content_vi: String
   content_id: String
   content_th: String
-  pauseAutoTranslation: Boolean
   author: Member
   published_date: DateTime
   is_edited: Boolean
@@ -884,7 +883,6 @@ input PostWhereInput {
   content_vi: StringFilter
   content_id: StringFilter
   content_th: StringFilter
-  pauseAutoTranslation: BooleanFilter
   author: MemberWhereInput
   published_date: DateTimeNullableFilter
   is_edited: BooleanFilter
@@ -974,7 +972,6 @@ input PostOrderByInput {
   content_vi: OrderDirection
   content_id: OrderDirection
   content_th: OrderDirection
-  pauseAutoTranslation: OrderDirection
   published_date: OrderDirection
   is_edited: OrderDirection
   ip: OrderDirection
@@ -1003,7 +1000,6 @@ input PostUpdateInput {
   content_vi: String
   content_id: String
   content_th: String
-  pauseAutoTranslation: Boolean
   author: MemberRelateToOneForUpdateInput
   published_date: DateTime
   is_edited: Boolean
@@ -1088,7 +1084,6 @@ input PostCreateInput {
   content_vi: String
   content_id: String
   content_th: String
-  pauseAutoTranslation: Boolean
   author: MemberRelateToOneForCreateInput
   published_date: DateTime
   is_edited: Boolean
@@ -2573,129 +2568,6 @@ input PhotoCreateInput {
   updatedBy: UserRelateToOneForCreateInput
 }
 
-type Category {
-  id: ID!
-  title: String
-  slug: String
-  summary: String
-  priority: Int
-  createdAt: DateTime
-  updatedAt: DateTime
-  createdBy: User
-  updatedBy: User
-}
-
-input CategoryWhereUniqueInput {
-  id: ID
-  slug: String
-}
-
-input CategoryWhereInput {
-  AND: [CategoryWhereInput!]
-  OR: [CategoryWhereInput!]
-  NOT: [CategoryWhereInput!]
-  id: IDFilter
-  title: StringFilter
-  slug: StringFilter
-  summary: StringFilter
-  priority: IntFilter
-  createdAt: DateTimeNullableFilter
-  updatedAt: DateTimeNullableFilter
-  createdBy: UserWhereInput
-  updatedBy: UserWhereInput
-}
-
-input CategoryOrderByInput {
-  id: OrderDirection
-  title: OrderDirection
-  slug: OrderDirection
-  summary: OrderDirection
-  priority: OrderDirection
-  createdAt: OrderDirection
-  updatedAt: OrderDirection
-}
-
-input CategoryUpdateInput {
-  title: String
-  slug: String
-  summary: String
-  priority: Int
-  createdAt: DateTime
-  updatedAt: DateTime
-  createdBy: UserRelateToOneForUpdateInput
-  updatedBy: UserRelateToOneForUpdateInput
-}
-
-input CategoryUpdateArgs {
-  where: CategoryWhereUniqueInput!
-  data: CategoryUpdateInput!
-}
-
-input CategoryCreateInput {
-  title: String
-  slug: String
-  summary: String
-  priority: Int
-  createdAt: DateTime
-  updatedAt: DateTime
-  createdBy: UserRelateToOneForCreateInput
-  updatedBy: UserRelateToOneForCreateInput
-}
-
-type Tag {
-  id: ID!
-  name: String
-  createdAt: DateTime
-  updatedAt: DateTime
-  createdBy: User
-  updatedBy: User
-}
-
-input TagWhereUniqueInput {
-  id: ID
-  name: String
-}
-
-input TagWhereInput {
-  AND: [TagWhereInput!]
-  OR: [TagWhereInput!]
-  NOT: [TagWhereInput!]
-  id: IDFilter
-  name: StringFilter
-  createdAt: DateTimeNullableFilter
-  updatedAt: DateTimeNullableFilter
-  createdBy: UserWhereInput
-  updatedBy: UserWhereInput
-}
-
-input TagOrderByInput {
-  id: OrderDirection
-  name: OrderDirection
-  createdAt: OrderDirection
-  updatedAt: OrderDirection
-}
-
-input TagUpdateInput {
-  name: String
-  createdAt: DateTime
-  updatedAt: DateTime
-  createdBy: UserRelateToOneForUpdateInput
-  updatedBy: UserRelateToOneForUpdateInput
-}
-
-input TagUpdateArgs {
-  where: TagWhereUniqueInput!
-  data: TagUpdateInput!
-}
-
-input TagCreateInput {
-  name: String
-  createdAt: DateTime
-  updatedAt: DateTime
-  createdBy: UserRelateToOneForCreateInput
-  updatedBy: UserRelateToOneForCreateInput
-}
-
 type Ad {
   id: ID!
   title: String
@@ -2899,18 +2771,6 @@ type Mutation {
   updatePhotos(data: [PhotoUpdateArgs!]!): [Photo]
   deletePhoto(where: PhotoWhereUniqueInput!): Photo
   deletePhotos(where: [PhotoWhereUniqueInput!]!): [Photo]
-  createCategory(data: CategoryCreateInput!): Category
-  createCategories(data: [CategoryCreateInput!]!): [Category]
-  updateCategory(where: CategoryWhereUniqueInput!, data: CategoryUpdateInput!): Category
-  updateCategories(data: [CategoryUpdateArgs!]!): [Category]
-  deleteCategory(where: CategoryWhereUniqueInput!): Category
-  deleteCategories(where: [CategoryWhereUniqueInput!]!): [Category]
-  createTag(data: TagCreateInput!): Tag
-  createTags(data: [TagCreateInput!]!): [Tag]
-  updateTag(where: TagWhereUniqueInput!, data: TagUpdateInput!): Tag
-  updateTags(data: [TagUpdateArgs!]!): [Tag]
-  deleteTag(where: TagWhereUniqueInput!): Tag
-  deleteTags(where: [TagWhereUniqueInput!]!): [Tag]
   createAd(data: AdCreateInput!): Ad
   createAds(data: [AdCreateInput!]!): [Ad]
   updateAd(where: AdWhereUniqueInput!, data: AdUpdateInput!): Ad
@@ -3040,12 +2900,6 @@ type Query {
   photo(where: PhotoWhereUniqueInput!): Photo
   photos(where: PhotoWhereInput! = {}, orderBy: [PhotoOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: PhotoWhereUniqueInput): [Photo!]
   photosCount(where: PhotoWhereInput! = {}): Int
-  category(where: CategoryWhereUniqueInput!): Category
-  categories(where: CategoryWhereInput! = {}, orderBy: [CategoryOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: CategoryWhereUniqueInput): [Category!]
-  categoriesCount(where: CategoryWhereInput! = {}): Int
-  tag(where: TagWhereUniqueInput!): Tag
-  tags(where: TagWhereInput! = {}, orderBy: [TagOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: TagWhereUniqueInput): [Tag!]
-  tagsCount(where: TagWhereInput! = {}): Int
   ad(where: AdWhereUniqueInput!): Ad
   ads(where: AdWhereInput! = {}, orderBy: [AdOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: AdWhereUniqueInput): [Ad!]
   adsCount(where: AdWhereInput! = {}): Int

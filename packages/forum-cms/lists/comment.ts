@@ -29,6 +29,13 @@ import {
 const translationAfterComment =
   createMessageServicesTranslationHook('comment')
 
+function toFiniteNumber(value: unknown): number | null {
+  if (typeof value === 'number') return Number.isFinite(value) ? value : null
+  if (value == null) return null
+  const n = Number(value)
+  return Number.isFinite(n) ? n : null
+}
+
 const listConfigurations = list({
   fields: {
     content: text({ validation: { isRequired: false }, label: '原文內容' }),
@@ -216,6 +223,32 @@ const listConfigurations = list({
     afterOperation: async (args) => {
       await translationAfterComment(args)
       const { operation, item, originalItem, context } = args
+      const row = item as {
+        id?: unknown
+        spamScore?: unknown
+        status?: unknown
+      }
+      if (operation !== 'delete') {
+        const commentId = toFiniteNumber(row.id)
+        const spamScore = toFiniteNumber(row.spamScore)
+        const status = typeof row.status === 'string' ? row.status : null
+        const nextStatus =
+          spamScore != null && spamScore > 0.8
+            ? 'reject'
+            : spamScore != null && spamScore < 0.5 && status === 'pending'
+              ? 'published'
+              : null
+        if (
+          nextStatus != null &&
+          commentId != null &&
+          nextStatus !== status
+        ) {
+          await context.prisma.comment.update({
+            where: { id: commentId },
+            data: { status: nextStatus },
+          })
+        }
+      }
       const getPostId = (
         r: Record<string, unknown> | null | undefined
       ): number | null => {

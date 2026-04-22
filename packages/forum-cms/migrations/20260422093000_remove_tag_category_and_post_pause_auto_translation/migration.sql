@@ -1,0 +1,4 @@
+ALTER TABLE "Post" DROP COLUMN IF EXISTS "pauseAutoTranslation";
+
+DROP TABLE IF EXISTS "Category";
+DROP TABLE IF EXISTS "Tag";

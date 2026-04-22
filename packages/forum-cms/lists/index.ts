@@ -15,8 +15,6 @@ import Report from './report'
 import ForbiddenKeyword from './forbidden-keyword'
 import Video from './video'
 import Image from './image'
-import Category from './category'
-import Tag from './tag'
 import Ad from './ad'
 
 export const listDefinition = {
@@ -37,7 +35,5 @@ export const listDefinition = {
   ForbiddenKeyword,
   Video,
   Photo: Image,
-  Category,
-  Tag,
   Ad,
 }
