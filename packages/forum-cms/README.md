@@ -123,13 +123,13 @@ ACCESS_CONTROL_STRATEGY=gql npm run dev
 
 ```bash
 ACCESS_CONTROL_STRATEGY=api \
-ACCESS_CONTROL_API_RULES_JSON='{"Post":"read","Comment":"read_write","User":"none","Photo":"read","*":"none"}' \
+ACCESS_CONTROL_API_RULES_JSON='{"Post":"read","Comment":"read_write","PollVote":"read_write","User":"none","Photo":"read","*":"none"}' \
 npm run dev
 ```
 
-**說明**：上例中 `Post`、`Photo` 僅可查詢；`Comment` 可查可寫；`User` 與其他未列名的 list 為 `none`（若某 list 未出現在 JSON，且設了 `"*":"none"`，則走 `none`）。
+**說明**：上例中 `Post`、`Photo` 僅可查詢；`Comment`、`PollVote` 可查可寫；`User` 與其他未列名的 list 為 `none`（若某 list 未出現在 JSON，且設了 `"*":"none"`，則走 `none`）。
 
-**注意**：`api` 仍不驗證「哪一位會員／使用者」；僅限制 list 讀寫。部署時請在 **網路與雲端身分**上限制誰能打到 GraphQL（例如 **Cloud Run 需驗證 + `roles/run.invoker`、內部 LB、VPC／subnet、IAP** 等），勿將 endpoint 暴露在未受控的公網。
+**注意**：`api` 的 list 等級僅限制讀寫範圍；若 list 沒有額外 filter / hook，仍不會自動驗證「哪一位會員／使用者」。部署時請在 **網路與雲端身分**上限制誰能打到 GraphQL（例如 **Cloud Run 需驗證 + `roles/run.invoker`、內部 LB、VPC／subnet、IAP** 等），勿將 endpoint 暴露在未受控的公網。
 
 ### Profile 分頁：hidden 內容可見性規則（前端必讀）
 

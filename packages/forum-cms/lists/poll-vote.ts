@@ -39,8 +39,7 @@ const listConfigurations = list({
   access: {
     operation: {
       query: allowRoles(admin, moderator, editor),
-      /** 投票紀錄不可於後台修改（避免竄改結果）；僅可查詢／維護性刪除由 Admin 處理。 */
-      update: async () => false,
+      update: allowRoles(admin, moderator, editor),
       create: allowRoles(admin, moderator, editor),
       delete: allowRoles(admin, editor),
     },
@@ -54,9 +53,31 @@ const listConfigurations = list({
           },
         }
       },
+      update: ({ context }) => {
+        if (isCmsRequest(context)) return true
+        const memberId = getAuthenticatedMemberId(context)
+        if (!memberId) return false
+        return { member: { id: { equals: memberId } } }
+      },
     },
   },
   hooks: {
+    resolveInput: ({ operation, resolvedData, context }) => {
+      if (isCmsRequest(context)) return resolvedData
+
+      const memberId = getAuthenticatedMemberId(context)
+      if (!memberId) {
+        throw new Error('投票紀錄需要有效的會員登入狀態')
+      }
+
+      const data = { ...resolvedData }
+      if (operation === 'create') {
+        data.member = { connect: { id: memberId } }
+      } else if (operation === 'update') {
+        delete data.member
+      }
+      return data
+    },
     afterOperation: async ({ operation, item, originalItem, context }) => {
       const pollIds: number[] = []
       const optionIds: number[] = []
