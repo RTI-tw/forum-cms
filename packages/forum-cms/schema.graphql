@@ -817,6 +817,7 @@ type Post {
   is_edited: Boolean
   ip: String
   spamScore: Float
+  displayPendingWarning: Boolean
   isEditorChoice: Boolean
   isLifeGuide: Boolean
   isBoost: Boolean

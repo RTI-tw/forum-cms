@@ -1,6 +1,6 @@
 import { utils } from '@mirrormedia/lilith-core'
 import { allowRoles, admin, moderator, editor } from '../utils/access-control'
-import { list } from '@keystone-6/core'
+import { graphql, list } from '@keystone-6/core'
 import {
     text,
     relationship,
@@ -9,6 +9,7 @@ import {
     timestamp,
     checkbox,
     integer,
+    virtual,
 } from '@keystone-6/core/fields'
 import { createMessageServicesTranslationHook } from '../utils/message-services-translation-hook'
 import {
@@ -143,6 +144,29 @@ const listConfigurations = list({
             label: 'AI 違規分數（0–1）',
             validation: { min: 0, max: 1 },
             db: { isNullable: true },
+            ui: {
+                itemView: { fieldMode: 'read' },
+                listView: { fieldMode: 'read' },
+            },
+        }),
+        displayPendingWarning: virtual({
+            label: '顯示 Pending 警示',
+            field: graphql.field({
+                type: graphql.Boolean,
+                resolve: (item) => {
+                    const row = item as {
+                        status?: unknown
+                        spamScore?: unknown
+                    }
+                    const spamScore = toFiniteNumber(row.spamScore)
+                    return (
+                        row.status === 'pending' &&
+                        spamScore != null &&
+                        spamScore >= 0.5 &&
+                        spamScore < 0.8
+                    )
+                },
+            }),
             ui: {
                 itemView: { fieldMode: 'read' },
                 listView: { fieldMode: 'read' },
