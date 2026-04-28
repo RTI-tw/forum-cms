@@ -439,9 +439,11 @@ const listConfigurations = list({
             const spamScore = toFiniteNumber(row.spamScore)
             const status = typeof row.status === 'string' ? row.status : null
             const nextStatus =
-                spamScore != null && spamScore > 0.8
+                spamScore != null && spamScore > 0.85
                     ? 'reject'
-                    : spamScore != null && spamScore < 0.5 && status === 'pending'
+                    : spamScore != null &&
+                        spamScore < 0.7 &&
+                        status === 'pending'
                       ? 'published'
                       : null
             const rawId = (item as { id?: unknown })?.id
