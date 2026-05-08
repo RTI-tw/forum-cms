@@ -3,6 +3,7 @@ import { allowAdminOnly } from '../utils/access-control'
 import { list } from '@keystone-6/core'
 import { text, relationship, checkbox, select, timestamp } from '@keystone-6/core/fields'
 import { nationalitySelectOptions } from '../utils/countries-data'
+import { computeIsCompleteProfile } from '../utils/member-profile'
 
 const hiddenFromCmsUi = {
   createView: { fieldMode: 'hidden' as const },
@@ -88,6 +89,10 @@ const listConfigurations = list({
       label: '已驗證',
       defaultValue: false,
     }),
+    isCompleteProfile: checkbox({
+      label: '已完成個人資料',
+      defaultValue: false,
+    }),
     comment: relationship({
       label: '留言',
       ref: 'Comment.member',
@@ -144,7 +149,13 @@ const listConfigurations = list({
     label: '會員',
     labelField: 'customId',
     listView: {
-      initialColumns: ['nickname', 'email', 'status', 'nationality'],
+      initialColumns: [
+        'nickname',
+        'email',
+        'status',
+        'isCompleteProfile',
+        'nationality',
+      ],
     },
   },
   access: {
@@ -159,7 +170,18 @@ const listConfigurations = list({
     resolveInput: ({ resolvedData, item }) => {
       const typedItem = item as any
       if (!typedItem) {
-        // Create flow: keep firebaseId/email as-is.
+        const nextFirebaseId = resolvedData.firebaseId
+        const nextCustomId = resolvedData.customId
+        const nextName = resolvedData.name
+        const nextNickname = resolvedData.nickname
+        resolvedData.isCompleteProfile = computeIsCompleteProfile({
+          firebaseId:
+            typeof nextFirebaseId === 'string' ? nextFirebaseId : undefined,
+          customId: typeof nextCustomId === 'string' ? nextCustomId : undefined,
+          name: typeof nextName === 'string' ? nextName : undefined,
+          nickname:
+            typeof nextNickname === 'string' ? nextNickname : undefined,
+        })
         return resolvedData
       }
       const prevStatus = typedItem?.status ?? 'active'
@@ -178,6 +200,25 @@ const listConfigurations = list({
         resolvedData.firebaseId = restored.firebaseId
         resolvedData.email = restored.email
       }
+
+      resolvedData.isCompleteProfile = computeIsCompleteProfile({
+        firebaseId:
+          typeof (resolvedData.firebaseId ?? typedItem?.firebaseId) === 'string'
+            ? (resolvedData.firebaseId ?? typedItem?.firebaseId)
+            : undefined,
+        customId:
+          typeof (resolvedData.customId ?? typedItem?.customId) === 'string'
+            ? (resolvedData.customId ?? typedItem?.customId)
+            : undefined,
+        name:
+          typeof (resolvedData.name ?? typedItem?.name) === 'string'
+            ? (resolvedData.name ?? typedItem?.name)
+            : undefined,
+        nickname:
+          typeof (resolvedData.nickname ?? typedItem?.nickname) === 'string'
+            ? (resolvedData.nickname ?? typedItem?.nickname)
+            : undefined,
+      })
 
       return resolvedData
     },
