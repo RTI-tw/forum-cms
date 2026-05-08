@@ -218,6 +218,7 @@ type Member {
   email: String
   status: MemberStatusType
   verified: Boolean
+  isCompleteProfile: Boolean
   comment(where: CommentWhereInput! = {}, orderBy: [CommentOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: CommentWhereUniqueInput): [Comment!]
   commentCount(where: CommentWhereInput! = {}): Int
   posts(where: PostWhereInput! = {}, orderBy: [PostOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: PostWhereUniqueInput): [Post!]
@@ -525,6 +526,7 @@ input MemberWhereInput {
   email: StringFilter
   status: MemberStatusTypeNullableFilter
   verified: BooleanFilter
+  isCompleteProfile: BooleanFilter
   comment: CommentManyRelationFilter
   posts: PostManyRelationFilter
   memberPolls: PollManyRelationFilter
@@ -594,6 +596,7 @@ input MemberOrderByInput {
   email: OrderDirection
   status: OrderDirection
   verified: OrderDirection
+  isCompleteProfile: OrderDirection
   isOfficial: OrderDirection
   joinDate: OrderDirection
   language: OrderDirection
@@ -612,6 +615,7 @@ input MemberUpdateInput {
   email: String
   status: MemberStatusType
   verified: Boolean
+  isCompleteProfile: Boolean
   comment: CommentRelateToManyForUpdateInput
   posts: PostRelateToManyForUpdateInput
   memberPolls: PollRelateToManyForUpdateInput
@@ -681,6 +685,7 @@ input MemberCreateInput {
   email: String
   status: MemberStatusType
   verified: Boolean
+  isCompleteProfile: Boolean
   comment: CommentRelateToManyForCreateInput
   posts: PostRelateToManyForCreateInput
   memberPolls: PollRelateToManyForCreateInput
@@ -2799,6 +2804,7 @@ type MemberSessionMember {
   customId: String!
   name: String!
   nickname: String!
+  isCompleteProfile: Boolean!
   status: String!
   email: String
 }

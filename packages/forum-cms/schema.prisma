@@ -76,6 +76,7 @@ model Member {
   email                               String                 @unique @default("")
   status                              MemberStatusType       @default(inactive)
   verified                            Boolean                @default(false)
+  isCompleteProfile                   Boolean                @default(false)
   comment                             Comment[]              @relation("Comment_member")
   posts                               Post[]                 @relation("Post_author")
   memberPolls                         Poll[]                 @relation("Poll_member")

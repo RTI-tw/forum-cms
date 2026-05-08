@@ -2,6 +2,7 @@ import "dotenv/config";
 import { config, graphql } from "@keystone-6/core";
 import { listDefinition as lists } from "./lists";
 import envVar from "./environment-variables";
+import { computeIsCompleteProfile } from "./utils/member-profile";
 import express from "express";
 import { createAuth } from "@keystone-6/auth";
 import { statelessSessions } from "@keystone-6/core/session";
@@ -275,6 +276,7 @@ const MemberSessionMember = graphql.object<{
     customId: string;
     name: string;
     nickname: string;
+    isCompleteProfile: boolean;
     status: "active" | "inactive" | "banned" | "deleted";
     email?: string | null;
 }>()({
@@ -285,6 +287,7 @@ const MemberSessionMember = graphql.object<{
         customId: graphql.field({ type: graphql.nonNull(graphql.String) }),
         name: graphql.field({ type: graphql.nonNull(graphql.String) }),
         nickname: graphql.field({ type: graphql.nonNull(graphql.String) }),
+        isCompleteProfile: graphql.field({ type: graphql.nonNull(graphql.Boolean) }),
         status: graphql.field({ type: graphql.nonNull(graphql.String) }),
         email: graphql.field({ type: graphql.String }),
     },
@@ -299,6 +302,7 @@ const AuthenticateMemberWithFirebaseResult = graphql.object<{
         customId: string;
         name: string;
         nickname: string;
+        isCompleteProfile: boolean;
         status: "active" | "inactive" | "banned" | "deleted";
         email?: string | null;
     };
@@ -346,6 +350,7 @@ function mapMemberSessionMember(member: any) {
         customId: member.customId,
         name: member.name,
         nickname: member.nickname,
+        isCompleteProfile: Boolean(member.isCompleteProfile),
         status: member.status,
         email: member.email ?? null,
     };
@@ -507,6 +512,14 @@ const memberAuthSchemaExtension = graphql.extend(() => ({
                     ) {
                         updateData.email = firebaseEmail;
                     }
+                    updateData.isCompleteProfile = computeIsCompleteProfile({
+                        firebaseId,
+                        customId: customIdInput ?? existingMember.customId,
+                        name: nameInput ? display.name : existingMember.name,
+                        nickname: nicknameInput
+                            ? display.nickname
+                            : existingMember.nickname,
+                    });
 
                     member = Object.keys(updateData).length
                         ? await context.sudo().db.Member.updateOne({
@@ -522,6 +535,7 @@ const memberAuthSchemaExtension = graphql.extend(() => ({
                             name: display.name,
                             nickname: display.nickname,
                             email: firebaseEmail ?? undefined,
+                            isCompleteProfile: false,
                             status: "inactive",
                             verified: Boolean(decoded.email_verified),
                         },
