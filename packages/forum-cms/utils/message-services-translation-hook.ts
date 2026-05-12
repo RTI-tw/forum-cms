@@ -5,6 +5,7 @@ import {
   shouldPublishTranslationViaPubSub,
   warnMissingPubSubTopicOnce,
 } from './message-services-translation-pubsub'
+import { fetchWithTimeout } from './fetch-with-timeout'
 
 /** Keystone 的 afterOperation 可為函式或依操作分流物件；此 hook 僅為前者。 */
 type AfterOperationHookFn = Extract<
@@ -242,20 +243,25 @@ export function createMessageServicesTranslationHook(
         warnMissingPubSubTopicOnce()
       }
 
-      const syncRes = await fetch(`${baseUrl}/hooks/sync-translations`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
+      const syncRes = await fetchWithTimeout(
+        `${baseUrl}/hooks/sync-translations`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            type: entityType,
+            id,
+            source_text: sourceText,
+            ...(entityType === 'post' || entityType === 'content'
+              ? { source_title: sourceTitle }
+              : {}),
+          }),
         },
-        body: JSON.stringify({
-          type: entityType,
-          id,
-          source_text: sourceText,
-          ...(entityType === 'post' || entityType === 'content'
-            ? { source_title: sourceTitle }
-            : {}),
-        }),
-      })
+        envVar.messageServices.hookTimeoutMs,
+        `message-services sync-translations timed out after ${envVar.messageServices.hookTimeoutMs}ms`
+      )
       if (!syncRes.ok) {
         const bodyText = await syncRes.text()
         console.error(
