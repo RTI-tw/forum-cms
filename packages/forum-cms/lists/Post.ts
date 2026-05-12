@@ -168,8 +168,8 @@ const listConfigurations = list({
                 },
             }),
             ui: {
-                itemView: { fieldMode: 'read' },
-                listView: { fieldMode: 'read' },
+                itemView: { fieldMode: 'hidden' },
+                listView: { fieldMode: 'hidden' },
             },
         }),
         isEditorChoice: checkbox({

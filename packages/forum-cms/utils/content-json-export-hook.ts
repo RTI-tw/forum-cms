@@ -1,21 +1,22 @@
 import type { ListHooks } from '@keystone-6/core/types'
 import envVar from '../environment-variables'
+import { fetchWithTimeout } from './fetch-with-timeout'
 
 type AfterOperationHookFn = Extract<
   NonNullable<ListHooks<any>['afterOperation']>,
   (...args: any[]) => any
 >
 
-let warnedMissingMessageServicesUrl = false
+let warnedMissingCronServicesUrl = false
 
-function warnMissingMessageServicesUrlOnce() {
-  if (warnedMissingMessageServicesUrl) return
-  warnedMissingMessageServicesUrl = true
+function warnMissingCronServicesUrlOnce() {
+  if (warnedMissingCronServicesUrl) return
+  warnedMissingCronServicesUrl = true
   console.warn(
     JSON.stringify({
       severity: 'WARN',
       message:
-        'MESSAGE_SERVICES_URL 未設定，Content JSON export hook 不會呼叫 message-services。',
+        'CRON_SERVICES_URL 未設定，Content JSON export hook 不會呼叫 cron-services。',
       timestamp: new Date().toISOString(),
     })
   )
@@ -27,27 +28,28 @@ export function createContentJsonExportHook(): AfterOperationHookFn {
       return
     }
 
-    const baseUrl = envVar.messageServicesUrl?.replace(/\/$/, '')
+    const baseUrl = envVar.cronServicesUrl?.replace(/\/$/, '')
     if (!baseUrl) {
-      warnMissingMessageServicesUrlOnce()
+      warnMissingCronServicesUrlOnce()
       return
     }
 
     try {
-      const exportRes = await fetch(`${baseUrl}/export/contents-to-gcs`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
+      const exportRes = await fetchWithTimeout(
+        `${baseUrl}/export/contents-to-gcs`,
+        {
+          method: 'GET',
         },
-        body: JSON.stringify({}),
-      })
+        envVar.messageServices.hookTimeoutMs,
+        `cron-services export/contents-to-gcs timed out after ${envVar.messageServices.hookTimeoutMs}ms`
+      )
 
       if (!exportRes.ok) {
         const detail = await exportRes.text()
         console.error(
           JSON.stringify({
             severity: 'ERROR',
-            message: 'message-services export/contents-to-gcs failed',
+            message: 'cron-services export/contents-to-gcs failed',
             status: exportRes.status,
             operation,
             detail: detail.slice(0, 2000),
@@ -60,7 +62,7 @@ export function createContentJsonExportHook(): AfterOperationHookFn {
       console.info(
         JSON.stringify({
           severity: 'INFO',
-          message: 'message-services export/contents-to-gcs 已請求',
+          message: 'cron-services export/contents-to-gcs 已請求',
           status: exportRes.status,
           operation,
           bucket: envVar.gcs.bucket,
@@ -71,7 +73,7 @@ export function createContentJsonExportHook(): AfterOperationHookFn {
       console.error(
         JSON.stringify({
           severity: 'ERROR',
-          message: 'message-services export/contents-to-gcs request failed',
+          message: 'cron-services export/contents-to-gcs request failed',
           operation,
           error: error instanceof Error ? error.message : String(error),
           timestamp: new Date().toISOString(),

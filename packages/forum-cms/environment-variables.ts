@@ -41,6 +41,8 @@ const {
   MEMBER_SESSION_MAX_AGE,
   GRAPHQL_DISABLE_CSRF_PREVENTION,
   MESSAGE_SERVICES_URL,
+  CRON_SERVICES_URL,
+  MESSAGE_SERVICES_HOOK_TIMEOUT_MS,
   MESSAGE_SERVICES_TRANSLATION_PUBSUB_TOPIC,
   MESSAGE_SERVICES_TRANSLATION_PUBSUB_PROJECT_ID,
 } = process.env
@@ -55,6 +57,7 @@ const cacheConnectTimeout = Number(CACHE_CONNECT_TIMEOUT)
 const smtpPort = Number(SMTP_PORT)
 const passwordResetTokenTtl = Number(PASSWORD_RESET_TOKEN_TTL_MINUTES)
 const memberSessionMaxAge = Number(MEMBER_SESSION_MAX_AGE)
+const messageServicesHookTimeoutMs = Number(MESSAGE_SERVICES_HOOK_TIMEOUT_MS)
 
 export default {
   isUIDisabled: IS_UI_DISABLED === 'true',
@@ -144,7 +147,14 @@ export default {
   graphqlDisableCsrfPrevention: GRAPHQL_DISABLE_CSRF_PREVENTION === 'true',
   /** message-services 根 URL（例如 https://xxx.run.app），未設定則不觸發翻譯 hook */
   messageServicesUrl: (MESSAGE_SERVICES_URL || '').trim() || undefined,
+  /** cron-services 根 URL（例如 https://xxx.run.app），未設定則不觸發 Content JSON export hook */
+  cronServicesUrl: (CRON_SERVICES_URL || '').trim() || undefined,
   messageServices: {
+    hookTimeoutMs:
+      Number.isFinite(messageServicesHookTimeoutMs) &&
+      messageServicesHookTimeoutMs > 0
+        ? messageServicesHookTimeoutMs
+        : 10_000,
     translationPubsubTopic:
       (MESSAGE_SERVICES_TRANSLATION_PUBSUB_TOPIC || '').trim() || undefined,
     translationPubsubProjectId:
