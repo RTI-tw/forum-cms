@@ -33,6 +33,34 @@ steps:
       - push
       - 'gcr.io/$PROJECT_ID/$_IMAGE_NAME:${BRANCH_NAME}_${SHORT_SHA}'
 
+  # Generate SBOM with Syft (https://github.com/anchore/syft)
+  - name: gcr.io/cloud-builders/docker
+    id: Generate SBOM
+    entrypoint: bash
+    args:
+      - '-c'
+      - |
+        curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
+        syft gcr.io/$PROJECT_ID/$_IMAGE_NAME:${BRANCH_NAME}_${SHORT_SHA} \
+          -o spdx-json \
+          --file /workspace/sbom.spdx.json
+        echo "SBOM generated: $(python3 -c "import json; d=json.load(open('/workspace/sbom.spdx.json')); print(str(len(d.get('packages',[]))) + ' packages')" 2>/dev/null || echo 'see sbom.spdx.json')"
+
+  # Upload SBOM to Cloud Storage (set _SBOM_BUCKET in trigger substitutions to enable)
+  - name: gcr.io/cloud-builders/gsutil
+    id: Upload SBOM
+    entrypoint: bash
+    args:
+      - '-c'
+      - |
+        if [ -n "${_SBOM_BUCKET}" ]; then
+          gsutil cp /workspace/sbom.spdx.json \
+            gs://${_SBOM_BUCKET}/$_IMAGE_NAME/${BRANCH_NAME}_${SHORT_SHA}.spdx.json
+          echo "SBOM uploaded to gs://${_SBOM_BUCKET}/$_IMAGE_NAME/${BRANCH_NAME}_${SHORT_SHA}.spdx.json"
+        else
+          echo "SBOM generated but not uploaded. Set _SBOM_BUCKET in trigger substitutions to enable persistent storage."
+        fi
+
   # Deploy container image to Cloud Runs
   - name: gcr.io/cloud-builders/gcloud
     id: Deploy Image
@@ -66,3 +94,4 @@ substitutions:
   _CLOUD_RUN_SERVICE_NAMES: '' # default value
   _RECAPTCHA_ENABLED: 'false' # default value
   _RECAPTCHA_SITE_KEY: '' # default value
+  _SBOM_BUCKET: '' # optional: GCS bucket for SBOM storage, e.g. your-project-sbom
