@@ -18,6 +18,7 @@ import {
     assertPasswordStrength,
     isPasswordExpired,
     passwordPolicy,
+    resolvePasswordChangeRequirement,
     checkPasswordHistory,
     addToPasswordHistory,
 } from "./utils/password-policy";
@@ -2583,20 +2584,18 @@ const baseKeystoneConfig = config({
                         return next();
                     }
 
-                    let requiresChange = isPasswordExpired({
-                        passwordUpdatedAt: sessionData.passwordUpdatedAt,
-                        mustChangePassword: sessionData.mustChangePassword,
-                    });
-
-                    if (!requiresChange) {
-                        const fresh = await keystoneContext
-                            .sudo()
-                            .query.User.findOne({
-                                where: { id: sessionData.id },
-                                query: "passwordUpdatedAt mustChangePassword",
-                            });
-                        requiresChange = isPasswordExpired(fresh);
-                    }
+                    const requiresChange =
+                        await resolvePasswordChangeRequirement(
+                            {
+                                passwordUpdatedAt: sessionData.passwordUpdatedAt,
+                                mustChangePassword: sessionData.mustChangePassword,
+                            },
+                            () =>
+                                keystoneContext.sudo().query.User.findOne({
+                                    where: { id: sessionData.id },
+                                    query: "passwordUpdatedAt mustChangePassword",
+                                }),
+                        );
 
                     if (requiresChange && path !== CHANGE_PASSWORD_PATH) {
                         return res.redirect(CHANGE_PASSWORD_PATH);

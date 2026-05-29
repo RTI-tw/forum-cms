@@ -57,6 +57,24 @@ export function shouldForcePasswordChange(session?: {
     return isPasswordExpired(session?.data);
 }
 
+export async function resolvePasswordChangeRequirement(
+    subject?: PasswordPolicySubject | null,
+    loadFreshSubject?: () => Promise<PasswordPolicySubject | null | undefined>
+) {
+    const sessionRequiresChange = isPasswordExpired(subject);
+
+    if (!loadFreshSubject) {
+        return sessionRequiresChange;
+    }
+
+    const freshSubject = await loadFreshSubject();
+    if (!freshSubject) {
+        return sessionRequiresChange;
+    }
+
+    return isPasswordExpired(freshSubject);
+}
+
 export function assertPasswordStrength(password: string) {
     if (typeof password !== "string") {
         throw new Error(PASSWORD_REQUIREMENT_MESSAGE);
@@ -139,6 +157,7 @@ export const passwordPolicy = {
     isPasswordExpired,
     isPasswordValid,
     shouldForcePasswordChange,
+    resolvePasswordChangeRequirement,
     assertPasswordStrength,
     checkPasswordHistory,
     addToPasswordHistory,
