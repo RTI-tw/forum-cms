@@ -16,6 +16,7 @@ import { utils } from "@mirrormedia/lilith-core";
 import { createLoginLoggingPlugin } from "./utils/login-logging";
 import {
     assertPasswordStrength,
+    getPasswordChangeRequirement,
     isPasswordExpired,
     passwordPolicy,
     resolvePasswordChangeRequirement,
@@ -2087,28 +2088,13 @@ const passwordEnforcerClientScript = `
     return;
   }
 
+  ${getPasswordChangeRequirement.toString()}
+
   function currentPath() {
     if (typeof window === 'undefined' || !window.location) {
       return '/';
     }
     return window.location.pathname || '/';
-  }
-
-  function needsPasswordChange(user) {
-    if (!user || typeof user !== 'object') {
-      return false;
-    }
-    if (user.mustChangePassword) {
-      return true;
-    }
-    if (!user.passwordUpdatedAt) {
-      return true;
-    }
-    var ts = Date.parse(user.passwordUpdatedAt);
-    if (isNaN(ts)) {
-      return true;
-    }
-    return Date.now() - ts >= PASSWORD_MAX_AGE;
   }
 
   function redirectTo(path) {
@@ -2135,7 +2121,11 @@ const passwordEnforcerClientScript = `
       }
       return;
     }
-    if (needsPasswordChange(user)) {
+    var passwordChangeRequirement = getPasswordChangeRequirement(user, PASSWORD_MAX_AGE);
+    if (passwordChangeRequirement === null) {
+      return;
+    }
+    if (passwordChangeRequirement) {
       if (path !== CHANGE_PATH) {
         redirectTo(CHANGE_PATH);
       }

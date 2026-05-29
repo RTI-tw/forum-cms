@@ -57,6 +57,44 @@ export function shouldForcePasswordChange(session?: {
     return isPasswordExpired(session?.data);
 }
 
+export function getPasswordChangeRequirement(
+    subject: unknown,
+    passwordMaxAgeMs: number
+) {
+    if (!subject || typeof subject !== "object") {
+        return false;
+    }
+
+    const policySubject = subject as PasswordPolicySubject;
+    const hasMustChangePassword = Object.prototype.hasOwnProperty.call(
+        policySubject,
+        "mustChangePassword"
+    );
+    const hasPasswordUpdatedAt = Object.prototype.hasOwnProperty.call(
+        policySubject,
+        "passwordUpdatedAt"
+    );
+
+    if (!hasMustChangePassword && !hasPasswordUpdatedAt) {
+        return null;
+    }
+
+    if (policySubject.mustChangePassword) {
+        return true;
+    }
+
+    if (!hasPasswordUpdatedAt || !policySubject.passwordUpdatedAt) {
+        return true;
+    }
+
+    const ts = Date.parse(String(policySubject.passwordUpdatedAt));
+    if (Number.isNaN(ts)) {
+        return true;
+    }
+
+    return Date.now() - ts >= passwordMaxAgeMs;
+}
+
 export async function resolvePasswordChangeRequirement(
     subject?: PasswordPolicySubject | null,
     loadFreshSubject?: () => Promise<PasswordPolicySubject | null | undefined>
@@ -157,6 +195,7 @@ export const passwordPolicy = {
     isPasswordExpired,
     isPasswordValid,
     shouldForcePasswordChange,
+    getPasswordChangeRequirement,
     resolvePasswordChangeRequirement,
     assertPasswordStrength,
     checkPasswordHistory,
