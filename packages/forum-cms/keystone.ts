@@ -2523,10 +2523,30 @@ const baseKeystoneConfig = config({
                     contentSecurityPolicy: {
                         directives: {
                             defaultSrc: ["'self'"],
-                            scriptSrc: ["'self'", "'unsafe-inline'"], // Admin UI 目前需要 unsafe-inline；待收集 nonce 後收緊
+                            // [NEW-001] 補上 reCAPTCHA 所需的 Google domains；
+                            // Admin UI 目前仍需 unsafe-inline，待收集 nonce 後收緊。
+                            scriptSrc: [
+                                "'self'",
+                                "'unsafe-inline'",
+                                "https://www.google.com",   // reCAPTCHA api.js
+                                "https://www.gstatic.com",  // reCAPTCHA widget assets
+                            ],
                             styleSrc: ["'self'", "'unsafe-inline'"],
-                            imgSrc: ["'self'", "data:", "blob:", "https://storage.googleapis.com"],
-                            connectSrc: ["'self'"],
+                            imgSrc: [
+                                "'self'",
+                                "data:",
+                                "blob:",
+                                "https://storage.googleapis.com",
+                                "https://www.gstatic.com",  // reCAPTCHA images
+                            ],
+                            connectSrc: [
+                                "'self'",
+                                "https://www.google.com",   // reCAPTCHA verification XHR
+                                "https://www.gstatic.com",
+                            ],
+                            frameSrc: [
+                                "https://www.google.com",   // reCAPTCHA v2 iframe challenge
+                            ],
                             fontSrc: ["'self'", "data:"],
                             objectSrc: ["'none'"],
                             frameAncestors: ["'none'"],
@@ -2571,7 +2591,11 @@ const baseKeystoneConfig = config({
                                 "sendUserPasswordResetLink",
                                 "redeemUserPasswordResetToken",
                             ]
-                            const isAllowed = allowed.some((op) => query.includes(op))
+                            // [NEW-002] 改用 word-boundary regex，防止 fragment/comment 中
+                            // 包含允許關鍵字作為子字串而誤判通過。
+                            const isAllowed = allowed.some((op) =>
+                                new RegExp(`\\b${op}\\b`).test(query)
+                            )
                             if (!isAllowed) {
                                 return res.status(403).json({
                                     errors: [

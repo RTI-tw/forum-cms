@@ -30,6 +30,14 @@ function checkPasswordResetRateLimit(email: string, ip: string): boolean {
   entry.count++
   return true
 }
+
+// [NEW-003] 每小時清除過期的 rate limit 項目，防止 Map 無限增長。
+setInterval(() => {
+  const now = Date.now()
+  for (const [key, entry] of passwordResetRateMap) {
+    if (entry.expiresAt < now) passwordResetRateMap.delete(key)
+  }
+}, 60 * 60 * 1000).unref() // .unref() 確保此 timer 不阻止 process 正常退出
 const USER_QUERY_FIELDS =
   'id email name loginFailedAttempts accountLockedUntil lastFailedLoginAt passwordUpdatedAt mustChangePassword'
 
