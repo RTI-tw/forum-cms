@@ -2485,6 +2485,35 @@ const baseKeystoneConfig = config({
     server: {
         maxFileSize: 2000 * 1024 * 1024,
         extendExpressApp: (app, context) => {
+            // [AUTH-001] Server 啟動時驗證必要 secret，缺少或強度不足則中止。
+            // 此處執行而非 module import 時執行，是為了讓 `keystone build` /
+            // `keystone postinstall` 在 build container（無 Cloud Run secret）時能正常完成。
+            ;(function assertRequiredSecrets() {
+                const errors: string[] = []
+                const sessionSecret = process.env.SESSION_SECRET ?? ''
+                const memberSessionSecret = process.env.MEMBER_SESSION_SECRET ?? ''
+                if (!sessionSecret || sessionSecret.length < 32) {
+                    errors.push(
+                        'SESSION_SECRET 必須設定且長度至少 32 字元（目前：' +
+                            (sessionSecret ? `${sessionSecret.length} 字元` : '未設定') +
+                            '）',
+                    )
+                }
+                if (!memberSessionSecret || memberSessionSecret.length < 32) {
+                    errors.push(
+                        'MEMBER_SESSION_SECRET 必須設定且長度至少 32 字元（目前：' +
+                            (memberSessionSecret ? `${memberSessionSecret.length} 字元` : '未設定') +
+                            '）',
+                    )
+                }
+                if (errors.length > 0) {
+                    throw new Error(
+                        '[啟動失敗] 缺少必要 secret 設定，請檢查環境變數：\n' +
+                            errors.join('\n'),
+                    )
+                }
+            })()
+
             // [CONFIG-001] Security headers：CSP / HSTS / clickjacking / nosniff
             app.use(
                 helmet({
