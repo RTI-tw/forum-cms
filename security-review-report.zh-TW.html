@@ -1,0 +1,1839 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>forum-cms Codex Security Scan（繁中台灣版）</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #fff;
+      --bg-elev: #fafafa;
+      --bg-muted: #f5f5f7;
+      --fg: #111827;
+      --muted: #6b7280;
+      --border: #e5e7eb;
+      --accent: #2563eb;
+      --code: #f3f4f6;
+      --shadow: 0 4px 10px rgba(0, 0, 0, 0.06);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0b0f14;
+        --bg-elev: #0f141b;
+        --bg-muted: #121923;
+        --fg: #e5e7eb;
+        --muted: #9ca3af;
+        --border: #243040;
+        --accent: #60a5fa;
+        --code: #111827;
+        --shadow: 0 4px 10px rgba(0, 0, 0, 0.35);
+      }
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--fg);
+      font: 15px/1.55 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 280px minmax(0, 1fr);
+      min-height: 100vh;
+    }
+
+    body.sidebar-collapsed .layout { grid-template-columns: 44px minmax(0, 1fr); }
+
+    .sidebar {
+      min-height: 100vh;
+      border-right: 1px solid var(--border);
+      background: var(--bg-muted);
+    }
+
+    .toc-inner {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow: auto;
+      padding: 10px 8px;
+    }
+
+    .nav-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      margin: 0 0 8px;
+      text-transform: uppercase;
+    }
+
+    .nav-toggle {
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--fg);
+      border-radius: 8px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 5px;
+    }
+
+    .nav-toggle:hover { box-shadow: var(--shadow); }
+    .nav-meta { color: var(--muted); font-size: 12px; margin: 0 0 12px; padding: 0 4px; }
+
+    body.sidebar-collapsed .toc-inner {
+      display: flex;
+      align-items: center;
+      padding: 8px 6px;
+    }
+
+    body.sidebar-collapsed .nav-title span,
+    body.sidebar-collapsed .nav-meta,
+    body.sidebar-collapsed .toc { display: none; }
+
+    main { max-width: 1040px; padding: 32px 44px 80px; }
+    h1, h2, h3 { line-height: 1.2; margin-top: 1.7em; }
+    h1:first-child { margin-top: 0; }
+    h2 { border-top: 1px solid var(--border); padding-top: 1em; }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    code { background: var(--code); border-radius: 4px; padding: 0.1em 0.3em; }
+    pre { background: var(--code); border: 1px solid var(--border); border-radius: 8px; overflow: auto; padding: 16px; }
+    pre code { background: transparent; padding: 0; }
+    table { border-collapse: collapse; width: 100%; margin: 18px 0; }
+    th, td { border: 1px solid var(--border); padding: 8px 10px; vertical-align: top; }
+    th { text-align: left; background: var(--code); }
+
+    main h3[id^="0-"] + table,
+    main h3[id^="1-"] + table,
+    main h3[id^="2-"] + table,
+    main h3[id^="3-"] + table,
+    main h3[id^="4-"] + table,
+    main h3[id^="5-"] + table,
+    main h3[id^="6-"] + table,
+    main h3[id^="7-"] + table,
+    main h3[id^="8-"] + table,
+    main h3[id^="9-"] + table {
+      margin: 10px 0 24px;
+      border: 1px solid var(--border);
+      border-left: 4px solid var(--accent);
+      background: var(--bg-elev);
+      box-shadow: var(--shadow);
+    }
+
+    main h3[id^="0-"] + table th,
+    main h3[id^="1-"] + table th,
+    main h3[id^="2-"] + table th,
+    main h3[id^="3-"] + table th,
+    main h3[id^="4-"] + table th,
+    main h3[id^="5-"] + table th,
+    main h3[id^="6-"] + table th,
+    main h3[id^="7-"] + table th,
+    main h3[id^="8-"] + table th,
+    main h3[id^="9-"] + table th { display: none; }
+
+    main h3[id^="0-"] + table td:first-child,
+    main h3[id^="1-"] + table td:first-child,
+    main h3[id^="2-"] + table td:first-child,
+    main h3[id^="3-"] + table td:first-child,
+    main h3[id^="4-"] + table td:first-child,
+    main h3[id^="5-"] + table td:first-child,
+    main h3[id^="6-"] + table td:first-child,
+    main h3[id^="7-"] + table td:first-child,
+    main h3[id^="8-"] + table td:first-child,
+    main h3[id^="9-"] + table td:first-child {
+      width: 170px;
+      color: var(--muted);
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    main h3[id^="0-"] + table td,
+    main h3[id^="1-"] + table td,
+    main h3[id^="2-"] + table td,
+    main h3[id^="3-"] + table td,
+    main h3[id^="4-"] + table td,
+    main h3[id^="5-"] + table td,
+    main h3[id^="6-"] + table td,
+    main h3[id^="7-"] + table td,
+    main h3[id^="8-"] + table td,
+    main h3[id^="9-"] + table td { border-left: 0; border-right: 0; }
+
+    .toc { list-style: none; padding: 0; margin: 0; }
+    .toc a {
+      display: block;
+      border-radius: 6px;
+      color: var(--fg);
+      font-size: 13px;
+      line-height: 1.3;
+      padding: 4px 6px;
+      position: relative;
+      transition: background 160ms ease, color 160ms ease, padding-left 160ms ease;
+    }
+
+    .toc a:hover { background: var(--bg-elev); text-decoration: none; }
+    .toc-item { list-style: none; margin: 1px 0; }
+    .toc-item.depth-1 > a { font-weight: 700; }
+    .toc-item.depth-2 { padding-left: 14px; }
+    .toc-item.depth-3 { padding-left: 28px; }
+
+    .toc-item.active > a {
+      color: var(--accent);
+      background: color-mix(in srgb, var(--accent) 12%, transparent);
+      font-weight: 700;
+      padding-left: 10px;
+    }
+
+    .toc-item.active > a::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 4px;
+      bottom: 4px;
+      width: 3px;
+      border-radius: 2px;
+      background: var(--accent);
+    }
+
+    @media (max-width: 900px) {
+      .layout { display: block; }
+      .sidebar { min-height: 0; border-right: 0; border-bottom: 1px solid var(--border); }
+      .toc-inner { position: static; height: auto; max-height: 45vh; }
+      main { padding: 24px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar" aria-label="Table of contents">
+      <div class="toc-inner">
+        <div class="nav-title">
+          <span>Outline</span>
+          <button id="navToggle" class="nav-toggle" aria-pressed="false" aria-label="Collapse sidebar" title="Collapse sidebar">
+            <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path id="navToggleIcon" d="M15 6l-6 6 6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+        </div>
+        <div class="nav-meta">forum-cms Codex Security Scan（繁中台灣版）</div>
+        <ul class="toc">
+          <li class="toc-item depth-1"><a href="#security-review-forum-cms">Security Review: forum-cms（繁中台灣版）</a></li>
+<li class="toc-item depth-2"><a href="#scope">Scope 範圍</a></li>
+<li class="toc-item depth-2"><a href="#threat-model">Threat Model 威脅模型</a></li>
+<li class="toc-item depth-2"><a href="#findings">Findings 弱點項目</a></li>
+<li class="toc-item depth-3"><a href="#1-api-createcomment-member">[1] 開放 API 的 createComment 信任用戶端提供的 member 關聯</a></li>
+<li class="toc-item depth-3"><a href="#2-pollvote-mutation">[2] PollVote mutation 可破壞投票與彙總票數</a></li>
+<li class="toc-item depth-3"><a href="#3-report-create-update">[3] Report create/update 對外開放時可隱藏任意文章與留言</a></li>
+<li class="toc-item depth-3"><a href="#4-editor-officialmapping">[4] Editor 可自行授予 OfficialMapping 審核權限</a></li>
+<li class="toc-item depth-3"><a href="#5-cms-session-fallback">[5] CMS 與會員 session 簽章金鑰存在硬編碼 fallback</a></li>
+<li class="toc-item depth-3"><a href="#6-cloud-build-pin-syft-installer">[6] Cloud Build 執行未 pin 版本的遠端 Syft installer</a></li>
+<li class="toc-item depth-3"><a href="#7-comment-query-hidden-rejected">[7] 公開 comment query 可能洩漏 hidden 或 rejected 留言</a></li>
+<li class="toc-item depth-3"><a href="#8-bookmark-query-bola">[8] Bookmark query 的 BOLA 會洩漏其他會員書籤</a></li>
+<li class="toc-item depth-3"><a href="#9-pollvote-query-bola">[9] PollVote query 的 BOLA 會洩漏其他會員投票</a></li>
+<li class="toc-item depth-3"><a href="#10-poll-polloption">[10] 直接查詢 Poll 與 PollOption 可能洩漏草稿或隱藏投票資料</a></li>
+<li class="toc-item depth-3"><a href="#11-api-createpost-author-status">[11] 開放 API 的 createPost 信任用戶端提供的 author 與 status</a></li>
+<li class="toc-item depth-3"><a href="#12-bookmark-mutation">[12] Bookmark mutation 缺少擁有者隔離</a></li>
+<li class="toc-item depth-3"><a href="#13-url-reset-token-log">[13] 密碼重設 URL（含 reset token）被寫入 log</a></li>
+<li class="toc-item depth-3"><a href="#14-lockout-username-email-prefix">[14] 登入 lockout 可被 username 或 email prefix 觸發</a></li>
+<li class="toc-item depth-3"><a href="#15-client-side-redirect">[15] 強制改密碼狀態主要靠 client-side redirect 執行</a></li>
+<li class="toc-item depth-3"><a href="#16-ban-delete-jwt">[16] 會員被 ban 或 delete 後，既有 JWT 到期前仍會被接受</a></li>
+<li class="toc-item depth-3"><a href="#17-recaptcha-server-side-throttle">[17] reCAPTCHA 關閉時，密碼重設沒有 server-side throttle</a></li>
+<li class="toc-item depth-3"><a href="#18-csp-hsts-clickjacking-header">[18] 未明確設定 CSP、HSTS 或 clickjacking 防護 header</a></li>
+<li class="toc-item depth-3"><a href="#19-production-dependency-tree-critical-prototype-pollution-rce-xxe-dos-advisories">[19] Production dependency tree 含 critical prototype-pollution、RCE、XXE 與 DoS advisories</a></li>
+<li class="toc-item depth-3"><a href="#20-keywords-json">[20] 公開 keywords.json 洩漏受限制的審核關鍵字資料</a></li>
+<li class="toc-item depth-3"><a href="#21-buffering">[21] 圖片上傳上限允許驗證前的大量記憶體 buffering</a></li>
+<li class="toc-item depth-3"><a href="#22-dockerfile-root-package-install-pin-apt-trust-key">[22] Dockerfile 在 root package install 前匯入未 pin 的 apt trust key</a></li>
+<li class="toc-item depth-3"><a href="#23-rich-text-embedded-code-block-stored-scripts">[23] Rich-text embedded-code block 會在套件使用者端執行 stored scripts</a></li>
+<li class="toc-item depth-3"><a href="#24-email-customid-blocked-account">[24] 會員註冊會揭露 email、customId 與 blocked account 狀態</a></li>
+<li class="toc-item depth-3"><a href="#25-rich-text-link-url-scheme-allowlist">[25] Rich-text link URL 缺少 scheme allowlist</a></li>
+<li class="toc-item depth-3"><a href="#26-recaptcha-site-key-js-escape-generated-admin-ui-tsx">[26] RECAPTCHA_SITE_KEY 未經 JS escape 就插入 generated Admin UI TSX</a></li>
+<li class="toc-item depth-2"><a href="#reviewed-surfaces">Reviewed Surfaces 已審查範圍</a></li>
+<li class="toc-item depth-2"><a href="#suppressed-classes">Suppressed Classes 已排除類別</a></li>
+<li class="toc-item depth-2"><a href="#artifacts">Artifacts 產出檔案</a></li>
+        </ul>
+      </div>
+    </aside>
+    <main>
+      <h1 id="security-review-forum-cms">Security Review: forum-cms（繁中台灣版）</h1>
+
+<h2 id="scope">Scope 範圍</h2>
+
+<ul><li>Repository：<code>/Users/hcchien/rti/forum-cms</code></li><li>Reviewed commit：<code>f7aab21</code></li><li>Scan id：<code>f7aab21_20260601140554</code></li><li>Review date：<code>2026-06-01 14:05:54 Asia/Taipei</code></li><li>範圍：repo-wide 靜態資安審查，包含應用程式原始碼、Keystone lists/hooks、自訂 GraphQL 與 Express routes、generated Admin UI templates、upload/static storage、Docker/Cloud Build、package manifests，以及 dependency audit output。</li><li>明確涵蓋類別：OWASP Top Ten、XSS、SQL injection、SSRF、XXE、Prototype Pollution、dependency vulnerabilities、CSP、HSTS、Clickjacking、session、secret、file upload、BOLA 與資安設定錯誤。</li><li>不在 repo 內的動態 production 設定，例如 Cloud Run ingress/IAM、CDN/header injection、GCS object ACL 與實際 secret 值，視為 out of repo。</li></ul>
+
+<h2 id="threat-model">Threat Model 威脅模型</h2>
+
+<p>本應用程式是 Keystone 6 CMS/GraphQL API，後端使用 PostgreSQL/Prisma，並整合 Firebase 會員身分、會員 JWT、CMS stateless sessions、GCS/local static assets、Pub/Sub、SMTP、Cloud Build 與 Docker image build steps。主要信任邊界包含 public/member clients 到 GraphQL 與 static routes、CMS 使用者到 Admin UI/list mutations、bearer member tokens 到自訂 resolvers/hooks、operator-controlled environment variables 到 generated Admin UI code，以及 build workers 到遠端 package/install sources。</p>
+
+<p>高價值資產包含 CMS 帳號與 sessions、會員身分與 JWT、reset tokens、文章/留言/檢舉/書籤/投票/票數、official-member mappings、forbidden keyword policy data、uploaded assets、production secrets 與 container/build artifacts。主要攻擊者模型包含在 exposed API modes 下的未登入 public API callers、已登入會員、低權限 CMS 使用者、log readers、遭入侵的 build-time dependencies，以及能影響 generated code 的 operators/CI variables。</p>
+
+<h2 id="findings">Findings 弱點項目</h2>
+
+<p>摘要：共 26 個 reportable findings。嚴重度統計：高 6、中 17、低 3。未找到 first-party SQL injection、runtime user-controlled SSRF、first-party XXE parser 或 first-party prototype-pollution merge path；相關殘餘風險已納入下方 dependency 與 supply-chain findings。</p>
+
+<h3 id="1-api-createcomment-member">[1] 開放 API 的 createComment 信任用戶端提供的 member 關聯</h3>
+
+<table>
+<thead><tr>
+<th>欄位</th>
+<th>值</th>
+</tr></thead>
+<tbody>
+<tr>
+<td>嚴重度</td>
+<td>高</td>
+</tr>
+<tr>
+<td>信心程度</td>
+<td>高</td>
+</tr>
+<tr>
+<td>信心評估依據</td>
+<td>靜態原始碼證據含明確行號；可達性假設列於下方。</td>
+</tr>
+<tr>
+<td>類別</td>
+<td>OWASP A01 權限控管失效</td>
+</tr>
+<tr>
+<td>CWE</td>
+<td>CWE-639, CWE-862</td>
+</tr>
+<tr>
+<td>受影響行號</td>
+<td>packages/forum-cms/lists/comment.ts:143-149; packages/forum-cms/lists/comment.ts:190-208</td>
+</tr>
+</tbody></table>
+
+<h4 id="summary">Summary 摘要</h4>
+
+<p>建立留言時，系統只會在用戶端省略 <code>member</code> 時才自動補上會員；若非 CMS 呼叫者明確送出 <code>member.connect</code>，且該 list 對外開放寫入，就能用其他會員身分建立留言。</p>
+
+<h4 id="validation">Validation 驗證</h4>
+
+<p>hook 會檢查 <code>hasExplicitMemberRelationInput(inputData, member)</code>，一旦發現用戶端有明確提供 member 輸入，就跳過伺服器端的身分綁定。</p>
+
+<h4 id="dataflow">Dataflow 資料流</h4>
+
+<p>API 呼叫者送出含有 <code>member.connect</code> 的 <code>createComment</code> -&gt; hook 接受明確 member -&gt; 以受害者 member id 建立留言。</p>
+
+<h4 id="reachability">Reachability 可達性</h4>
+
+<p>在 Comment 於 <code>gql</code>、<code>preview</code> 或 API <code>read_write</code> 模式開放時可達。README 的 API 範例有啟用 <code>Comment: read_write</code>。</p>
+
+<h4 id="severity">Severity 嚴重度</h4>
+
+<p>這會造成使用者產生內容的身分冒用，可能破壞帳號名譽，也可能讓受害者承擔後續審核處置。</p>
+
+<h4 id="remediation">Remediation 修補建議</h4>
+
+<p>非 CMS 建立留言時，一律用 bearer token 驗證出的會員覆寫 <code>member</code>，並拒絕未登入的 create。</p>
+
+<h3 id="2-pollvote-mutation">[2] PollVote mutation 可破壞投票與彙總票數</h3>
+
+<table>
+<thead><tr>
+<th>欄位</th>
+<th>值</th>
+</tr></thead>
+<tbody>
+<tr>
+<td>嚴重度</td>
+<td>高</td>
+</tr>
+<tr>
+<td>信心程度</td>
+<td>中</td>
+</tr>
+<tr>
+<td>信心評估依據</td>
+<td>靜態原始碼證據含明確行號；可達性假設列於下方。</td>
+</tr>
+<tr>
+<td>類別</td>
+<td>OWASP A01 權限控管失效, A04 不安全設計</td>
+</tr>
+<tr>
+<td>CWE</td>
+<td>CWE-862, CWE-345</td>
+</tr>
+<tr>
+<td>受影響行號</td>
+<td>packages/forum-cms/lists/poll-vote.ts:47-79; packages/forum-cms/utils/poll-vote-count-sync.ts:54-72</td>
+</tr>
+</tbody></table>
+
+<h4 id="summary">Summary 摘要</h4>
+
+<p>PollVote 寫入 hook 會綁定 member，但在重新計算票數前，沒有驗證 poll 可見性、投票是否過期、唯一性，或所選 option 是否真的屬於該 poll。</p>
+
+<h4 id="validation">Validation 驗證</h4>
+
+<p>非 CMS hook 在 create 時設定 <code>member</code>、update 時刪除 <code>member</code>，但仍讓 <code>poll</code> 與 <code>option</code> 由用戶端控制。同步工具接著依 <code>pollId</code> 和 <code>optionId</code> 計數並寫回彙總資料。</p>
+
+<h4 id="dataflow">Dataflow 資料流</h4>
+
+<p>API 呼叫者用任意 poll/option id 建立或更新 PollVote -&gt; row 被接受 -&gt; 相關 poll/option 的彙總票數被重算。</p>
+
+<h4 id="reachability">Reachability 可達性</h4>
+
+<p>PollVote 開放寫入時可達。README 的 API 範例啟用 <code>PollVote: read_write</code>。</p>
+
+<h4 id="severity">Severity 嚴重度</h4>
+
+<p>攻擊者可操控投票完整性與前台顯示的票數，包含製造跨 poll 的 option 不一致。</p>
+
+<h4 id="remediation">Remediation 修補建議</h4>
+
+<p>驗證 poll 可見性與期限，要求 option 必須隸屬於 poll，強制每位會員每個 poll 只有一筆有效票，並把投票與票數更新包在 transaction 中。</p>
+
+<h3 id="3-report-create-update">[3] Report create/update 對外開放時可隱藏任意文章與留言</h3>
+
+<table>
+<thead><tr>
+<th>欄位</th>
+<th>值</th>
+</tr></thead>
+<tbody>
+<tr>
+<td>嚴重度</td>
+<td>高</td>
+</tr>
+<tr>
+<td>信心程度</td>
+<td>中</td>
+</tr>
+<tr>
+<td>信心評估依據</td>
+<td>靜態原始碼證據含明確行號；可達性假設列於下方。</td>
+</tr>
+<tr>
+<td>類別</td>
+<td>OWASP A01 權限控管失效</td>
+</tr>
+<tr>
+<td>CWE</td>
+<td>CWE-862, CWE-285</td>
+</tr>
+<tr>
+<td>受影響行號</td>
+<td>packages/forum-cms/lists/report.ts:90-97; packages/forum-cms/lists/report.ts:99-123; packages/forum-cms/lists/report.ts:124-177</td>
+</tr>
+</tbody></table>
+
+<h4 id="summary">Summary 摘要</h4>
+
+<p>Report 狀態轉換有副作用，會隱藏關聯的文章或留言；但 list 除了 operation access 外，沒有針對非 CMS 呼叫者做擁有者或審核權限檢查。</p>
+
+<h4 id="validation">Validation 驗證</h4>
+
+<p><code>afterOperation</code> 在 report 變成 <code>resolved</code> 時會把 <code>post</code> 或 <code>comment</code> 設為 <code>hidden</code>。此 list access 只透過 <code>allowRoles</code> 做 list operation 層級授權。</p>
+
+<h4 id="dataflow">Dataflow 資料流</h4>
+
+<p>API 呼叫者 create/update Report，指定目標 post/comment 與 <code>status=resolved</code> -&gt; hook 執行 -&gt; 目標內容狀態變成 hidden。</p>
+
+<h4 id="reachability">Reachability 可達性</h4>
+
+<p>只有在 Report 寫入經由 <code>gql</code>、<code>preview</code> 或 API <code>read_write</code> 對外開放時可達；預設 CMS role-gated 模式下未登入者不可達。</p>
+
+<h4 id="severity">Severity 嚴重度</h4>
+
+<p>若對外開放，這會變成未登入或弱驗證的內容下架能力，對公開內容完整性與可用性影響高。</p>
+
+<h4 id="remediation">Remediation 修補建議</h4>
+
+<p>Report 寫入維持 CMS-only，或把公開檢舉提交與審核 resolution 拆成不同流程。伺服器端把狀態改為 <code>resolved</code> 應要求 moderator/admin 權限。</p>
+
+<h3 id="4-editor-officialmapping">[4] Editor 可自行授予 OfficialMapping 審核權限</h3>
+
+<table>
+<thead><tr>
+<th>欄位</th>
+<th>值</th>
+</tr></thead>
+<tbody>
+<tr>
+<td>嚴重度</td>
+<td>高</td>
+</tr>
+<tr>
+<td>信心程度</td>
+<td>高</td>
+</tr>
+<tr>
+<td>信心評估依據</td>
+<td>靜態原始碼證據含明確行號；可達性假設列於下方。</td>
+</tr>
+<tr>
+<td>類別</td>
+<td>OWASP A01 權限控管失效, A04 不安全設計</td>
+</tr>
+<tr>
+<td>CWE</td>
+<td>CWE-266, CWE-269</td>
+</tr>
+<tr>
+<td>受影響行號</td>
+<td>packages/forum-cms/lists/official-mapping.ts:26-33; packages/forum-cms/utils/cms-content-moderation.ts:77-87</td>
+</tr>
+</tbody></table>
+
+<h4 id="summary">Summary 摘要</h4>
+
+<p>OfficialMapping list 允許 editor 建立與更新 mapping，而內容審核邏輯又信任該 mapping 來判斷 CMS 使用者是否可編輯官方會員內容。</p>
+
+<h4 id="validation">Validation 驗證</h4>
+
+<p>OfficialMapping operation access 包含 <code>editor</code> 的 query/update/create/delete。<code>canEditMappedMemberContent</code> 會比較 mapping 出來的 official member id 與內容 member id。</p>
+
+<h4 id="dataflow">Dataflow 資料流</h4>
+
+<p>Editor 為自己建立或修改 mapping -&gt; moderation helper 從 mapping 解析 official member id -&gt; editor 取得該 member 內容的編輯權。</p>
+
+<h4 id="reachability">Reachability 可達性</h4>
+
+<p>任何 editor 角色的 CMS 使用者在 CMS content moderation 啟用時可達。</p>
+
+<h4 id="severity">Severity 嚴重度</h4>
+
+<p>這是 CMS 角色內的權限提升，會繞過 editor 與帳號/內容擁有者之間原本預期的權責分離。</p>
+
+<h4 id="remediation">Remediation 修補建議</h4>
+
+<p>OfficialMapping mutation 限制為 admin-only，加入唯一性與稽核紀錄，且不要讓可由使用者編輯的 mapping 成為唯一的審核授權來源。</p>
+
+<h3 id="5-cms-session-fallback">[5] CMS 與會員 session 簽章金鑰存在硬編碼 fallback</h3>
+
+<table>
+<thead><tr>
+<th>欄位</th>
+<th>值</th>
+</tr></thead>
+<tbody>
+<tr>
+<td>嚴重度</td>
+<td>高</td>
+</tr>
+<tr>
+<td>信心程度</td>
+<td>高</td>
+</tr>
+<tr>
+<td>信心評估依據</td>
+<td>靜態原始碼證據含明確行號；可達性假設列於下方。</td>
+</tr>
+<tr>
+<td>類別</td>
+<td>OWASP A02 加密機制失效, A07 身分識別與驗證失效</td>
+</tr>
+<tr>
+<td>CWE</td>
+<td>CWE-798, CWE-321</td>
+</tr>
+<tr>
+<td>受影響行號</td>
+<td>packages/forum-cms/environment-variables.ts:79-83; packages/forum-cms/environment-variables.ts:140-144; packages/forum-cms/utils/member-session.ts:9-15; packages/forum-cms/utils/member-session.ts:29-40; packages/forum-cms/keystone.ts:85</td>
+</tr>
+</tbody></table>
+
+<h4 id="summary">Summary 摘要</h4>
+
+<p>必要的 secret 環境變數缺漏時，服務會退回已知的靜態字串，用於 Keystone stateless CMS session 與會員 JWT。任何知道預設 secret 的人，都可能在受影響部署中偽造 token/cookie 冒用使用者。</p>
+
+<h4 id="validation">Validation 驗證</h4>
+
+<p><code>SESSION_SECRET</code> 預設為 literal string，<code>MEMBER_SESSION_SECRET</code> 預設為空 env 值，接著 <code>member-session.ts</code> 會套用硬編碼預設值。Keystone 與 <code>jsonwebtoken</code> 都用這些值簽章與驗證 session。</p>
+
+<h4 id="dataflow">Dataflow 資料流</h4>
+
+<p>部署缺少 secret -&gt; <code>envVar.session.secret</code> 或 <code>getSessionSecret()</code> -&gt; <code>statelessSessions()</code> 或 <code>jwt.sign()</code>/<code>jwt.verify()</code> -&gt; 被接受的 CMS/會員身分。</p>
+
+<h4 id="reachability">Reachability 可達性</h4>
+
+<p>任何未設定 secret 就啟動的環境都可達。這不只是開發環境的 footgun，因為 production code path 沒有 fail closed。</p>
+
+<h4 id="severity">Severity 嚴重度</h4>
+
+<p>成功利用會造成帳號/session 偽造與直接權限提升。攻擊只需要知道原始碼中的預設值並能連到應用程式。</p>
+
+<h4 id="remediation">Remediation 修補建議</h4>
+
+<p>缺少高強度隨機 secret 時直接阻止啟動，強制長度/熵檢查，移除預設值，輪替既有 secret，並在輪替後撤銷現有 session。</p>
+
+<h3 id="6-cloud-build-pin-syft-installer">[6] Cloud Build 執行未 pin 版本的遠端 Syft installer</h3>
+
+<table>
+<thead><tr>
+<th>欄位</th>
+<th>值</th>
+</tr></thead>
+<tbody>
+<tr>
+<td>嚴重度</td>
+<td>高</td>
+</tr>
+<tr>
+<td>信心程度</td>
+<td>高</td>
+</tr>
+<tr>
+<td>信心評估依據</td>
+<td>靜態原始碼證據含明確行號；可達性假設列於下方。</td>
+</tr>
+<tr>
+<td>類別</td>
+<td>OWASP A08 軟體與資料完整性失效</td>
+</tr>
+<tr>
+<td>CWE</td>
+<td>CWE-494, CWE-829</td>
+</tr>
+<tr>
+<td>受影響行號</td>
+<td>cloudbuild.yaml:36-44</td>
+</tr>
+</tbody></table>
+
+<h4 id="summary">Summary 摘要</h4>
+
+<p>建置流程會從 Syft GitHub <code>main</code> branch 下載 <code>install.sh</code>，並在 Cloud Build 中直接 pipe 給 <code>sh</code> 執行。</p>
+
+<h4 id="validation">Validation 驗證</h4>
+
+<p><code>cloudbuild.yaml</code> 執行 <code>curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin</code>，沒有 pin commit、checksum 或簽章。</p>
+
+<h4 id="dataflow">Dataflow 資料流</h4>
+
+<p>Build worker -&gt; 從可變 branch 即時網路抓取 -&gt; shell 執行 -&gt; SBOM 工具安裝到建置環境。</p>
+
+<h4 id="reachability">Reachability 可達性</h4>
+
+<p>每次 Cloud Build 執行 SBOM step 時都可達。</p>
+
+<h4 id="severity">Severity 嚴重度</h4>
+
+<p>若 upstream、DNS/TLS 信任鏈或 branch 內容遭竄改，可能在 build-time 執行任意程式碼並影響 image/artifact。</p>
+
+<h4 id="remediation">Remediation 修補建議</h4>
+
+<p>以 immutable release pin Syft，驗證 checksum/signature，或改用已預先安裝 Syft 的可信 builder image。</p>
+
+<h3 id="7-comment-query-hidden-rejected">[7] 公開 comment query 可能洩漏 hidden 或 rejected 留言</h3>
+
+<table>
+<thead><tr>
+<th>欄位</th>
+<th>值</th>
+</tr></thead>
+<tbody>
+<tr>
+<td>嚴重度</td>
+<td>中</td>
+</tr>
+<tr>
+<td>信心程度</td>
+<td>高</td>
+</tr>
+<tr>
+<td>信心評估依據</td>
+<td>靜態原始碼證據含明確行號；可達性假設列於下方。</td>
+</tr>
+<tr>
+<td>類別</td>
+<td>OWASP A01 權限控管失效</td>
+</tr>
+<tr>
+<td>CWE</td>
+<td>CWE-200, CWE-285</td>
+</tr>
+<tr>
+<td>受影響行號</td>
+<td>packages/forum-cms/lists/comment.ts:143-158; packages/forum-cms/README.md:83-132</td>
+</tr>
+</tbody></table>
+
+<h4 id="summary">Summary 摘要</h4>
+
+<p>非 CMS request 的 Comment query filter 只限制父層文章可見性，沒有限制留言本身的 status。</p>
+
+<h4 id="validation">Validation 驗證</h4>
+
+<p><code>Comment</code> filter 回傳 <code>{ post: buildPostVisibilityWhere(memberId) }</code>，沒有要求 <code>Comment.status = published</code>，也沒有套用 owner-aware hidden visibility。</p>
+
+<h4 id="dataflow">Dataflow 資料流</h4>
+
+<p>API 查詢 comments -&gt; list-level API/gql access 允許 query -&gt; 父層 post visibility 符合 -&gt; hidden/rejected comment rows 被回傳。</p>
+
+<h4 id="reachability">Reachability 可達性</h4>
+
+<p><code>ACCESS_CONTROL_STRATEGY</code> 為 <code>gql</code>、<code>preview</code>，或 <code>api</code> 且 Comment query access 啟用時可達，README 也有文件化 API 部署模式。</p>
+
+<h4 id="severity">Severity 嚴重度</h4>
+
+<p>已被審核處理的內容可能被不應看見的人讀取。這是資料外洩，而不是直接權限提升。</p>
+
+<h4 id="remediation">Remediation 修補建議</h4>
+
+<p>加入 comment status 與 owner-aware visibility filter，並用測試覆蓋 published、hidden、rejected、archived 狀態下的公開與個人頁查詢。</p>
+
+<h3 id="8-bookmark-query-bola">[8] Bookmark query 的 BOLA 會洩漏其他會員書籤</h3>
+
+<table>
+<thead><tr>
+<th>欄位</th>
+<th>值</th>
+</tr></thead>
+<tbody>
+<tr>
+<td>嚴重度</td>
+<td>中</td>
+</tr>
+<tr>
+<td>信心程度</td>
+<td>高</td>
+</tr>
+<tr>
+<td>信心評估依據</td>
+<td>靜態原始碼證據含明確行號；可達性假設列於下方。</td>
+</tr>
+<tr>
+<td>類別</td>
+<td>OWASP A01 權限控管失效</td>
+</tr>
+<tr>
+<td>CWE</td>
+<td>CWE-639, CWE-200</td>
+</tr>
+<tr>
+<td>受影響行號</td>
+<td>packages/forum-cms/lists/bookmark.ts:30-45; packages/forum-cms/README.md:134-140</td>
+</tr>
+</tbody></table>
+
+<h4 id="summary">Summary 摘要</h4>
+
+<p>Bookmark query access 只依文章可見性過濾，沒有依已驗證會員限制書籤擁有者。</p>
+
+<h4 id="validation">Validation 驗證</h4>
+
+<p><code>Bookmark</code> query filter 只回傳 <code>{ post: buildPostVisibilityWhere(memberId) }</code>；沒有 <code>member.id == authenticated member</code> 條件。</p>
+
+<h4 id="dataflow">Dataflow 資料流</h4>
+
+<p>已登入或未登入 API 呼叫者查詢 bookmarks -&gt; visible-post 條件通過 -&gt; 回傳其他會員的 bookmark。</p>
+
+<h4 id="reachability">Reachability 可達性</h4>
+
+<p>Bookmark query access 在 <code>gql</code>、<code>preview</code> 或 <code>api</code> 模式啟用時可達。</p>
+
+<h4 id="severity">Severity 嚴重度</h4>
+
+<p>書籤屬於使用者私人行為資料。外洩範圍受文章可見性限制，但沒有受擁有者限制。</p>
+
+<h4 id="remediation">Remediation 修補建議</h4>
+
+<p>非 CMS Bookmark query 加上 <code>member.id equals authenticatedMemberId</code>，除非有明確公開用途，否則拒絕未登入查詢。</p>
+
+<h3 id="9-pollvote-query-bola">[9] PollVote query 的 BOLA 會洩漏其他會員投票</h3>
+
+<table>
+<thead><tr>
+<th>欄位</th>
+<th>值</th>
+</tr></thead>
+<tbody>
+<tr>
+<td>嚴重度</td>
+<td>中</td>
+</tr>
+<tr>
+<td>信心程度</td>
+<td>高</td>
+</tr>
+<tr>
+<td>信心評估依據</td>
+<td>靜態原始碼證據含明確行號；可達性假設列於下方。</td>
+</tr>
+<tr>
+<td>類別</td>
+<td>OWASP A01 權限控管失效</td>
+</tr>
+<tr>
+<td>CWE</td>
+<td>CWE-639, CWE-200</td>
+</tr>
+<tr>
+<td>受影響行號</td>
+<td>packages/forum-cms/lists/poll-vote.ts:40-61</td>
+</tr>
+</tbody></table>
+
+<h4 id="summary">Summary 摘要</h4>
+
+<p>PollVote query filter 只檢查 poll 所屬文章可見性，沒有檢查 vote owner；update filter 才有 member 範圍限制。</p>
+
+<h4 id="validation">Validation 驗證</h4>
+
+<p><code>filter.query</code> 回傳 poll/post visibility 條件。擁有者 filter <code>{ member: { id: { equals: memberId } } }</code> 只存在於 update。</p>
+
+<h4 id="dataflow">Dataflow 資料流</h4>
+
+<p>API 呼叫者查詢 PollVote -&gt; poll 所屬文章可見性通過 -&gt; 可讀取該 poll 上任何會員的 vote。</p>
+
+<h4 id="reachability">Reachability 可達性</h4>
+
+<p>PollVote query access 在 API/gql/preview 模式啟用時可達，包含文件範例中的 <code>PollVote: read_write</code>。</p>
+
+<h4 id="severity">Severity 嚴重度</h4>
+
+<p>投票選擇是敏感個人資料。這是典型 object-level authorization failure。</p>
+
+<h4 id="remediation">Remediation 修補建議</h4>
+
+<p>非 CMS PollVote query 限制為已驗證會員本人，公開端只透過獨立欄位暴露彙總票數。</p>
+
+<h3 id="10-poll-polloption">[10] 直接查詢 Poll 與 PollOption 可能洩漏草稿或隱藏投票資料</h3>
+
+<table>
+<thead><tr>
+<th>欄位</th>
+<th>值</th>
+</tr></thead>
+<tbody>
+<tr>
+<td>嚴重度</td>
+<td>中</td>
+</tr>
+<tr>
+<td>信心程度</td>
+<td>高</td>
+</tr>
+<tr>
+<td>信心評估依據</td>
+<td>靜態原始碼證據含明確行號；可達性假設列於下方。</td>
+</tr>
+<tr>
+<td>類別</td>
+<td>OWASP A01 權限控管失效</td>
+</tr>
+<tr>
+<td>CWE</td>
+<td>CWE-200, CWE-285</td>
+</tr>
+<tr>
+<td>受影響行號</td>
+<td>packages/forum-cms/lists/poll.ts:114-121; packages/forum-cms/lists/poll-option.ts:62-69</td>
+</tr>
+</tbody></table>
+
+<h4 id="summary">Summary 摘要</h4>
+
+<p>Poll 與 PollOption list 有 operation access，但沒有針對非 CMS query filter 把 row 綁回可見文章。</p>
+
+<h4 id="validation">Validation 驗證</h4>
+
+<p>兩個 list 都只透過 <code>allowRoles</code> 設定 <code>operation.query</code>；沒有類似 post visibility 的 <code>filter.query</code>。</p>
+
+<h4 id="dataflow">Dataflow 資料流</h4>
+
+<p>API/gql 查詢 Poll 或 PollOption -&gt; list operation access 允許 query -&gt; 不論父層文章是否可見，row 都可能被回傳。</p>
+
+<h4 id="reachability">Reachability 可達性</h4>
+
+<p>這些 list 在 <code>api</code> 模式啟用 query，或在全開的 <code>gql</code>/<code>preview</code> 模式下可達。</p>
+
+<h4 id="severity">Severity 嚴重度</h4>
+
+<p>草稿/隱藏投票的 metadata 與選項可能洩漏未公開的編輯或審核狀態。</p>
+
+<h4 id="remediation">Remediation 修補建議</h4>
+
+<p>為 Poll 與 PollOption 加上會 traverse 到 <code>post</code> visibility 的 <code>filter.query</code>，沒有可見父層時拒絕孤兒/直接讀取。</p>
+
+<h3 id="11-api-createpost-author-status">[11] 開放 API 的 createPost 信任用戶端提供的 author 與 status</h3>
+
+<table>
+<thead><tr>
+<th>欄位</th>
+<th>值</th>
+</tr></thead>
+<tbody>
+<tr>
+<td>嚴重度</td>
+<td>中</td>
+</tr>
+<tr>
+<td>信心程度</td>
+<td>中</td>
+</tr>
+<tr>
+<td>信心評估依據</td>
+<td>靜態原始碼證據含明確行號；可達性假設列於下方。</td>
+</tr>
+<tr>
+<td>類別</td>
+<td>OWASP A01 權限控管失效</td>
+</tr>
+<tr>
+<td>CWE</td>
+<td>CWE-639, CWE-862</td>
+</tr>
+<tr>
+<td>受影響行號</td>
+<td>packages/forum-cms/lists/Post.ts:117-125; packages/forum-cms/lists/Post.ts:216-227; packages/forum-cms/lists/Post.ts:373-389</td>
+</tr>
+</tbody></table>
+
+<h4 id="summary">Summary 摘要</h4>
+
+<p>create hook 只在用戶端省略 author/status 時提供預設值。明確提供的 relationship input 與 status 會被信任。</p>
+
+<h4 id="validation">Validation 驗證</h4>
+
+<p><code>resolveInput</code> 只有在 <code>status</code> 是 undefined 時才設定預設值，也只有在沒有明確 <code>author</code> relation 時才 auto-connect official member。</p>
+
+<h4 id="dataflow">Dataflow 資料流</h4>
+
+<p>API 呼叫者送出含 <code>author.connect</code> 與自選 <code>status</code> 的 <code>createPost</code> -&gt; hook 看見明確 input -&gt; 資料照要求寫入。</p>
+
+<h4 id="reachability">Reachability 可達性</h4>
+
+<p>只有 Post create 透過 <code>gql</code>、<code>preview</code> 或 API <code>read_write</code> 對外開放時可達。預設 CMS 模式仍由 role gate 保護。</p>
+
+<h4 id="severity">Severity 嚴重度</h4>
+
+<p>若寫入 API 對外開放，呼叫者可冒用會員並可能以他人身分發布或隱藏內容。</p>
+
+<h4 id="remediation">Remediation 修補建議</h4>
+
+<p>非 CMS request 應忽略用戶端提供的 author 與 status，把 author 綁定為已驗證會員/official mapping，並使用伺服器端控制的狀態轉換。</p>
+
+<h3 id="12-bookmark-mutation">[12] Bookmark mutation 缺少擁有者隔離</h3>
+
+<table>
+<thead><tr>
+<th>欄位</th>
+<th>值</th>
+</tr></thead>
+<tbody>
+<tr>
+<td>嚴重度</td>
+<td>中</td>
+</tr>
+<tr>
+<td>信心程度</td>
+<td>高</td>
+</tr>
+<tr>
+<td>信心評估依據</td>
+<td>靜態原始碼證據含明確行號；可達性假設列於下方。</td>
+</tr>
+<tr>
+<td>類別</td>
+<td>OWASP A01 權限控管失效</td>
+</tr>
+<tr>
+<td>CWE</td>
+<td>CWE-639, CWE-862</td>
+</tr>
+<tr>
+<td>受影響行號</td>
+<td>packages/forum-cms/lists/bookmark.ts:30-45</td>
+</tr>
+</tbody></table>
+
+<h4 id="summary">Summary 摘要</h4>
+
+<p>Bookmark access 有 query visibility filter，但非 CMS API 呼叫者的 create/update/delete 沒有 owner binding。</p>
+
+<h4 id="validation">Validation 驗證</h4>
+
+<p>此 list 透過 <code>allowRoles</code> 定義 mutation 的 operation access，但沒有 <code>filter.update</code>、<code>filter.delete</code> 或 create hook 把 <code>member</code> 限制為已驗證會員。</p>
+
+<h4 id="dataflow">Dataflow 資料流</h4>
+
+<p>具 Bookmark write access 的 API 呼叫者提供 member/post relation 或目標 id -&gt; Keystone mutation 在沒有 owner predicate 的情況下執行。</p>
+
+<h4 id="reachability">Reachability 可達性</h4>
+
+<p>Bookmark 在 <code>api</code> 中啟用寫入，或在全開 <code>gql</code>/<code>preview</code> 模式下可達。</p>
+
+<h4 id="severity">Severity 嚴重度</h4>
+
+<p>若此 list 對外開放，攻擊者可為其他會員建立、修改或刪除 bookmark record。</p>
+
+<h4 id="remediation">Remediation 修補建議</h4>
+
+<p>Bookmark create 綁定為已驗證會員，並為 update/delete 加上 <code>member.id</code> 必須符合 bearer identity 的 filter。</p>
+
+<h3 id="13-url-reset-token-log">[13] 密碼重設 URL（含 reset token）被寫入 log</h3>
+
+<table>
+<thead><tr>
+<th>欄位</th>
+<th>值</th>
+</tr></thead>
+<tbody>
+<tr>
+<td>嚴重度</td>
+<td>中</td>
+</tr>
+<tr>
+<td>信心程度</td>
+<td>高</td>
+</tr>
+<tr>
+<td>信心評估依據</td>
+<td>靜態原始碼證據含明確行號；可達性假設列於下方。</td>
+</tr>
+<tr>
+<td>類別</td>
+<td>OWASP A02 加密機制失效, A09 資安記錄與監控失效</td>
+</tr>
+<tr>
+<td>CWE</td>
+<td>CWE-532</td>
+</tr>
+<tr>
+<td>受影響行號</td>
+<td>packages/forum-cms/utils/password-reset.ts:36-50</td>
+</tr>
+</tbody></table>
+
+<h4 id="summary">Summary 摘要</h4>
+
+<p>密碼重設信件 helper 會記錄完整 reset URL，包含 bearer reset token。能讀 log 的人可在 token 有效期間使用該 URL。</p>
+
+<h4 id="validation">Validation 驗證</h4>
+
+<p>同一個放進 email body 的 <code>resetUrl</code>，也以 <code>resetUrl</code> 欄位寫入 structured <code>console.log</code>。</p>
+
+<h4 id="dataflow">Dataflow 資料流</h4>
+
+<p>密碼重設請求 -&gt; reset token 嵌入 <code>resetUrl</code> -&gt; structured application log -&gt; log aggregation/viewer 使用者。</p>
+
+<h4 id="reachability">Reachability 可達性</h4>
+
+<p>每次 CMS 密碼重設請求時都可達。Cloud/container logs 的讀取權限通常比密碼重設權限更廣。</p>
+
+<h4 id="severity">Severity 嚴重度</h4>
+
+<p>此問題可能在 token 有效期間造成 CMS 帳號接管，但需要能讀取應用程式 log。</p>
+
+<h4 id="remediation">Remediation 修補建議</h4>
+
+<p>不要把 reset URL/token 寫入 log。只記錄 correlation id、目標 user id/email hash 與寄送狀態，並檢查歷史 log 是否有仍有效的 token 外洩。</p>
+
+<h3 id="14-lockout-username-email-prefix">[14] 登入 lockout 可被 username 或 email prefix 觸發</h3>
+
+<table>
+<thead><tr>
+<th>欄位</th>
+<th>值</th>
+</tr></thead>
+<tbody>
+<tr>
+<td>嚴重度</td>
+<td>中</td>
+</tr>
+<tr>
+<td>信心程度</td>
+<td>高</td>
+</tr>
+<tr>
+<td>信心評估依據</td>
+<td>靜態原始碼證據含明確行號；可達性假設列於下方。</td>
+</tr>
+<tr>
+<td>類別</td>
+<td>OWASP A07 身分識別與驗證失效</td>
+</tr>
+<tr>
+<td>CWE</td>
+<td>CWE-307, CWE-400</td>
+</tr>
+<tr>
+<td>受影響行號</td>
+<td>packages/forum-cms/utils/login-logging.ts:101-117; packages/forum-cms/utils/login-logging.ts:320-335; packages/forum-cms/utils/account-lockout.ts:82-95</td>
+</tr>
+</tbody></table>
+
+<h4 id="summary">Summary 摘要</h4>
+
+<p>登入失敗處理不只用精確 email 找 user，也會用精確 display name 與 email prefix 找 user。對該衍生身分重複失敗可鎖定真實帳號。</p>
+
+<h4 id="validation">Validation 驗證</h4>
+
+<p><code>findUserByIdentity</code> 建立 alternative filters，包含 <code>name equals</code>，且輸入不含 at sign 時加入 <code>email startsWith</code>，接著更新第一筆回傳 user 的 lockout counter。</p>
+
+<h4 id="dataflow">Dataflow 資料流</h4>
+
+<p>攻擊者提交部分 identity -&gt; fallback lookup 選到 user -&gt; failed attempt accounting 更新該 user -&gt; 達到 lockout threshold。</p>
+
+<h4 id="reachability">Reachability 可達性</h4>
+
+<p>public login mutation 在 authentication plugin 處理登入失敗時可達。</p>
+
+<h4 id="severity">Severity 嚴重度</h4>
+
+<p>這是針對 CMS 使用者的可用性與騷擾問題。不會直接洩漏密碼，但可阻斷管理者登入。</p>
+
+<h4 id="remediation">Remediation 修補建議</h4>
+
+<p>lockout state 只使用 canonical exact login identifier，將 lockout counter 記在嘗試登入的 normalized email 上，並將 IP/device throttling 與 account lockout 分開。</p>
+
+<h3 id="15-client-side-redirect">[15] 強制改密碼狀態主要靠 client-side redirect 執行</h3>
+
+<table>
+<thead><tr>
+<th>欄位</th>
+<th>值</th>
+</tr></thead>
+<tbody>
+<tr>
+<td>嚴重度</td>
+<td>中</td>
+</tr>
+<tr>
+<td>信心程度</td>
+<td>高</td>
+</tr>
+<tr>
+<td>信心評估依據</td>
+<td>靜態原始碼證據含明確行號；可達性假設列於下方。</td>
+</tr>
+<tr>
+<td>類別</td>
+<td>OWASP A01 權限控管失效, A07 身分識別與驗證失效</td>
+</tr>
+<tr>
+<td>CWE</td>
+<td>CWE-602, CWE-306</td>
+</tr>
+<tr>
+<td>受影響行號</td>
+<td>packages/forum-cms/keystone.ts:2428-2451; packages/forum-cms/utils/login-logging.ts:367-374</td>
+</tr>
+</tbody></table>
+
+<h4 id="summary">Summary 摘要</h4>
+
+<p>被標記 <code>mustChangePassword</code> 或密碼過期的使用者只會收到瀏覽器端提示，但伺服器沒有阻擋該 session 的 API 操作。</p>
+
+<h4 id="validation">Validation 驗證</h4>
+
+<p>Admin UI session check 有偵測條件，但註解明確表示依賴 client-side script redirect。Login logging 設定 <code>X-Require-Password-Change</code>，不是 authorization denial。</p>
+
+<h4 id="dataflow">Dataflow 資料流</h4>
+
+<p>使用者完成驗證 -&gt; session 帶有 password-change requirement -&gt; browser header/script redirect -&gt; 直接 GraphQL/API call 仍可使用 session。</p>
+
+<h4 id="reachability">Reachability 可達性</h4>
+
+<p>任何已登入 CMS 使用者只要能在 Admin UI redirect 流程外使用 session cookie 即可達。</p>
+
+<h4 id="severity">Severity 嚴重度</h4>
+
+<p>此問題削弱密碼輪替與強制改密碼政策。影響取決於該使用者原本擁有的權限。</p>
+
+<h4 id="remediation">Remediation 修補建議</h4>
+
+<p>在 GraphQL/list operation access 與自訂 Express routes 中做 server-side 強制檢查；在改密碼完成前只允許 password update/logout/reset 相關操作。</p>
+
+<h3 id="16-ban-delete-jwt">[16] 會員被 ban 或 delete 後，既有 JWT 到期前仍會被接受</h3>
+
+<table>
+<thead><tr>
+<th>欄位</th>
+<th>值</th>
+</tr></thead>
+<tbody>
+<tr>
+<td>嚴重度</td>
+<td>中</td>
+</tr>
+<tr>
+<td>信心程度</td>
+<td>高</td>
+</tr>
+<tr>
+<td>信心評估依據</td>
+<td>靜態原始碼證據含明確行號；可達性假設列於下方。</td>
+</tr>
+<tr>
+<td>類別</td>
+<td>OWASP A01 權限控管失效, A07 身分識別與驗證失效</td>
+</tr>
+<tr>
+<td>CWE</td>
+<td>CWE-613, CWE-285</td>
+</tr>
+<tr>
+<td>受影響行號</td>
+<td>packages/forum-cms/keystone.ts:393-403; packages/forum-cms/keystone.ts:496-499; packages/forum-cms/keystone.ts:551-554; packages/forum-cms/utils/member-session.ts:29-40</td>
+</tr>
+</tbody></table>
+
+<h4 id="summary">Summary 摘要</h4>
+
+<p>會員 session 驗證只檢查 member row 是否存在，但不會對既有 bearer token 拒絕 banned/deleted/inactive 狀態。</p>
+
+<h4 id="validation">Validation 驗證</h4>
+
+<p>registration/login 會阻擋不可用會員狀態，然後簽 JWT。後續 <code>currentMember</code> 驗證 JWT 並用 id 取回 member，但沒有套用同一個 status check。</p>
+
+<h4 id="dataflow">Dataflow 資料流</h4>
+
+<p>有效會員 session token -&gt; member status 改為 banned/deleted/inactive -&gt; <code>verifyMemberSession</code> 成功 -&gt; member id 仍可供 visibility filters 與 mutation 使用。</p>
+
+<h4 id="reachability">Reachability 可達性</h4>
+
+<p>直到 JWT 到期前都可達，尤其是用戶端在 moderation action 後持續使用已核發 bearer token 時。</p>
+
+<h4 id="severity">Severity 嚴重度</h4>
+
+<p>審核處置可能在 token 生命週期內被延遲或繞過。若 member mutation 在 API mode 開放，影響會擴大。</p>
+
+<h4 id="remediation">Remediation 修補建議</h4>
+
+<p>每次 bearer-token authentication 都套用相同 blocked-status check，加入 token revocation/session versioning，並在狀態變更後縮短或輪替 token。</p>
+
+<h3 id="17-recaptcha-server-side-throttle">[17] reCAPTCHA 關閉時，密碼重設沒有 server-side throttle</h3>
+
+<table>
+<thead><tr>
+<th>欄位</th>
+<th>值</th>
+</tr></thead>
+<tbody>
+<tr>
+<td>嚴重度</td>
+<td>中</td>
+</tr>
+<tr>
+<td>信心程度</td>
+<td>高</td>
+</tr>
+<tr>
+<td>信心評估依據</td>
+<td>靜態原始碼證據含明確行號；可達性假設列於下方。</td>
+</tr>
+<tr>
+<td>類別</td>
+<td>OWASP A04 不安全設計, A07 身分識別與驗證失效</td>
+</tr>
+<tr>
+<td>CWE</td>
+<td>CWE-307, CWE-770</td>
+</tr>
+<tr>
+<td>受影響行號</td>
+<td>packages/forum-cms/environment-variables.ts:128; packages/forum-cms/utils/recaptcha.ts:29-35; packages/forum-cms/utils/login-logging.ts:155-181</td>
+</tr>
+</tbody></table>
+
+<h4 id="summary">Summary 摘要</h4>
+
+<p>密碼重設防護依賴 reCAPTCHA；但 reCAPTCHA 預設為關閉，而且關閉時會直接回傳成功，沒有獨立 rate limit。</p>
+
+<h4 id="validation">Validation 驗證</h4>
+
+<p>必須 <code>RECAPTCHA_ENABLED === true</code> 才會執行驗證。關閉時 <code>verifyRecaptchaToken</code> 回傳 success，而 password-reset path 只檢查該結果。</p>
+
+<h4 id="dataflow">Dataflow 資料流</h4>
+
+<p>未登入 reset request -&gt; reCAPTCHA disabled -&gt; verifier 回傳 success -&gt; 可重複產生 reset email。</p>
+
+<h4 id="reachability">Reachability 可達性</h4>
+
+<p>預設/local-like 部署，或任何 production 環境未啟用 reCAPTCHA 時可達。</p>
+
+<h4 id="severity">Severity 嚴重度</h4>
+
+<p>攻擊者可觀察操作行為並對使用者/郵件基礎設施發動 reset email flood。帳號接管仍需要取得 token。</p>
+
+<h4 id="remediation">Remediation 修補建議</h4>
+
+<p>依帳號、IP、subnet 與時間窗加入 server-side rate limit；reCAPTCHA 應作為額外訊號，而不是唯一控制。</p>
+
+<h3 id="18-csp-hsts-clickjacking-header">[18] 未明確設定 CSP、HSTS 或 clickjacking 防護 header</h3>
+
+<table>
+<thead><tr>
+<th>欄位</th>
+<th>值</th>
+</tr></thead>
+<tbody>
+<tr>
+<td>嚴重度</td>
+<td>中</td>
+</tr>
+<tr>
+<td>信心程度</td>
+<td>高</td>
+</tr>
+<tr>
+<td>信心評估依據</td>
+<td>靜態原始碼證據含明確行號；可達性假設列於下方。</td>
+</tr>
+<tr>
+<td>類別</td>
+<td>OWASP A05 資安設定錯誤</td>
+</tr>
+<tr>
+<td>CWE</td>
+<td>CWE-1021, CWE-693</td>
+</tr>
+<tr>
+<td>受影響行號</td>
+<td>packages/forum-cms/keystone.ts:2328-2344; packages/forum-cms/keystone.ts:2354-2358; packages/forum-cms/keystone.ts:2478-2482</td>
+</tr>
+</tbody></table>
+
+<h4 id="summary">Summary 摘要</h4>
+
+<p>Express/Keystone server 設定沒有安裝 security header middleware，也沒有定義 CSP、HSTS、frame-ancestors/X-Frame-Options 或相關瀏覽器防護。</p>
+
+<h4 id="validation">Validation 驗證</h4>
+
+<p>搜尋未找到 <code>helmet</code>、<code>Content-Security-Policy</code>、<code>Strict-Transport-Security</code>、<code>X-Frame-Options</code> 或 <code>frame-ancestors</code> 設定。custom Document 的 <code>&lt;Head /&gt;</code> 是空的，<code>extendExpressApp</code> 只加入 JSON parsing 與 routes。</p>
+
+<h4 id="dataflow">Dataflow 資料流</h4>
+
+<p>CMS/Admin/GraphQL route 的 HTTP response -&gt; 沒有明確 browser security headers -&gt; 瀏覽器使用寬鬆預設值或只依賴平台外部注入 header。</p>
+
+<h4 id="reachability">Reachability 可達性</h4>
+
+<p>除非 Cloud Run/load balancer/CDN 在 repo 外注入等效 header，否則會影響部署後 response。此類外部設定不在本 repo 中。</p>
+
+<h4 id="severity">Severity 嚴重度</h4>
+
+<p>缺少 CSP 會放大 XSS 影響；缺少 frame protection 會造成 clickjacking 風險；缺少 HSTS 則削弱 HTTPS downgrade resistance。若部署層有補償控制，嚴重度可下降。</p>
+
+<h4 id="remediation">Remediation 修補建議</h4>
+
+<p>集中加入 security headers，包含 Admin UI 的 nonce/hash-based CSP、<code>frame-ancestors none</code> 或允許來源、HTTPS 上的 HSTS、<code>X-Content-Type-Options nosniff</code>，並加上 header assertion tests。</p>
+
+<h3 id="19-production-dependency-tree-critical-prototype-pollution-rce-xxe-dos-advisories">[19] Production dependency tree 含 critical prototype-pollution、RCE、XXE 與 DoS advisories</h3>
+
+<table>
+<thead><tr>
+<th>欄位</th>
+<th>值</th>
+</tr></thead>
+<tbody>
+<tr>
+<td>嚴重度</td>
+<td>中</td>
+</tr>
+<tr>
+<td>信心程度</td>
+<td>高</td>
+</tr>
+<tr>
+<td>信心評估依據</td>
+<td>靜態原始碼證據含明確行號；可達性假設列於下方。</td>
+</tr>
+<tr>
+<td>類別</td>
+<td>OWASP A06 易受攻擊且過時的元件</td>
+</tr>
+<tr>
+<td>CWE</td>
+<td>CWE-1321, CWE-611, CWE-94, CWE-400</td>
+</tr>
+<tr>
+<td>受影響行號</td>
+<td>packages/forum-cms/package.json:35; packages/forum-cms/yarn.lock:5869-5878; packages/forum-cms/yarn.lock:6503-6505; packages/forum-cms/yarn.lock:6565-6572; packages/forum-cms/yarn.lock:7956-7958; packages/forum-cms/yarn.lock:8373-8393</td>
+</tr>
+</tbody></table>
+
+<h4 id="summary">Summary 摘要</h4>
+
+<p><code>yarn audit --groups dependencies</code> 回報多個 production dependency advisories，包含 protobufjs 的 prototype pollution/RCE、fast-xml-parser 的 XML parser 問題、immutable prototype pollution、http-proxy-middleware DoS，以及 node-forge cryptographic parser 問題。</p>
+
+<h4 id="validation">Validation 驗證</h4>
+
+<p>audit output 已存於 <code>artifacts/01_context/yarn_audit.jsonl</code>。lockfile 證據顯示 vulnerable packages 存在於 resolved dependency graph。</p>
+
+<h4 id="dataflow">Dataflow 資料流</h4>
+
+<p>應用程式 dependency resolution -&gt; 有弱點的 transitive packages 安裝到 production image -&gt; 若應用程式或 dependency code 會解析攻擊者控制的 protobuf/XML/crypto/proxy input，弱點可被觸發。</p>
+
+<h4 id="reachability">Reachability 可達性</h4>
+
+<p>本次審查未逐一證明每個 advisory 都能從 first-party route 觸發，因此即使 advisory 分數有 critical，這裡仍評為中。部分 package 由服務使用的 Firebase/GCP/AWS libraries 帶入。</p>
+
+<h4 id="severity">Severity 嚴重度</h4>
+
+<p>過時 production dependencies 是持續性風險，也包含這次明確要求檢查的 prototype pollution 與 XXE-style XML parser 問題。</p>
+
+<h4 id="remediation">Remediation 修補建議</h4>
+
+<p>升級 direct packages 與 lockfile，在 CI 執行 audit，優先採用 patched major/minor 版本，並對 protobuf/XML/crypto path 做 reachability testing 後再接受殘餘風險。</p>
+
+<h3 id="20-keywords-json">[20] 公開 keywords.json 洩漏受限制的審核關鍵字資料</h3>
+
+<table>
+<thead><tr>
+<th>欄位</th>
+<th>值</th>
+</tr></thead>
+<tbody>
+<tr>
+<td>嚴重度</td>
+<td>中</td>
+</tr>
+<tr>
+<td>信心程度</td>
+<td>高</td>
+</tr>
+<tr>
+<td>信心評估依據</td>
+<td>靜態原始碼證據含明確行號；可達性假設列於下方。</td>
+</tr>
+<tr>
+<td>類別</td>
+<td>OWASP A01 權限控管失效, A02 加密機制失效</td>
+</tr>
+<tr>
+<td>CWE</td>
+<td>CWE-200, CWE-668</td>
+</tr>
+<tr>
+<td>受影響行號</td>
+<td>packages/forum-cms/lists/forbidden-keyword.ts:60-67; packages/forum-cms/utils/forbidden-keywords-json.ts:71-75; packages/forum-cms/utils/forbidden-keywords-json.ts:101-111; packages/forum-cms/keystone.ts:2458-2467</td>
+</tr>
+</tbody></table>
+
+<h4 id="summary">Summary 摘要</h4>
+
+<p>受限制的 ForbiddenKeyword records 透過 <code>context.sudo()</code> 匯出成 <code>keywords.json</code>，而 local file storage 會公開服務 <code>/files</code>。</p>
+
+<h4 id="validation">Validation 驗證</h4>
+
+<p>list 本身有 role 限制，但 sync helper 用 sudo 讀取 enabled keywords，並把 JSON 寫到 local file storage 與 GCS。Keystone 在 <code>/files</code> 公開 local <code>files</code> storage。</p>
+
+<h4 id="dataflow">Dataflow 資料流</h4>
+
+<p>moderator/editor keyword data -&gt; sudo export -&gt; file storage 中的 local <code>keywords.json</code> -&gt; 未登入 <code>/files/keywords.json</code> consumer。</p>
+
+<h4 id="reachability">Reachability 可達性</h4>
+
+<p>local-storage 部署可達；若該檔案被下游發布，等效 public GCS object access 也可能可達。</p>
+
+<h4 id="severity">Severity 嚴重度</h4>
+
+<p>攻擊者可得知審核關鍵字與豁免資料，更容易規避過濾，也會曝光營運政策。</p>
+
+<h4 id="remediation">Remediation 修補建議</h4>
+
+<p>不要把受限制的審核資料放在 public file storage。改提供最小化且 access-controlled 的 policy API，或把關鍵字比對留在伺服器端。</p>
+
+<h3 id="21-buffering">[21] 圖片上傳上限允許驗證前的大量記憶體 buffering</h3>
+
+<table>
+<thead><tr>
+<th>欄位</th>
+<th>值</th>
+</tr></thead>
+<tbody>
+<tr>
+<td>嚴重度</td>
+<td>中</td>
+</tr>
+<tr>
+<td>信心程度</td>
+<td>中</td>
+</tr>
+<tr>
+<td>信心評估依據</td>
+<td>靜態原始碼證據含明確行號；可達性假設列於下方。</td>
+</tr>
+<tr>
+<td>類別</td>
+<td>OWASP A05 資安設定錯誤, A08 軟體與資料完整性失效</td>
+</tr>
+<tr>
+<td>CWE</td>
+<td>CWE-400</td>
+</tr>
+<tr>
+<td>受影響行號</td>
+<td>packages/forum-cms/lists/image.ts:20-23; packages/forum-cms/keystone.ts:2478-2481</td>
+</tr>
+</tbody></table>
+
+<h4 id="summary">Summary 摘要</h4>
+
+<p>伺服器允許約 2GB 的 upload，而 image field 與 Keystone upload handling 會在相當多 request processing 後才驗證。</p>
+
+<h4 id="validation">Validation 驗證</h4>
+
+<p><code>maxFileSize</code> 設為 <code>2000 * 1024 * 1024</code>，image list 使用 Keystone local image storage，沒有更嚴格的 per-field cap。</p>
+
+<h4 id="dataflow">Dataflow 資料流</h4>
+
+<p>已驗證 upload request -&gt; server limit 接受大型 multipart body -&gt; image handling buffering/processing data -&gt; 記憶體/CPU/磁碟壓力。</p>
+
+<h4 id="reachability">Reachability 可達性</h4>
+
+<p>具有 image record create/update 權限的角色可達。預設 CMS role gating 降低暴露面，但無法消除內部人員或遭入侵帳號造成 DoS 的風險。</p>
+
+<h4 id="severity">Severity 嚴重度</h4>
+
+<p>在有 memory limit 的 container 部署中，可用性風險可信。攻擊需要有圖片上傳權限的帳號。</p>
+
+<h4 id="remediation">Remediation 修補建議</h4>
+
+<p>設定實際合理的 upload limit，強制 reverse-proxy/body limits，盡量 stream upload，提早驗證 content type，並加入 per-user upload rate limit。</p>
+
+<h3 id="22-dockerfile-root-package-install-pin-apt-trust-key">[22] Dockerfile 在 root package install 前匯入未 pin 的 apt trust key</h3>
+
+<table>
+<thead><tr>
+<th>欄位</th>
+<th>值</th>
+</tr></thead>
+<tbody>
+<tr>
+<td>嚴重度</td>
+<td>中</td>
+</tr>
+<tr>
+<td>信心程度</td>
+<td>高</td>
+</tr>
+<tr>
+<td>信心評估依據</td>
+<td>靜態原始碼證據含明確行號；可達性假設列於下方。</td>
+</tr>
+<tr>
+<td>類別</td>
+<td>OWASP A08 軟體與資料完整性失效</td>
+</tr>
+<tr>
+<td>CWE</td>
+<td>CWE-494, CWE-829</td>
+</tr>
+<tr>
+<td>受影響行號</td>
+<td>packages/forum-cms/Dockerfile:3-18</td>
+</tr>
+</tbody></table>
+
+<h4 id="summary">Summary 摘要</h4>
+
+<p>image build 會透過網路抓取 Google apt key 並用 <code>apt-key</code> 加入信任，接著安裝 <code>gcsfuse</code>。</p>
+
+<h4 id="validation">Validation 驗證</h4>
+
+<p>Dockerfile 將 <code>curl https://packages.cloud.google.com/apt/doc/apt-key.gpg</code> pipe 到 <code>apt-key add -</code>，之後以 root 安裝 packages。</p>
+
+<h4 id="dataflow">Dataflow 資料流</h4>
+
+<p>Docker build -&gt; network-fetched trust key -&gt; apt repository trust -&gt; root package installation。</p>
+
+<h4 id="reachability">Reachability 可達性</h4>
+
+<p>每次使用此 Dockerfile 建置 image 時都可達。</p>
+
+<h4 id="severity">Severity 嚴重度</h4>
+
+<p>這是 supply-chain hardening 問題。TLS 可降低風險，但 trust anchor 與 package source 沒有 pin 到 immutable digest/keyring package。</p>
+
+<h4 id="remediation">Remediation 修補建議</h4>
+
+<p>使用 distro-supported keyring files 搭配 <code>signed-by</code>，可行時 pin package versions，驗證 key fingerprints，並考慮使用已預裝必要相依套件的 base image。</p>
+
+<h3 id="23-rich-text-embedded-code-block-stored-scripts">[23] Rich-text embedded-code block 會在套件使用者端執行 stored scripts</h3>
+
+<table>
+<thead><tr>
+<th>欄位</th>
+<th>值</th>
+</tr></thead>
+<tbody>
+<tr>
+<td>嚴重度</td>
+<td>中</td>
+</tr>
+<tr>
+<td>信心程度</td>
+<td>中</td>
+</tr>
+<tr>
+<td>信心評估依據</td>
+<td>靜態原始碼證據含明確行號；可達性假設列於下方。</td>
+</tr>
+<tr>
+<td>類別</td>
+<td>OWASP A03 Injection, XSS</td>
+</tr>
+<tr>
+<td>CWE</td>
+<td>CWE-79</td>
+</tr>
+<tr>
+<td>受影響行號</td>
+<td>packages/core/src/custom-fields/rich-text-editor/index.ts:49-59; packages/core/src/custom-fields/rich-text-editor/views/readr/index.tsx:9-13; packages/core/src/custom-fields/rich-text-editor/views/mirrormedia/index.tsx:9-13; node_modules/@mirrormedia/lilith-draft-renderer/lib/website/readr/block-renderers/embedded-code-block.js:83-116</td>
+</tr>
+</tbody></table>
+
+<h4 id="summary">Summary 摘要</h4>
+
+<p>共用 rich-text custom field 儲存原始 Draft.js JSON，並把使用者串到會執行 embedded-code scripts 的 lilith rich-text renderers。</p>
+
+<h4 id="validation">Validation 驗證</h4>
+
+<p>此 field 接受 GraphQL JSON input 並匯入 lilith editors。renderer 會從 embedded code 抽出 script nodes，建立 <code>&lt;script&gt;</code> elements、append 進 DOM，並用 <code>dangerouslySetInnerHTML</code> 注入非 script HTML。</p>
+
+<h4 id="dataflow">Dataflow 資料流</h4>
+
+<p>editor/user-controlled rich-text JSON -&gt; embedded-code block data -&gt; renderer 重建 script elements 與 HTML -&gt; 瀏覽器在 consuming origin 執行 script。</p>
+
+<h4 id="reachability">Reachability 可達性</h4>
+
+<p>目前沒有 active <code>forum-cms</code> list 呼叫 <code>richTextEditor(</code>，因此這是 repository package-consumer finding，而不是已證明的 forum-cms runtime path。</p>
+
+<h4 id="severity">Severity 嚴重度</h4>
+
+<p>若 consuming list 讓不可信或較低權限作者使用此 field，就會變成具有 origin-level script execution 的 stored XSS。</p>
+
+<h4 id="remediation">Remediation 修補建議</h4>
+
+<p>不可信作者停用 embedded-code，server-side sanitize/allowlist embeds，以 sandboxed iframe render embeds，並強制可阻擋 inline script 的 CSP。</p>
+
+<h3 id="24-email-customid-blocked-account">[24] 會員註冊會揭露 email、customId 與 blocked account 狀態</h3>
+
+<table>
+<thead><tr>
+<th>欄位</th>
+<th>值</th>
+</tr></thead>
+<tbody>
+<tr>
+<td>嚴重度</td>
+<td>低</td>
+</tr>
+<tr>
+<td>信心程度</td>
+<td>高</td>
+</tr>
+<tr>
+<td>信心評估依據</td>
+<td>靜態原始碼證據含明確行號；可達性假設列於下方。</td>
+</tr>
+<tr>
+<td>類別</td>
+<td>OWASP A01 權限控管失效, A04 不安全設計</td>
+</tr>
+<tr>
+<td>CWE</td>
+<td>CWE-203, CWE-209</td>
+</tr>
+<tr>
+<td>受影響行號</td>
+<td>packages/forum-cms/keystone.ts:457-486; packages/forum-cms/keystone.ts:496-499</td>
+</tr>
+</tbody></table>
+
+<h4 id="summary">Summary 摘要</h4>
+
+<p>註冊流程對 duplicate custom id、duplicate email 與 blocked member account 回傳可區分的錯誤訊息。</p>
+
+<h4 id="validation">Validation 驗證</h4>
+
+<p>resolver 會依不同 lookup 結果丟出 <code>Custom ID already exists</code>、<code>Email already exists</code> 與 blocked-account 訊息。</p>
+
+<h4 id="dataflow">Dataflow 資料流</h4>
+
+<p>攻擊者控制 registration fields -&gt; resolver 檢查既有 member records -&gt; 特定錯誤文字揭露帳號狀態。</p>
+
+<h4 id="reachability">Reachability 可達性</h4>
+
+<p>Firebase token validation 後，可從 member registration mutation 觸發。</p>
+
+<h4 id="severity">Severity 嚴重度</h4>
+
+<p>這是帳號列舉/隱私問題，不是直接 compromise。</p>
+
+<h4 id="remediation">Remediation 修補建議</h4>
+
+<p>回傳通用註冊失敗訊息，把詳細原因留在受限 log，並考慮對註冊嘗試加入 abuse throttling。</p>
+
+<h3 id="25-rich-text-link-url-scheme-allowlist">[25] Rich-text link URL 缺少 scheme allowlist</h3>
+
+<table>
+<thead><tr>
+<th>欄位</th>
+<th>值</th>
+</tr></thead>
+<tbody>
+<tr>
+<td>嚴重度</td>
+<td>低</td>
+</tr>
+<tr>
+<td>信心程度</td>
+<td>中</td>
+</tr>
+<tr>
+<td>信心評估依據</td>
+<td>靜態原始碼證據含明確行號；可達性假設列於下方。</td>
+</tr>
+<tr>
+<td>類別</td>
+<td>OWASP A03 Injection, XSS</td>
+</tr>
+<tr>
+<td>CWE</td>
+<td>CWE-79, CWE-601</td>
+</tr>
+<tr>
+<td>受影響行號</td>
+<td>packages/core/src/custom-fields/rich-text-editor/index.ts:49-59; node_modules/@mirrormedia/lilith-draft-renderer/lib/website/readr/entity-decorators/link-decorator.js:40-47; node_modules/@mirrormedia/lilith-draft-renderer/lib/website/mirrormedia/entity-decorators/link-decorator.js:73-75</td>
+</tr>
+</tbody></table>
+
+<h4 id="summary">Summary 摘要</h4>
+
+<p>Rich-text link entities 會把儲存的 URL 值直接放進 anchor <code>href</code>，沒有看到 scheme allowlist。</p>
+
+<h4 id="validation">Validation 驗證</h4>
+
+<p>Renderer decorators 從 entity data 讀取 <code>url</code> 並 render 成 <code>href</code>。READr renderer 也使用 <code>target=_blank</code> 但沒有 <code>rel</code> attribute。</p>
+
+<h4 id="dataflow">Dataflow 資料流</h4>
+
+<p>stored rich-text link entity -&gt; renderer <code>href</code> -&gt; 使用者點擊後，依瀏覽器行為可能導向不安全 scheme 或 phishing destination。</p>
+
+<h4 id="reachability">Reachability 可達性</h4>
+
+<p>與 XSS-001 相同，目前沒有找到 active forum-cms list usage。風險適用於 expose rich-text field 的 package consumers。</p>
+
+<h4 id="severity">Severity 嚴重度</h4>
+
+<p>現代 React/瀏覽器在許多情況下限制自動 script execution，因此嚴重度低於 embedded script blocks，但仍需要 URL policy。</p>
+
+<h4 id="remediation">Remediation 修補建議</h4>
+
+<p>normalize 並 allowlist <code>http</code>、<code>https</code> 與核准的 internal schemes；拒絕或重寫 <code>javascript:</code>、<code>data:</code> 與 control-character variants；new tab 加上 <code>rel=noopener noreferrer</code>。</p>
+
+<h3 id="26-recaptcha-site-key-js-escape-generated-admin-ui-tsx">[26] RECAPTCHA_SITE_KEY 未經 JS escape 就插入 generated Admin UI TSX</h3>
+
+<table>
+<thead><tr>
+<th>欄位</th>
+<th>值</th>
+</tr></thead>
+<tbody>
+<tr>
+<td>嚴重度</td>
+<td>低</td>
+</tr>
+<tr>
+<td>信心程度</td>
+<td>高</td>
+</tr>
+<tr>
+<td>信心評估依據</td>
+<td>靜態原始碼證據含明確行號；可達性假設列於下方。</td>
+</tr>
+<tr>
+<td>類別</td>
+<td>OWASP A03 Injection, 資安設定錯誤</td>
+</tr>
+<tr>
+<td>CWE</td>
+<td>CWE-79, CWE-94</td>
+</tr>
+<tr>
+<td>受影響行號</td>
+<td>packages/forum-cms/environment-variables.ts:129; packages/forum-cms/keystone.ts:1040-1064; packages/forum-cms/keystone.ts:1622-1696</td>
+</tr>
+</tbody></table>
+
+<h4 id="summary">Summary 摘要</h4>
+
+<p>reCAPTCHA site key 以字串插值方式放進 generated Admin UI TypeScript，而不是使用 JavaScript string encoder。</p>
+
+<h4 id="validation">Validation 驗證</h4>
+
+<p>generated scripts 內有 <code>const RECAPTCHA_SITE_KEY = &#x27;${RECAPTCHA_SITE_KEY}&#x27;;</code>，其他 generated code 則有使用 JSON serialization 做較安全的嵌入。</p>
+
+<h4 id="dataflow">Dataflow 資料流</h4>
+
+<p>operator-controlled environment variable -&gt; generated Admin UI source -&gt; browser-executed JavaScript。</p>
+
+<h4 id="reachability">Reachability 可達性</h4>
+
+<p>需要控制部署環境變數，一般使用者不能遠端利用。不過在 CI/CD 或 secret management channel 被入侵時，仍可能造成 script injection 或 build breakage。</p>
+
+<h4 id="severity">Severity 嚴重度</h4>
+
+<p>operator-controlled injection 的直接可利用性低，但若設定供應鏈遭入侵，影響範圍高。</p>
+
+<h4 id="remediation">Remediation 修補建議</h4>
+
+<p>使用 <code>JSON.stringify</code> 或等效 JS string escaping 來嵌入來自環境的字串，並在啟動時驗證 site key 格式。</p>
+
+<h2 id="reviewed-surfaces">Reviewed Surfaces 已審查範圍</h2>
+
+<ul><li>Keystone list operation access、filters、create/update hooks 與 relationship ownership checks。</li><li>會員/CMS authentication、JWT/session signing、password reset、lockout、reCAPTCHA 與 forced password-change flows。</li><li>Admin UI generated templates、custom field views、rich text renderer integration 與 link/embed rendering sinks。</li><li>Static file/image storage、forbidden keyword export、upload size limits 與 GCS/local storage behavior。</li><li>Translation、content export、Pub/Sub、reCAPTCHA、preview proxy、cache invalidation、Docker 與 Cloud Build 的 external request surfaces。</li><li>Query construction、Prisma raw API usage、JSON/filter merging、XML parser usage 與 prototype-pollution patterns。</li><li><code>yarn audit --groups dependencies --json</code> production dependency scan。</li></ul>
+
+<h2 id="suppressed-classes">Suppressed Classes 已排除類別</h2>
+
+<ul><li><code>SUP-SQLI-001</code> 未找到 first-party SQL injection sink：在應用程式原始碼中未找到 $queryRaw、$executeRaw、Prisma.sql 或字串拼接 SQL；資料存取主要使用 Prisma/Keystone 結構化 filters。</li><li><code>SUP-SSRF-001</code> 未找到 runtime user-controlled SSRF sink：外部 fetch 為固定 Google/reCAPTCHA/PubSub URL，或 operator env endpoints 搭配固定 path；preview proxy 程式存在但未 mount。</li><li><code>SUP-XXE-001</code> 未找到 first-party XML parser entry point：應用程式原始碼中未找到 XML parser construction。XML/XXE 風險保留在 DEP-001 的 dependency advisories。</li><li><code>SUP-PP-001</code> 未找到 first-party prototype-pollution merge path：未找到不安全 deep merge user-controlled objects。API rule JSON 只接受白名單列舉 access levels；relationship where merging 使用明確 AND arrays。</li><li><code>SUP-FILE-001</code> 未找到 active arbitrary file-read 或 path traversal sink：Image upload storage 使用 Keystone naming/content handling；custom GCS file adapter 存在但未找到 active import/call path。</li></ul>
+
+<h2 id="artifacts">Artifacts 產出檔案</h2>
+
+<ul><li>Discovery report：<code>/tmp/codex-security-scans/forum-cms/f7aab21_20260601140554/artifacts/02_discovery/finding_discovery_report.md</code></li><li>Work ledger：<code>/tmp/codex-security-scans/forum-cms/f7aab21_20260601140554/artifacts/02_discovery/work_ledger.jsonl</code></li><li>Coverage ledger：<code>/tmp/codex-security-scans/forum-cms/f7aab21_20260601140554/artifacts/03_coverage/repository_coverage_ledger.md</code></li><li>Dedupe report：<code>/tmp/codex-security-scans/forum-cms/f7aab21_20260601140554/artifacts/04_reconciliation/dedupe_report.md</code></li><li>Finding validation artifacts：<code>/tmp/codex-security-scans/forum-cms/f7aab21_20260601140554/artifacts/05_findings</code></li></ul>
+    </main>
+  </div>
+  <script>
+    const toggle = document.getElementById('navToggle');
+    const icon = document.getElementById('navToggleIcon');
+    const collapsedKey = 'codex-security-report:sidebar-collapsed';
+
+    function setCollapsed(collapsed) {
+      document.body.classList.toggle('sidebar-collapsed', collapsed);
+      if (toggle) {
+        toggle.setAttribute('aria-pressed', collapsed ? 'true' : 'false');
+        toggle.setAttribute('aria-label', collapsed ? 'Expand sidebar' : 'Collapse sidebar');
+        toggle.setAttribute('title', collapsed ? 'Expand sidebar' : 'Collapse sidebar');
+      }
+      if (icon) icon.setAttribute('d', collapsed ? 'M9 6l6 6-6 6' : 'M15 6l-6 6 6 6');
+      try { localStorage.setItem(collapsedKey, collapsed ? '1' : '0'); } catch {}
+    }
+
+    try { setCollapsed(localStorage.getItem(collapsedKey) === '1'); } catch {}
+    if (toggle) toggle.addEventListener('click', () => setCollapsed(!document.body.classList.contains('sidebar-collapsed')));
+
+    const tocLinks = Array.from(document.querySelectorAll('.toc a'));
+    const sections = tocLinks.map((link) => {
+      const id = decodeURIComponent(link.getAttribute('href').slice(1));
+      return [link, document.getElementById(id)];
+    }).filter((pair) => pair[1]);
+
+    const observer = new IntersectionObserver((entries) => {
+      const visible = entries
+        .filter((entry) => entry.isIntersecting)
+        .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0];
+      if (!visible) return;
+      tocLinks.forEach((link) => link.parentElement.classList.remove('active'));
+      const active = tocLinks.find((link) => link.getAttribute('href') === '#' + visible.target.id);
+      if (active) active.parentElement.classList.add('active');
+    }, { rootMargin: '-10% 0px -75% 0px', threshold: [0, 1] });
+
+    sections.forEach(([, section]) => observer.observe(section));
+  </script>
+</body>
+</html>
