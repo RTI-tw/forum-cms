@@ -65,6 +65,56 @@ const listConfigurations = list({
     },
   },
   hooks: {
+    // [AC-008] 建立票前先驗證 poll 可見性、option 歸屬、重複投票
+    validateInput: async ({ resolvedData, operation, addValidationError, context }) => {
+      if (isCmsRequest(context) || operation !== 'create') return
+
+      const pollConnect = (resolvedData.poll as { connect?: { id: number } } | undefined)?.connect
+      const optionConnect = (resolvedData.option as { connect?: { id: number } } | undefined)?.connect
+
+      if (!pollConnect?.id || !optionConnect?.id) {
+        addValidationError('必須指定 poll 與 option')
+        return
+      }
+
+      const pollId = pollConnect.id
+      const optionId = optionConnect.id
+      const memberId = getAuthenticatedMemberId(context)
+
+      // 1. 驗證 poll 存在且父層文章可見
+      const poll = await context.prisma.poll.findFirst({
+        where: {
+          id: pollId,
+          post: buildPostVisibilityWhere(memberId) as object,
+        },
+        select: { id: true },
+      })
+      if (!poll) {
+        addValidationError('投票不存在或不可參與')
+        return
+      }
+
+      // 2. 驗證 option 確實屬於此 poll
+      const option = await context.prisma.pollOption.findFirst({
+        where: { id: optionId, pollId },
+        select: { id: true },
+      })
+      if (!option) {
+        addValidationError('選項不屬於此投票')
+        return
+      }
+
+      // 3. 每人每 poll 限一票
+      if (memberId) {
+        const existing = await context.prisma.pollVote.findFirst({
+          where: { pollId, memberId },
+          select: { id: true },
+        })
+        if (existing) {
+          addValidationError('每位會員每個投票只能投一票')
+        }
+      }
+    },
     resolveInput: ({ operation, resolvedData, context }) => {
       if (isCmsRequest(context)) return resolvedData
 

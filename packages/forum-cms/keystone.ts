@@ -471,7 +471,9 @@ const memberAuthSchemaExtension = graphql.extend(() => ({
                         existingByCustomId &&
                         existingByCustomId.firebaseId !== firebaseId
                     ) {
-                        throw new Error("Custom ID already exists");
+                        // [AUTH-007] 統一回傳通用訊息，避免洩漏帳號列舉資訊
+                        console.log(JSON.stringify({ severity: "INFO", type: "REGISTRATION_FAILED", reason: "duplicate_custom_id", timestamp: new Date().toISOString() }))
+                        throw new Error("Registration failed, please check your input and try again");
                     }
                 }
 
@@ -485,12 +487,9 @@ const memberAuthSchemaExtension = graphql.extend(() => ({
                         existingByEmail &&
                         existingByEmail.firebaseId !== firebaseId
                     ) {
-                        if (isMemberRegistrationBlocked(existingByEmail.status)) {
-                            throw new Error(
-                                "This email cannot be used to register",
-                            );
-                        }
-                        throw new Error("Email already exists");
+                        // [AUTH-007] 統一回傳通用訊息，避免揭露 email 是否存在或帳號是否被封鎖
+                        console.log(JSON.stringify({ severity: "INFO", type: "REGISTRATION_FAILED", reason: isMemberRegistrationBlocked(existingByEmail.status) ? "blocked_email" : "duplicate_email", timestamp: new Date().toISOString() }))
+                        throw new Error("Registration failed, please check your input and try again");
                     }
                 }
 
@@ -502,7 +501,9 @@ const memberAuthSchemaExtension = graphql.extend(() => ({
 
                 if (existingMember) {
                     if (isMemberRegistrationBlocked(existingMember.status)) {
-                        throw new Error("This member account is not available");
+                        // [AUTH-007] 統一回傳通用訊息
+                        console.log(JSON.stringify({ severity: "INFO", type: "REGISTRATION_FAILED", reason: "blocked_member", timestamp: new Date().toISOString() }))
+                        throw new Error("Registration failed, please check your input and try again");
                     }
                     const updateData: Record<string, any> = {};
                     if (nameInput) {
@@ -1050,7 +1051,7 @@ declare global {
 }
 
 const RECAPTCHA_ENABLED = ${RECAPTCHA_ENABLED};
-const RECAPTCHA_SITE_KEY = '${RECAPTCHA_SITE_KEY}';
+const RECAPTCHA_SITE_KEY = ${JSON.stringify(RECAPTCHA_SITE_KEY)}; // [XSS-003] JSON.stringify 防止特殊字元造成 script injection
 
 const REQUEST_PASSWORD_RESET_MUTATION = ${JS_BACKTICK}
   mutation SendUserPasswordResetLink($email: String!) {
@@ -1632,7 +1633,7 @@ declare global {
 }
 
 const RECAPTCHA_ENABLED = ${RECAPTCHA_ENABLED};
-const RECAPTCHA_SITE_KEY = '${RECAPTCHA_SITE_KEY}';
+const RECAPTCHA_SITE_KEY = ${JSON.stringify(RECAPTCHA_SITE_KEY)}; // [XSS-003] JSON.stringify 防止特殊字元造成 script injection
 
 const AUTHENTICATE_MUTATION = ${JS_BACKTICK}
   mutation AuthenticateUserWithPassword($identity: String!, $password: String!) {
@@ -2483,7 +2484,9 @@ const baseKeystoneConfig = config({
         },
     },
     server: {
-        maxFileSize: 2000 * 1024 * 1024,
+        // [FILE-002] 從 2000MB 降至 20MB，避免大量 multipart body buffering 造成 DoS。
+        // 需調整時請同步修改 image.ts 的 maxFileSize 與 reverse proxy 設定。
+        maxFileSize: 20 * 1024 * 1024,
         extendExpressApp: (app, context) => {
             // [AUTH-001] Server 啟動時驗證必要 secret，缺少或強度不足則中止。
             // 此處執行而非 module import 時執行，是為了讓 `keystone build` /
@@ -2541,7 +2544,58 @@ const baseKeystoneConfig = config({
                 })
             );
 
-            app.use(express.json({ limit: "500mb" }));
+            app.use(express.json({ limit: "10mb" }));
+
+            // [AUTH-004] Server-side 強制：mustChangePassword 的 session 只允許改密碼相關操作。
+            // 純靠 client-side redirect 會讓攻擊者繞過政策直接打 GraphQL API。
+            app.use("/api/graphql", async (req, res, next) => {
+                try {
+                    const keystoneCtx = await context.withRequest(req, res)
+                    const sess = keystoneCtx.session as any
+                    if (sess?.data) {
+                        const needsChange =
+                            sess.data.mustChangePassword ||
+                            (sess.data.passwordUpdatedAt &&
+                                isPasswordExpired({
+                                    passwordUpdatedAt: sess.data.passwordUpdatedAt,
+                                }))
+                        if (needsChange) {
+                            const query =
+                                typeof (req.body as any)?.query === "string"
+                                    ? (req.body as any).query as string
+                                    : ""
+                            const allowed = [
+                                "updateUser",
+                                "endSession",
+                                "authenticateUserWithPassword",
+                                "sendUserPasswordResetLink",
+                                "redeemUserPasswordResetToken",
+                            ]
+                            const isAllowed = allowed.some((op) => query.includes(op))
+                            if (!isAllowed) {
+                                return res.status(403).json({
+                                    errors: [
+                                        {
+                                            message:
+                                                "請先完成密碼變更才能繼續操作",
+                                            extensions: { code: "PASSWORD_CHANGE_REQUIRED" },
+                                        },
+                                    ],
+                                })
+                            }
+                        }
+                    }
+                } catch {
+                    // session 解析失敗不阻擋請求（未登入狀態）
+                }
+                next()
+            });
+
+            // [FILE-001] 阻擋 keywords.json 公開存取：forbidden keyword 屬於審核敏感資料，
+            // 不應透過 public /files 路徑洩漏，否則攻擊者可得知過濾規則並規避審核。
+            app.get("/files/keywords.json", (_req, res) => {
+                res.status(404).json({ message: "Not found" });
+            });
 
             app.get("/health_check", (_req, res) => {
                 res.status(200).json({ status: "healthy" });

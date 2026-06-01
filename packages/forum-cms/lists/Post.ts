@@ -371,31 +371,46 @@ const listConfigurations = list({
         }) => {
             const data = { ...resolvedData }
             if (operation === 'create') {
-                if (data.status === undefined) {
-                    data.status =
-                        envVar.accessControlStrategy === 'cms'
-                            ? 'draft'
-                            : 'pending'
-                }
-                const explicit = hasExplicitMemberRelationInput(
-                    inputData as Record<string, unknown>,
-                    'author',
-                )
-                if (!explicit) {
-                    const memberId =
-                        await getOfficialMemberIdForSessionUser(context)
-                    if (memberId != null) {
-                        data.author = { connect: { id: memberId } }
+                if (!isCmsRequest(context)) {
+                    // [AC-005] 非 CMS 建立文章時，強制忽略用戶端傳入的 author 與 status，
+                    // 防止冒用他人身分或直接設定發布狀態。
+                    const memberId = await getOfficialMemberIdForSessionUser(context)
+                    if (memberId == null) {
+                        throw new Error('建立文章需要有效的會員登入狀態')
                     }
-                }
-                if (!data.author?.connect) {
-                    throw new Error(
-                        '作者為必填：請選擇作者，或確認已以央廣後台帳號登入且已完成 OfficialMapping。'
+                    data.author = { connect: { id: memberId } }
+                    data.status = 'pending' // 非 CMS 發文一律進審核佇列
+                    if (!normText(data.ip as string | undefined)) {
+                        data.ip = getClientIpFromKeystoneContext(context)
+                    }
+                } else {
+                    // CMS 呼叫：保留原有邏輯
+                    if (data.status === undefined) {
+                        data.status =
+                            envVar.accessControlStrategy === 'cms'
+                                ? 'draft'
+                                : 'pending'
+                    }
+                    const explicit = hasExplicitMemberRelationInput(
+                        inputData as Record<string, unknown>,
+                        'author',
                     )
-                }
-                // CMS 建立文章時由請求帶入發文 IP（表單未送或空白則補上）
-                if (!normText(data.ip)) {
-                    data.ip = getClientIpFromKeystoneContext(context)
+                    if (!explicit) {
+                        const memberId =
+                            await getOfficialMemberIdForSessionUser(context)
+                        if (memberId != null) {
+                            data.author = { connect: { id: memberId } }
+                        }
+                    }
+                    if (!data.author?.connect) {
+                        throw new Error(
+                            '作者為必填：請選擇作者，或確認已以央廣後台帳號登入且已完成 OfficialMapping。'
+                        )
+                    }
+                    // CMS 建立文章時由請求帶入發文 IP（表單未送或空白則補上）
+                    if (!normText(data.ip as string | undefined)) {
+                        data.ip = getClientIpFromKeystoneContext(context)
+                    }
                 }
             }
             if (operation === 'update' && item) {
