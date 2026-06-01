@@ -4,6 +4,11 @@ import { list } from '@keystone-6/core'
 import { text, integer, relationship, timestamp } from '@keystone-6/core/fields'
 import { createMessageServicesTranslationHook } from '../utils/message-services-translation-hook'
 import { applyPollUpdateTranslationOnly } from '../utils/cms-content-moderation'
+import {
+  buildPostVisibilityWhere,
+  getAuthenticatedMemberId,
+  isCmsRequest,
+} from '../utils/post-visibility'
 
 /**
  * 欄位規格：
@@ -117,6 +122,16 @@ const listConfigurations = list({
       update: allowRoles(admin, moderator, editor),
       create: allowRoles(admin, moderator, editor),
       delete: allowRoles(admin, editor),
+    },
+    filter: {
+      // [AC-004] 非 CMS query 只回傳有可見父層文章的 Poll，防止草稿/隱藏投票洩漏。
+      query: ({ context }) => {
+        if (isCmsRequest(context)) return true
+        const memberId = getAuthenticatedMemberId(context)
+        return {
+          post: buildPostVisibilityWhere(memberId),
+        }
+      },
     },
   },
   hooks: {

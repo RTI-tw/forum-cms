@@ -59,6 +59,31 @@ const passwordResetTokenTtl = Number(PASSWORD_RESET_TOKEN_TTL_MINUTES)
 const memberSessionMaxAge = Number(MEMBER_SESSION_MAX_AGE)
 const messageServicesHookTimeoutMs = Number(MESSAGE_SERVICES_HOOK_TIMEOUT_MS)
 
+// [AUTH-001] 啟動時強制驗證必要 secret，缺少或強度不足則直接中止。
+// 請在 .env 設定 SESSION_SECRET 與 MEMBER_SESSION_SECRET（各至少 32 字元的隨機字串）。
+;(function assertRequiredSecrets() {
+  const errors: string[] = []
+  if (!SESSION_SECRET || SESSION_SECRET.length < 32) {
+    errors.push(
+      'SESSION_SECRET 必須設定且長度至少 32 字元（目前：' +
+        (SESSION_SECRET ? `${SESSION_SECRET.length} 字元` : '未設定') +
+        '）',
+    )
+  }
+  if (!MEMBER_SESSION_SECRET || MEMBER_SESSION_SECRET.length < 32) {
+    errors.push(
+      'MEMBER_SESSION_SECRET 必須設定且長度至少 32 字元（目前：' +
+        (MEMBER_SESSION_SECRET ? `${MEMBER_SESSION_SECRET.length} 字元` : '未設定') +
+        '）',
+    )
+  }
+  if (errors.length > 0) {
+    throw new Error(
+      '[啟動失敗] 缺少必要 secret 設定，請檢查環境變數：\n' + errors.join('\n'),
+    )
+  }
+})()
+
 export default {
   isUIDisabled: IS_UI_DISABLED === 'true',
   memoryCacheTtl: Number.isNaN(Number(MEMORY_CACHE_TTL))
@@ -77,9 +102,7 @@ export default {
     url: DATABASE_URL || 'postgres://username:password@localhost:5432/forum-cms',
   },
   session: {
-    secret:
-      SESSION_SECRET ||
-      'default_session_secret_and_it_should_be_more_than_32_characters',
+    secret: SESSION_SECRET ?? '',
     maxAge: (SESSION_MAX_AGE && parseInt(SESSION_MAX_AGE)) || 60 * 60 * 24 * 1, // 1 days
   },
   gcs: {
@@ -138,7 +161,7 @@ export default {
     serviceAccountBase64: FIREBASE_SERVICE_ACCOUNT_BASE64 || '',
   },
   memberSession: {
-    secret: MEMBER_SESSION_SECRET || '',
+    secret: MEMBER_SESSION_SECRET ?? '',
     maxAgeSeconds: Number.isNaN(memberSessionMaxAge)
       ? 60 * 60 * 24 * 7
       : memberSessionMaxAge,

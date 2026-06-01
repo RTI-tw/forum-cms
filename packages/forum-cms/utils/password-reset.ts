@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import envVar from "../environment-variables";
 import { getMailer } from "./mailer";
 
@@ -40,13 +41,18 @@ export async function sendPasswordResetEmail({
     <p>此連結 ${envVar.passwordReset.tokensValidForMins} 分鐘內有效，若您未提出申請請忽略本信。</p>
   `;
 
+    // [AUTH-002] 不記錄 resetUrl/token，只記錄去識別化欄位，
+    // 避免 token 透過 log 外洩。
     console.log(
         JSON.stringify({
             severity: "INFO",
-            message: "Generated password reset link",
+            message: "Password reset email dispatched",
             type: "PASSWORD_RESET",
-            email,
-            resetUrl,
+            emailHash: crypto
+                .createHash("sha256")
+                .update(email)
+                .digest("hex")
+                .slice(0, 12),
             timestamp: new Date().toISOString(),
         })
     );

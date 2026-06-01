@@ -44,10 +44,13 @@ const listConfigurations = list({
       delete: allowRoles(admin, editor),
     },
     filter: {
+      // [AC-003] 非 CMS query 限制只能看自己的投票，且拒絕未登入存取。
       query: ({ context }) => {
         if (isCmsRequest(context)) return true
         const memberId = getAuthenticatedMemberId(context)
+        if (!memberId) return false
         return {
+          member: { id: { equals: memberId } },
           poll: {
             post: buildPostVisibilityWhere(memberId),
           },

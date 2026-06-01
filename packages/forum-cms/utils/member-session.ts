@@ -6,12 +6,12 @@ export type MemberSessionPayload = {
   firebaseId: string
 }
 
-const DEFAULT_MEMBER_SESSION_SECRET =
-  'default_member_session_secret_change_me'
 const DEFAULT_MEMBER_SESSION_MAX_AGE = 60 * 60 * 24 * 7
 
-function getSessionSecret() {
-  return envVar.memberSession.secret || DEFAULT_MEMBER_SESSION_SECRET
+// [AUTH-001] 啟動時已在 environment-variables.ts 驗證 secret 不為空且長度足夠，
+// 此處直接取用，不再提供 fallback（避免硬編碼預設值造成 session 偽造風險）。
+function getSessionSecret(): string {
+  return envVar.memberSession.secret
 }
 
 export function getMemberSessionMaxAgeSeconds() {

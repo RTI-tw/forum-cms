@@ -4,6 +4,7 @@ import { listDefinition as lists } from "./lists";
 import envVar from "./environment-variables";
 import { computeIsCompleteProfile } from "./utils/member-profile";
 import express from "express";
+import helmet from "helmet";
 import { createAuth } from "@keystone-6/auth";
 import { statelessSessions } from "@keystone-6/core/session";
 import { createPreviewMiniApp } from "./express-mini-apps/preview/app";
@@ -397,6 +398,12 @@ const memberAuthSchemaExtension = graphql.extend(() => ({
                     });
 
                     if (!member) {
+                        return null;
+                    }
+
+                    // [AUTH-005] 即使 JWT 簽章有效，仍需確認 member 當前狀態為 active，
+                    // 避免已被 ban/inactive 的帳號在 token 到期前繼續操作。
+                    if ((member as { status?: string }).status !== 'active') {
                         return null;
                     }
 
@@ -2478,6 +2485,33 @@ const baseKeystoneConfig = config({
     server: {
         maxFileSize: 2000 * 1024 * 1024,
         extendExpressApp: (app, context) => {
+            // [CONFIG-001] Security headers：CSP / HSTS / clickjacking / nosniff
+            app.use(
+                helmet({
+                    contentSecurityPolicy: {
+                        directives: {
+                            defaultSrc: ["'self'"],
+                            scriptSrc: ["'self'", "'unsafe-inline'"], // Admin UI 目前需要 unsafe-inline；待收集 nonce 後收緊
+                            styleSrc: ["'self'", "'unsafe-inline'"],
+                            imgSrc: ["'self'", "data:", "blob:", "https://storage.googleapis.com"],
+                            connectSrc: ["'self'"],
+                            fontSrc: ["'self'", "data:"],
+                            objectSrc: ["'none'"],
+                            frameAncestors: ["'none'"],
+                            upgradeInsecureRequests: [],
+                        },
+                    },
+                    hsts: {
+                        maxAge: 31536000,          // 1 year
+                        includeSubDomains: true,
+                        preload: true,
+                    },
+                    frameguard: { action: "deny" },
+                    noSniff: true,
+                    referrerPolicy: { policy: "strict-origin-when-cross-origin" },
+                })
+            );
+
             app.use(express.json({ limit: "500mb" }));
 
             app.get("/health_check", (_req, res) => {

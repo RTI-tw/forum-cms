@@ -148,11 +148,22 @@ const listConfigurations = list({
       delete: allowRoles(admin, editor),
     },
     filter: {
+      // [AC-001] 非 CMS query 只回傳 published 留言；若有登入，也補上自己的 archived 留言。
+      // 防止 hidden/rejected 留言透過 API 洩漏給不應看見的人。
       query: ({ context }) => {
         if (isCmsRequest(context)) return true
         const memberId = getAuthenticatedMemberId(context)
+        const visibilityConditions = memberId
+          ? {
+              OR: [
+                { status: { equals: 'published' } },
+                { status: { equals: 'archived' }, member: { id: { equals: memberId } } },
+              ],
+            }
+          : { status: { equals: 'published' } }
         return {
           post: buildPostVisibilityWhere(memberId),
+          ...visibilityConditions,
         }
       },
     },
@@ -196,14 +207,25 @@ const listConfigurations = list({
     }) => {
       const data = { ...resolvedData }
       if (operation === 'create') {
-        const explicit = hasExplicitMemberRelationInput(
-          inputData as Record<string, unknown>,
-          'member',
-        )
-        if (!explicit) {
+        if (!isCmsRequest(context)) {
+          // [AC-006] 非 CMS 呼叫：一律強制以 session 身分覆寫 member，
+          // 忽略用戶端傳入的 member.connect，防止冒用其他會員身分留言。
           const memberId = await getOfficialMemberIdForSessionUser(context)
-          if (memberId != null) {
-            data.member = { connect: { id: memberId } }
+          if (memberId == null) {
+            throw new Error('建立留言需要有效的會員登入狀態')
+          }
+          data.member = { connect: { id: memberId } }
+        } else {
+          // CMS 呼叫：若未明確指定 member 則嘗試自動帶入
+          const explicit = hasExplicitMemberRelationInput(
+            inputData as Record<string, unknown>,
+            'member',
+          )
+          if (!explicit) {
+            const memberId = await getOfficialMemberIdForSessionUser(context)
+            if (memberId != null) {
+              data.member = { connect: { id: memberId } }
+            }
           }
         }
       }
