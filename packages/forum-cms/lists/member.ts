@@ -12,10 +12,20 @@ const hiddenFromCmsUi = {
 }
 
 const INACTIVE_PREFIX = 'inactive: '
+const DELETED_PREFIX = 'DELETED-'
 
 function markInactiveValue(value?: string | null, fallback = '') {
   const normalized = value ?? fallback
   return `${INACTIVE_PREFIX}${normalized}`
+}
+
+function markDeletedUniqueValue(memberId: unknown, value?: string | null) {
+  const normalizedMemberId = String(memberId ?? '').trim()
+  if (!normalizedMemberId) {
+    throw new Error('Member id is required to mark deleted unique values')
+  }
+
+  return `${DELETED_PREFIX}${normalizedMemberId}-${value ?? ''}`
 }
 
 function restoreInactiveEmail(email?: string | null, firebaseId?: string | null) {
@@ -82,7 +92,7 @@ const listConfigurations = list({
       validation: { isRequired: true },
       ui: {
         description:
-          '啟用：正常使用；停用：會員待完成註冊；停權：禁止登入且保留原 email；已刪帳：禁止重新註冊且保留原 email。',
+          '啟用：正常使用；停用：會員待完成註冊；停權：禁止登入且保留原 email；已刪帳：禁止登入並釋放 email、Firebase ID、自訂 ID 供重新註冊。',
       },
     }),
     verified: checkbox({
@@ -188,7 +198,21 @@ const listConfigurations = list({
       const nextStatus =
         resolvedData.status !== undefined ? resolvedData.status : prevStatus
 
-      if (prevStatus !== 'inactive' && nextStatus === 'inactive') {
+      if (prevStatus !== 'deleted' && nextStatus === 'deleted') {
+        const memberId = typedItem?.id
+        resolvedData.email = markDeletedUniqueValue(
+          memberId,
+          typedItem?.email ?? resolvedData.email
+        )
+        resolvedData.firebaseId = markDeletedUniqueValue(
+          memberId,
+          typedItem?.firebaseId ?? resolvedData.firebaseId
+        )
+        resolvedData.customId = markDeletedUniqueValue(
+          memberId,
+          typedItem?.customId ?? resolvedData.customId
+        )
+      } else if (prevStatus !== 'inactive' && nextStatus === 'inactive') {
         const srcEmail = typedItem?.email ?? resolvedData.email
         const srcFirebase = typedItem?.firebaseId ?? resolvedData.firebaseId
         resolvedData.email = `${markInactiveValue(srcEmail)}  ${srcFirebase ?? ''}`

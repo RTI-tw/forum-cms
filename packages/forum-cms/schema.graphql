@@ -2669,6 +2669,91 @@ input AdCreateInput {
   updatedBy: UserRelateToOneForCreateInput
 }
 
+type HomepageImage {
+  id: ID!
+  title: String
+  image: Photo
+  linkUrl: String
+  sortOrder: Int
+  status: HomepageImageStatusType
+  createdAt: DateTime
+  updatedAt: DateTime
+  createdBy: User
+  updatedBy: User
+}
+
+enum HomepageImageStatusType {
+  draft
+  active
+  inactive
+}
+
+input HomepageImageWhereUniqueInput {
+  id: ID
+}
+
+input HomepageImageWhereInput {
+  AND: [HomepageImageWhereInput!]
+  OR: [HomepageImageWhereInput!]
+  NOT: [HomepageImageWhereInput!]
+  id: IDFilter
+  title: StringFilter
+  image: PhotoWhereInput
+  linkUrl: StringFilter
+  sortOrder: IntNullableFilter
+  status: HomepageImageStatusTypeNullableFilter
+  createdAt: DateTimeNullableFilter
+  updatedAt: DateTimeNullableFilter
+  createdBy: UserWhereInput
+  updatedBy: UserWhereInput
+}
+
+input HomepageImageStatusTypeNullableFilter {
+  equals: HomepageImageStatusType
+  in: [HomepageImageStatusType!]
+  notIn: [HomepageImageStatusType!]
+  not: HomepageImageStatusTypeNullableFilter
+}
+
+input HomepageImageOrderByInput {
+  id: OrderDirection
+  title: OrderDirection
+  linkUrl: OrderDirection
+  sortOrder: OrderDirection
+  status: OrderDirection
+  createdAt: OrderDirection
+  updatedAt: OrderDirection
+}
+
+input HomepageImageUpdateInput {
+  title: String
+  image: PhotoRelateToOneForUpdateInput
+  linkUrl: String
+  sortOrder: Int
+  status: HomepageImageStatusType
+  createdAt: DateTime
+  updatedAt: DateTime
+  createdBy: UserRelateToOneForUpdateInput
+  updatedBy: UserRelateToOneForUpdateInput
+}
+
+input HomepageImageUpdateArgs {
+  where: HomepageImageWhereUniqueInput!
+  data: HomepageImageUpdateInput!
+}
+
+input HomepageImageCreateInput {
+  title: String
+  image: PhotoRelateToOneForCreateInput
+  linkUrl: String
+  sortOrder: Int
+  status: HomepageImageStatusType
+  createdAt: DateTime
+  updatedAt: DateTime
+  createdBy: UserRelateToOneForCreateInput
+  updatedBy: UserRelateToOneForCreateInput
+}
+
 """
 The `JSON` scalar type represents JSON values as specified by [ECMA-404](http://www.ecma-international.org/publications/files/ECMA-ST/ECMA-404.pdf).
 """
@@ -2783,6 +2868,12 @@ type Mutation {
   updateAds(data: [AdUpdateArgs!]!): [Ad]
   deleteAd(where: AdWhereUniqueInput!): Ad
   deleteAds(where: [AdWhereUniqueInput!]!): [Ad]
+  createHomepageImage(data: HomepageImageCreateInput!): HomepageImage
+  createHomepageImages(data: [HomepageImageCreateInput!]!): [HomepageImage]
+  updateHomepageImage(where: HomepageImageWhereUniqueInput!, data: HomepageImageUpdateInput!): HomepageImage
+  updateHomepageImages(data: [HomepageImageUpdateArgs!]!): [HomepageImage]
+  deleteHomepageImage(where: HomepageImageWhereUniqueInput!): HomepageImage
+  deleteHomepageImages(where: [HomepageImageWhereUniqueInput!]!): [HomepageImage]
   endSession: Boolean!
   authenticateUserWithPassword(email: String!, password: String!): UserAuthenticationWithPasswordResult
   createInitialUser(data: CreateInitialUserInput!): UserAuthenticationWithPasswordSuccess!
@@ -2910,6 +3001,9 @@ type Query {
   ad(where: AdWhereUniqueInput!): Ad
   ads(where: AdWhereInput! = {}, orderBy: [AdOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: AdWhereUniqueInput): [Ad!]
   adsCount(where: AdWhereInput! = {}): Int
+  homepageImage(where: HomepageImageWhereUniqueInput!): HomepageImage
+  homepageImages(where: HomepageImageWhereInput! = {}, orderBy: [HomepageImageOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: HomepageImageWhereUniqueInput): [HomepageImage!]
+  homepageImagesCount(where: HomepageImageWhereInput! = {}): Int
   keystone: KeystoneMeta!
   authenticatedItem: AuthenticatedItem
   validateUserPasswordResetToken(email: String!, token: String!): ValidateUserPasswordResetTokenResult

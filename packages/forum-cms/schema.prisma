@@ -62,6 +62,8 @@ model User {
   from_Photo_updatedBy            Photo[]            @relation("Photo_updatedBy")
   from_Ad_createdBy               Ad[]               @relation("Ad_createdBy")
   from_Ad_updatedBy               Ad[]               @relation("Ad_updatedBy")
+  from_HomepageImage_createdBy    HomepageImage[]    @relation("HomepageImage_createdBy")
+  from_HomepageImage_updatedBy    HomepageImage[]    @relation("HomepageImage_updatedBy")
 }
 
 model Member {
@@ -470,31 +472,32 @@ model Video {
 }
 
 model Photo {
-  id                       Int       @id @default(autoincrement())
-  name                     String    @default("")
+  id                       Int             @id @default(autoincrement())
+  name                     String          @default("")
   file_id                  String?
   file_filesize            Int?
   file_width               Int?
   file_height              Int?
   file_extension           String?
-  urlOriginal              String    @default("")
-  altText                  String    @default("")
-  caption                  String    @default("")
+  urlOriginal              String          @default("")
+  altText                  String          @default("")
+  caption                  String          @default("")
   width                    Int?
   height                   Int?
-  sortOrder                Int?      @default(0)
-  uploadedBy               Member?   @relation("Photo_uploadedBy", fields: [uploadedById], references: [id])
-  uploadedById             Int?      @map("uploadedBy")
-  postsAsHeroImages        Post[]    @relation("Photo_postsAsHeroImages")
-  staticContents           Content[] @relation("Content_photos")
+  sortOrder                Int?            @default(0)
+  uploadedBy               Member?         @relation("Photo_uploadedBy", fields: [uploadedById], references: [id])
+  uploadedById             Int?            @map("uploadedBy")
+  postsAsHeroImages        Post[]          @relation("Photo_postsAsHeroImages")
+  staticContents           Content[]       @relation("Content_photos")
   createdAt                DateTime?
   updatedAt                DateTime?
-  createdBy                User?     @relation("Photo_createdBy", fields: [createdById], references: [id])
-  createdById              Int?      @map("createdBy")
-  updatedBy                User?     @relation("Photo_updatedBy", fields: [updatedById], references: [id])
-  updatedById              Int?      @map("updatedBy")
-  from_Member_avatar_image Member[]  @relation("Member_avatar_image")
-  from_Ad_image            Ad[]      @relation("Ad_image")
+  createdBy                User?           @relation("Photo_createdBy", fields: [createdById], references: [id])
+  createdById              Int?            @map("createdBy")
+  updatedBy                User?           @relation("Photo_updatedBy", fields: [updatedById], references: [id])
+  updatedById              Int?            @map("updatedBy")
+  from_Member_avatar_image Member[]        @relation("Member_avatar_image")
+  from_Ad_image            Ad[]            @relation("Ad_image")
+  from_HomepageImage_image HomepageImage[] @relation("HomepageImage_image")
 
   @@index([uploadedById])
   @@index([createdById])
@@ -518,6 +521,26 @@ model Ad {
   createdById Int?         @map("createdBy")
   updatedBy   User?        @relation("Ad_updatedBy", fields: [updatedById], references: [id])
   updatedById Int?         @map("updatedBy")
+
+  @@index([imageId])
+  @@index([createdById])
+  @@index([updatedById])
+}
+
+model HomepageImage {
+  id          Int                     @id @default(autoincrement())
+  title       String                  @default("")
+  image       Photo?                  @relation("HomepageImage_image", fields: [imageId], references: [id])
+  imageId     Int?                    @map("image")
+  linkUrl     String                  @default("")
+  sortOrder   Int?                    @default(0)
+  status      HomepageImageStatusType @default(draft)
+  createdAt   DateTime?
+  updatedAt   DateTime?
+  createdBy   User?                   @relation("HomepageImage_createdBy", fields: [createdById], references: [id])
+  createdById Int?                    @map("createdBy")
+  updatedBy   User?                   @relation("HomepageImage_updatedBy", fields: [updatedById], references: [id])
+  updatedById Int?                    @map("updatedBy")
 
   @@index([imageId])
   @@index([createdById])
@@ -883,4 +906,10 @@ enum AdStatusType {
   draft
   active
   finished
+}
+
+enum HomepageImageStatusType {
+  draft
+  active
+  inactive
 }
