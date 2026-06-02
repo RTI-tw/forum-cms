@@ -47,7 +47,7 @@ const listConfigurations = list({
       validation: { isRequired: true },
       ui: {
         description:
-          '決定下方要填寫哪些欄位；儲存後對應欄位才會顯示。新增時請先選好格式並儲存。',
+          '決定此廣告的內容類型。新增頁會列出所有格式的欄位，請依所選格式填寫對應欄位即可；儲存後，編輯頁只會顯示所選格式的欄位。',
       },
     }),
     startAt: timestamp({
@@ -151,7 +151,13 @@ const listConfigurations = list({
     },
   },
   hooks: {
-    validateInput: ({ resolvedData, item, operation, addValidationError }) => {
+    validateInput: async ({
+      resolvedData,
+      item,
+      operation,
+      context,
+      addValidationError,
+    }) => {
       if (operation !== 'create' && operation !== 'update') return
 
       // URL scheme 安全性：只要帶值就檢查（縱深防禦 stored XSS）。
@@ -167,32 +173,64 @@ const listConfigurations = list({
         }
       }
 
-      // 依格式檢查必要欄位（僅於建立時強制，避免後台局部更新時誤報）。
-      if (operation !== 'create') return
-      void item
-      const format = (resolvedData.format ?? 'single_image') as AdFormat
+      // 依格式必填：僅於「上架（Active）」時強制；草稿/下架可不完整。
+      // 以「本次送出值優先、否則沿用既有 item 值」計算有效狀態與內容。
+      const prev = (item ?? {}) as Record<string, unknown>
+      const status = (resolvedData.status ?? prev.status) as string | undefined
+      if (status !== 'active') return
+      const format = (resolvedData.format ??
+        prev.format ??
+        'single_image') as AdFormat
 
-      const hasImage = Boolean(
-        (resolvedData.image as { connect?: unknown } | undefined)?.connect
-      )
+      const imageRel = resolvedData.image as
+        | { connect?: unknown; disconnect?: unknown }
+        | undefined
+      const hasImage = imageRel
+        ? Boolean(imageRel.connect) && !imageRel.disconnect
+        : Boolean(prev.imageId)
+
+      const videoUrl = (resolvedData.videoUrl ?? prev.videoUrl) as
+        | string
+        | undefined
       const hasVideoUrl =
-        typeof resolvedData.videoUrl === 'string' &&
-        resolvedData.videoUrl.trim() !== ''
-      const hasVideoFile = Boolean(resolvedData.videoFile)
-      const hasAdCode =
-        typeof resolvedData.adCode === 'string' &&
-        resolvedData.adCode.trim() !== ''
+        typeof videoUrl === 'string' && videoUrl.trim() !== ''
+      const hasVideoFile =
+        resolvedData.videoFile !== undefined
+          ? Boolean(resolvedData.videoFile)
+          : Boolean(prev.videoFile_filename)
+
+      const adCode = (resolvedData.adCode ?? prev.adCode) as string | undefined
+      const hasAdCode = typeof adCode === 'string' && adCode.trim() !== ''
 
       if (format === 'single_image' && !hasImage) {
-        addValidationError('格式為「單張靜態圖」時，請選擇廣告圖片。')
+        addValidationError('上架（Active）前，「單張靜態圖」格式需選擇廣告圖片。')
+      } else if (format === 'video' && !hasVideoUrl && !hasVideoFile) {
+        addValidationError(
+          '上架（Active）前，「動態影像」格式需填寫影片網址或上傳影片檔。'
+        )
+      } else if (format === 'third_party' && !hasAdCode) {
+        addValidationError(
+          '上架（Active）前，「第三方廣告代碼」格式需填寫廣告代碼。'
+        )
+      } else if (format === 'carousel') {
+        // 輪播需至少一張：既有 slides 數 + 本次新增/連結（採寬鬆估計）。
+        let existing = 0
+        if (operation === 'update' && prev.id != null) {
+          existing = await context.prisma.adSlide.count({
+            where: { adId: Number(prev.id) },
+          })
+        }
+        const slidesRel = resolvedData.slides as
+          | { connect?: unknown[]; create?: unknown[] }
+          | undefined
+        const adding =
+          (slidesRel?.connect?.length ?? 0) + (slidesRel?.create?.length ?? 0)
+        if (existing + adding < 1) {
+          addValidationError(
+            '上架（Active）前，「靜態圖輪播」格式需至少新增一張輪播圖片。'
+          )
+        }
       }
-      if (format === 'video' && !hasVideoUrl && !hasVideoFile) {
-        addValidationError('格式為「動態影像」時，請填寫影片網址或上傳影片檔。')
-      }
-      if (format === 'third_party' && !hasAdCode) {
-        addValidationError('格式為「第三方廣告代碼」時，請填寫廣告代碼。')
-      }
-      // carousel：輪播格（slides）於廣告建立後再個別新增，故此處不強制。
     },
   },
   graphql: {
