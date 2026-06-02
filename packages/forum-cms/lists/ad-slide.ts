@@ -1,18 +1,23 @@
 import { list } from '@keystone-6/core'
-import { text, relationship, select, integer } from '@keystone-6/core/fields'
+import { text, relationship, integer } from '@keystone-6/core/fields'
 import { utils } from '@mirrormedia/lilith-core'
 import { allowRoles, admin, moderator, editor } from '../utils/access-control'
-import { isCmsRequest } from '../utils/post-visibility'
 import { isSafeLinkUrl } from '../utils/url-safety'
 
+/**
+ * 廣告輪播單格（AdSlide）：隸屬於某個「靜態圖輪播」格式的廣告（Ad.slides）。
+ * 每一格有獨立的圖片、點擊連結與排序。
+ */
 const listConfigurations = list({
   fields: {
-    title: text({
-      label: '圖片名稱 Title',
+    ad: relationship({
+      ref: 'Ad.slides',
+      many: false,
+      label: '所屬廣告 Ad',
       ui: {
-        description: '內部辨識用，不對外顯示',
+        description: '此輪播格所屬的廣告（格式須為「靜態圖輪播」）。',
+        hideCreate: true,
       },
-      validation: { isRequired: true },
     }),
     image: relationship({
       ref: 'Photo',
@@ -32,7 +37,7 @@ const listConfigurations = list({
     linkUrl: text({
       label: '連結網址 LinkUrl',
       ui: {
-        description: '使用者點擊圖片後導向的目標網址',
+        description: '使用者點擊此格圖片後導向的目標網址。',
       },
     }),
     sortOrder: integer({
@@ -42,22 +47,11 @@ const listConfigurations = list({
         description: '數字越小越靠前。',
       },
     }),
-    status: select({
-      label: '狀態 Status',
-      type: 'enum',
-      options: [
-        { label: '草稿 Draft', value: 'draft' },
-        { label: '上架 Active', value: 'active' },
-        { label: '下架 Inactive', value: 'inactive' },
-      ],
-      defaultValue: 'draft',
-      validation: { isRequired: true },
-    }),
   },
   ui: {
-    label: '首頁圖片區（熱門投票下方）',
+    label: '廣告輪播格',
     listView: {
-      initialColumns: ['title', 'status', 'sortOrder', 'linkUrl'],
+      initialColumns: ['ad', 'image', 'sortOrder', 'linkUrl'],
       initialSort: { field: 'sortOrder', direction: 'ASC' },
       pageSize: 50,
     },
@@ -69,24 +63,10 @@ const listConfigurations = list({
       create: allowRoles(admin, moderator, editor),
       delete: allowRoles(admin, editor),
     },
-    /**
-     * ACCESS_CONTROL_STRATEGY 非 `cms`（gql、preview、api）時，公開 API 僅能讀到
-     * `status: active`，避免暴露草稿（draft）與已下架（inactive）的圖片資料。
-     * CMS 登入者仍可查詢所有狀態以利後台管理。
-     */
-    filter: {
-      query: ({ context }) => {
-        if (isCmsRequest(context)) {
-          return true
-        }
-        return { status: { equals: 'active' } }
-      },
-    },
   },
   hooks: {
     validateInput: ({ resolvedData, operation, addValidationError }) => {
       if (operation !== 'create' && operation !== 'update') return
-      // update 時 Keystone 僅帶入有變更的欄位；未出現代表沿用原值。
       const linkUrl = resolvedData.linkUrl
       if (typeof linkUrl === 'string' && !isSafeLinkUrl(linkUrl)) {
         addValidationError(

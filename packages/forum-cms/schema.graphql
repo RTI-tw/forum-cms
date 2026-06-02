@@ -2577,11 +2577,16 @@ input PhotoCreateInput {
 type Ad {
   id: ID!
   title: String
+  format: AdFormatType
   startAt: DateTime
   endAt: DateTime
   status: AdStatusType
   image: Photo
+  slides(where: AdSlideWhereInput! = {}, orderBy: [AdSlideOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: AdSlideWhereUniqueInput): [AdSlide!]
+  slidesCount(where: AdSlideWhereInput! = {}): Int
   videoUrl: String
+  videoFile: FileFieldOutput
+  adCode: String
   linkUrl: String
   createdAt: DateTime
   updatedAt: DateTime
@@ -2589,10 +2594,23 @@ type Ad {
   updatedBy: User
 }
 
+enum AdFormatType {
+  single_image
+  carousel
+  video
+  third_party
+}
+
 enum AdStatusType {
   draft
   active
   finished
+}
+
+type FileFieldOutput {
+  filename: String!
+  filesize: Int!
+  url: String!
 }
 
 input AdWhereUniqueInput {
@@ -2605,16 +2623,26 @@ input AdWhereInput {
   NOT: [AdWhereInput!]
   id: IDFilter
   title: StringFilter
+  format: AdFormatTypeNullableFilter
   startAt: DateTimeNullableFilter
   endAt: DateTimeNullableFilter
   status: AdStatusTypeNullableFilter
   image: PhotoWhereInput
+  slides: AdSlideManyRelationFilter
   videoUrl: StringFilter
+  adCode: StringFilter
   linkUrl: StringFilter
   createdAt: DateTimeNullableFilter
   updatedAt: DateTimeNullableFilter
   createdBy: UserWhereInput
   updatedBy: UserWhereInput
+}
+
+input AdFormatTypeNullableFilter {
+  equals: AdFormatType
+  in: [AdFormatType!]
+  notIn: [AdFormatType!]
+  not: AdFormatTypeNullableFilter
 }
 
 input AdStatusTypeNullableFilter {
@@ -2624,13 +2652,21 @@ input AdStatusTypeNullableFilter {
   not: AdStatusTypeNullableFilter
 }
 
+input AdSlideManyRelationFilter {
+  every: AdSlideWhereInput
+  some: AdSlideWhereInput
+  none: AdSlideWhereInput
+}
+
 input AdOrderByInput {
   id: OrderDirection
   title: OrderDirection
+  format: OrderDirection
   startAt: OrderDirection
   endAt: OrderDirection
   status: OrderDirection
   videoUrl: OrderDirection
+  adCode: OrderDirection
   linkUrl: OrderDirection
   createdAt: OrderDirection
   updatedAt: OrderDirection
@@ -2638,16 +2674,31 @@ input AdOrderByInput {
 
 input AdUpdateInput {
   title: String
+  format: AdFormatType
   startAt: DateTime
   endAt: DateTime
   status: AdStatusType
   image: PhotoRelateToOneForUpdateInput
+  slides: AdSlideRelateToManyForUpdateInput
   videoUrl: String
+  videoFile: FileFieldInput
+  adCode: String
   linkUrl: String
   createdAt: DateTime
   updatedAt: DateTime
   createdBy: UserRelateToOneForUpdateInput
   updatedBy: UserRelateToOneForUpdateInput
+}
+
+input AdSlideRelateToManyForUpdateInput {
+  disconnect: [AdSlideWhereUniqueInput!]
+  set: [AdSlideWhereUniqueInput!]
+  create: [AdSlideCreateInput!]
+  connect: [AdSlideWhereUniqueInput!]
+}
+
+input FileFieldInput {
+  upload: Upload!
 }
 
 input AdUpdateArgs {
@@ -2657,16 +2708,102 @@ input AdUpdateArgs {
 
 input AdCreateInput {
   title: String
+  format: AdFormatType
   startAt: DateTime
   endAt: DateTime
   status: AdStatusType
   image: PhotoRelateToOneForCreateInput
+  slides: AdSlideRelateToManyForCreateInput
   videoUrl: String
+  videoFile: FileFieldInput
+  adCode: String
   linkUrl: String
   createdAt: DateTime
   updatedAt: DateTime
   createdBy: UserRelateToOneForCreateInput
   updatedBy: UserRelateToOneForCreateInput
+}
+
+input AdSlideRelateToManyForCreateInput {
+  create: [AdSlideCreateInput!]
+  connect: [AdSlideWhereUniqueInput!]
+}
+
+type AdSlide {
+  id: ID!
+  ad: Ad
+  image: Photo
+  linkUrl: String
+  sortOrder: Int
+  createdAt: DateTime
+  updatedAt: DateTime
+  createdBy: User
+  updatedBy: User
+}
+
+input AdSlideWhereUniqueInput {
+  id: ID
+}
+
+input AdSlideWhereInput {
+  AND: [AdSlideWhereInput!]
+  OR: [AdSlideWhereInput!]
+  NOT: [AdSlideWhereInput!]
+  id: IDFilter
+  ad: AdWhereInput
+  image: PhotoWhereInput
+  linkUrl: StringFilter
+  sortOrder: IntNullableFilter
+  createdAt: DateTimeNullableFilter
+  updatedAt: DateTimeNullableFilter
+  createdBy: UserWhereInput
+  updatedBy: UserWhereInput
+}
+
+input AdSlideOrderByInput {
+  id: OrderDirection
+  linkUrl: OrderDirection
+  sortOrder: OrderDirection
+  createdAt: OrderDirection
+  updatedAt: OrderDirection
+}
+
+input AdSlideUpdateInput {
+  ad: AdRelateToOneForUpdateInput
+  image: PhotoRelateToOneForUpdateInput
+  linkUrl: String
+  sortOrder: Int
+  createdAt: DateTime
+  updatedAt: DateTime
+  createdBy: UserRelateToOneForUpdateInput
+  updatedBy: UserRelateToOneForUpdateInput
+}
+
+input AdRelateToOneForUpdateInput {
+  create: AdCreateInput
+  connect: AdWhereUniqueInput
+  disconnect: Boolean
+}
+
+input AdSlideUpdateArgs {
+  where: AdSlideWhereUniqueInput!
+  data: AdSlideUpdateInput!
+}
+
+input AdSlideCreateInput {
+  ad: AdRelateToOneForCreateInput
+  image: PhotoRelateToOneForCreateInput
+  linkUrl: String
+  sortOrder: Int
+  createdAt: DateTime
+  updatedAt: DateTime
+  createdBy: UserRelateToOneForCreateInput
+  updatedBy: UserRelateToOneForCreateInput
+}
+
+input AdRelateToOneForCreateInput {
+  create: AdCreateInput
+  connect: AdWhereUniqueInput
 }
 
 type HomepageImage {
@@ -2868,6 +3005,12 @@ type Mutation {
   updateAds(data: [AdUpdateArgs!]!): [Ad]
   deleteAd(where: AdWhereUniqueInput!): Ad
   deleteAds(where: [AdWhereUniqueInput!]!): [Ad]
+  createAdSlide(data: AdSlideCreateInput!): AdSlide
+  createAdSlides(data: [AdSlideCreateInput!]!): [AdSlide]
+  updateAdSlide(where: AdSlideWhereUniqueInput!, data: AdSlideUpdateInput!): AdSlide
+  updateAdSlides(data: [AdSlideUpdateArgs!]!): [AdSlide]
+  deleteAdSlide(where: AdSlideWhereUniqueInput!): AdSlide
+  deleteAdSlides(where: [AdSlideWhereUniqueInput!]!): [AdSlide]
   createHomepageImage(data: HomepageImageCreateInput!): HomepageImage
   createHomepageImages(data: [HomepageImageCreateInput!]!): [HomepageImage]
   updateHomepageImage(where: HomepageImageWhereUniqueInput!, data: HomepageImageUpdateInput!): HomepageImage
@@ -3001,6 +3144,9 @@ type Query {
   ad(where: AdWhereUniqueInput!): Ad
   ads(where: AdWhereInput! = {}, orderBy: [AdOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: AdWhereUniqueInput): [Ad!]
   adsCount(where: AdWhereInput! = {}): Int
+  adSlide(where: AdSlideWhereUniqueInput!): AdSlide
+  adSlides(where: AdSlideWhereInput! = {}, orderBy: [AdSlideOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: AdSlideWhereUniqueInput): [AdSlide!]
+  adSlidesCount(where: AdSlideWhereInput! = {}): Int
   homepageImage(where: HomepageImageWhereUniqueInput!): HomepageImage
   homepageImages(where: HomepageImageWhereInput! = {}, orderBy: [HomepageImageOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: HomepageImageWhereUniqueInput): [HomepageImage!]
   homepageImagesCount(where: HomepageImageWhereInput! = {}): Int

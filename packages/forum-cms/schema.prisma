@@ -62,6 +62,8 @@ model User {
   from_Photo_updatedBy            Photo[]            @relation("Photo_updatedBy")
   from_Ad_createdBy               Ad[]               @relation("Ad_createdBy")
   from_Ad_updatedBy               Ad[]               @relation("Ad_updatedBy")
+  from_AdSlide_createdBy          AdSlide[]          @relation("AdSlide_createdBy")
+  from_AdSlide_updatedBy          AdSlide[]          @relation("AdSlide_updatedBy")
   from_HomepageImage_createdBy    HomepageImage[]    @relation("HomepageImage_createdBy")
   from_HomepageImage_updatedBy    HomepageImage[]    @relation("HomepageImage_updatedBy")
 }
@@ -497,6 +499,7 @@ model Photo {
   updatedById              Int?            @map("updatedBy")
   from_Member_avatar_image Member[]        @relation("Member_avatar_image")
   from_Ad_image            Ad[]            @relation("Ad_image")
+  from_AdSlide_image       AdSlide[]       @relation("AdSlide_image")
   from_HomepageImage_image HomepageImage[] @relation("HomepageImage_image")
 
   @@index([uploadedById])
@@ -506,22 +509,48 @@ model Photo {
 }
 
 model Ad {
-  id          Int          @id @default(autoincrement())
-  title       String       @default("")
-  startAt     DateTime?
-  endAt       DateTime?
-  status      AdStatusType @default(draft)
-  image       Photo?       @relation("Ad_image", fields: [imageId], references: [id])
-  imageId     Int?         @map("image")
-  videoUrl    String       @default("")
-  linkUrl     String       @default("")
+  id                 Int          @id @default(autoincrement())
+  title              String       @default("")
+  format             AdFormatType @default(single_image)
+  startAt            DateTime?
+  endAt              DateTime?
+  status             AdStatusType @default(draft)
+  image              Photo?       @relation("Ad_image", fields: [imageId], references: [id])
+  imageId            Int?         @map("image")
+  slides             AdSlide[]    @relation("AdSlide_ad")
+  videoUrl           String       @default("")
+  videoFile_filesize Int?
+  videoFile_filename String?
+  adCode             String       @default("")
+  linkUrl            String       @default("")
+  createdAt          DateTime?
+  updatedAt          DateTime?
+  createdBy          User?        @relation("Ad_createdBy", fields: [createdById], references: [id])
+  createdById        Int?         @map("createdBy")
+  updatedBy          User?        @relation("Ad_updatedBy", fields: [updatedById], references: [id])
+  updatedById        Int?         @map("updatedBy")
+
+  @@index([imageId])
+  @@index([createdById])
+  @@index([updatedById])
+}
+
+model AdSlide {
+  id          Int       @id @default(autoincrement())
+  ad          Ad?       @relation("AdSlide_ad", fields: [adId], references: [id])
+  adId        Int?      @map("ad")
+  image       Photo?    @relation("AdSlide_image", fields: [imageId], references: [id])
+  imageId     Int?      @map("image")
+  linkUrl     String    @default("")
+  sortOrder   Int?      @default(0)
   createdAt   DateTime?
   updatedAt   DateTime?
-  createdBy   User?        @relation("Ad_createdBy", fields: [createdById], references: [id])
-  createdById Int?         @map("createdBy")
-  updatedBy   User?        @relation("Ad_updatedBy", fields: [updatedById], references: [id])
-  updatedById Int?         @map("updatedBy")
+  createdBy   User?     @relation("AdSlide_createdBy", fields: [createdById], references: [id])
+  createdById Int?      @map("createdBy")
+  updatedBy   User?     @relation("AdSlide_updatedBy", fields: [updatedById], references: [id])
+  updatedById Int?      @map("updatedBy")
 
+  @@index([adId])
   @@index([imageId])
   @@index([createdById])
   @@index([updatedById])
@@ -900,6 +929,13 @@ enum ForbiddenKeywordLanguageType {
   vi
   id
   th
+}
+
+enum AdFormatType {
+  single_image
+  carousel
+  video
+  third_party
 }
 
 enum AdStatusType {

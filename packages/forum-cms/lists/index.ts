@@ -16,6 +16,7 @@ import ForbiddenKeyword from './forbidden-keyword'
 import Video from './video'
 import Image from './image'
 import Ad from './ad'
+import AdSlide from './ad-slide'
 import HomepageImage from './homepage-image'
 
 export const listDefinition = {
@@ -37,5 +38,6 @@ export const listDefinition = {
   Video,
   Photo: Image,
   Ad,
+  AdSlide,
   HomepageImage,
 }
