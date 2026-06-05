@@ -225,6 +225,8 @@ type Member {
   postsCount(where: PostWhereInput! = {}): Int
   memberPolls(where: PollWhereInput! = {}, orderBy: [PollOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: PollWhereUniqueInput): [Poll!]
   memberPollsCount(where: PollWhereInput! = {}): Int
+  eventRegistrations(where: EventRegistrationWhereInput! = {}, orderBy: [EventRegistrationOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: EventRegistrationWhereUniqueInput): [EventRegistration!]
+  eventRegistrationsCount(where: EventRegistrationWhereInput! = {}): Int
   reactions(where: ReactionWhereInput! = {}, orderBy: [ReactionOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: ReactionWhereUniqueInput): [Reaction!]
   reactionsCount(where: ReactionWhereInput! = {}): Int
   isOfficial: Boolean
@@ -530,6 +532,7 @@ input MemberWhereInput {
   comment: CommentManyRelationFilter
   posts: PostManyRelationFilter
   memberPolls: PollManyRelationFilter
+  eventRegistrations: EventRegistrationManyRelationFilter
   reactions: ReactionManyRelationFilter
   isOfficial: BooleanFilter
   joinDate: DateTimeNullableFilter
@@ -564,6 +567,12 @@ input PollManyRelationFilter {
   every: PollWhereInput
   some: PollWhereInput
   none: PollWhereInput
+}
+
+input EventRegistrationManyRelationFilter {
+  every: EventRegistrationWhereInput
+  some: EventRegistrationWhereInput
+  none: EventRegistrationWhereInput
 }
 
 input ReactionManyRelationFilter {
@@ -619,6 +628,7 @@ input MemberUpdateInput {
   comment: CommentRelateToManyForUpdateInput
   posts: PostRelateToManyForUpdateInput
   memberPolls: PollRelateToManyForUpdateInput
+  eventRegistrations: EventRegistrationRelateToManyForUpdateInput
   reactions: ReactionRelateToManyForUpdateInput
   isOfficial: Boolean
   joinDate: DateTime
@@ -657,6 +667,13 @@ input PollRelateToManyForUpdateInput {
   connect: [PollWhereUniqueInput!]
 }
 
+input EventRegistrationRelateToManyForUpdateInput {
+  disconnect: [EventRegistrationWhereUniqueInput!]
+  set: [EventRegistrationWhereUniqueInput!]
+  create: [EventRegistrationCreateInput!]
+  connect: [EventRegistrationWhereUniqueInput!]
+}
+
 input ReactionRelateToManyForUpdateInput {
   disconnect: [ReactionWhereUniqueInput!]
   set: [ReactionWhereUniqueInput!]
@@ -689,6 +706,7 @@ input MemberCreateInput {
   comment: CommentRelateToManyForCreateInput
   posts: PostRelateToManyForCreateInput
   memberPolls: PollRelateToManyForCreateInput
+  eventRegistrations: EventRegistrationRelateToManyForCreateInput
   reactions: ReactionRelateToManyForCreateInput
   isOfficial: Boolean
   joinDate: DateTime
@@ -718,6 +736,11 @@ input PostRelateToManyForCreateInput {
 input PollRelateToManyForCreateInput {
   create: [PollCreateInput!]
   connect: [PollWhereUniqueInput!]
+}
+
+input EventRegistrationRelateToManyForCreateInput {
+  create: [EventRegistrationCreateInput!]
+  connect: [EventRegistrationWhereUniqueInput!]
 }
 
 input ReactionRelateToManyForCreateInput {
@@ -2891,6 +2914,284 @@ input HomepageImageCreateInput {
   updatedBy: UserRelateToOneForCreateInput
 }
 
+type Event {
+  id: ID!
+  title: String
+  slug: String
+  description: String
+  status: EventStatusType
+  startAt: DateTime
+  endAt: DateTime
+  registrationStartAt: DateTime
+  registrationEndAt: DateTime
+  checkInStartAt: DateTime
+  checkInEndAt: DateTime
+  capacity: Int
+  registrations(where: EventRegistrationWhereInput! = {}, orderBy: [EventRegistrationOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: EventRegistrationWhereUniqueInput): [EventRegistration!]
+  registrationsCount(where: EventRegistrationWhereInput! = {}): Int
+  createdAt: DateTime
+  updatedAt: DateTime
+  createdBy: User
+  updatedBy: User
+}
+
+enum EventStatusType {
+  draft
+  published
+  closed
+  cancelled
+}
+
+input EventWhereUniqueInput {
+  id: ID
+  slug: String
+}
+
+input EventWhereInput {
+  AND: [EventWhereInput!]
+  OR: [EventWhereInput!]
+  NOT: [EventWhereInput!]
+  id: IDFilter
+  title: StringFilter
+  slug: StringFilter
+  description: StringFilter
+  status: EventStatusTypeNullableFilter
+  startAt: DateTimeNullableFilter
+  endAt: DateTimeNullableFilter
+  registrationStartAt: DateTimeNullableFilter
+  registrationEndAt: DateTimeNullableFilter
+  checkInStartAt: DateTimeNullableFilter
+  checkInEndAt: DateTimeNullableFilter
+  capacity: IntNullableFilter
+  registrations: EventRegistrationManyRelationFilter
+  createdAt: DateTimeNullableFilter
+  updatedAt: DateTimeNullableFilter
+  createdBy: UserWhereInput
+  updatedBy: UserWhereInput
+}
+
+input EventStatusTypeNullableFilter {
+  equals: EventStatusType
+  in: [EventStatusType!]
+  notIn: [EventStatusType!]
+  not: EventStatusTypeNullableFilter
+}
+
+input EventOrderByInput {
+  id: OrderDirection
+  title: OrderDirection
+  slug: OrderDirection
+  description: OrderDirection
+  status: OrderDirection
+  startAt: OrderDirection
+  endAt: OrderDirection
+  registrationStartAt: OrderDirection
+  registrationEndAt: OrderDirection
+  checkInStartAt: OrderDirection
+  checkInEndAt: OrderDirection
+  capacity: OrderDirection
+  createdAt: OrderDirection
+  updatedAt: OrderDirection
+}
+
+input EventUpdateInput {
+  title: String
+  slug: String
+  description: String
+  status: EventStatusType
+  startAt: DateTime
+  endAt: DateTime
+  registrationStartAt: DateTime
+  registrationEndAt: DateTime
+  checkInStartAt: DateTime
+  checkInEndAt: DateTime
+  capacity: Int
+  registrations: EventRegistrationRelateToManyForUpdateInput
+  createdAt: DateTime
+  updatedAt: DateTime
+  createdBy: UserRelateToOneForUpdateInput
+  updatedBy: UserRelateToOneForUpdateInput
+}
+
+input EventUpdateArgs {
+  where: EventWhereUniqueInput!
+  data: EventUpdateInput!
+}
+
+input EventCreateInput {
+  title: String
+  slug: String
+  description: String
+  status: EventStatusType
+  startAt: DateTime
+  endAt: DateTime
+  registrationStartAt: DateTime
+  registrationEndAt: DateTime
+  checkInStartAt: DateTime
+  checkInEndAt: DateTime
+  capacity: Int
+  registrations: EventRegistrationRelateToManyForCreateInput
+  createdAt: DateTime
+  updatedAt: DateTime
+  createdBy: UserRelateToOneForCreateInput
+  updatedBy: UserRelateToOneForCreateInput
+}
+
+type EventRegistration {
+  id: ID!
+  event: Event
+  member: Member
+  status: EventRegistrationStatusType
+  registeredAt: DateTime
+  checkedInAt: DateTime
+  checkedInBy: User
+  cancelledAt: DateTime
+  cancelledBy: User
+  identityType: EventRegistrationIdentityTypeType
+  identityMasked: String
+  phoneMasked: String
+  checkInNotes: String
+  createdAt: DateTime
+  updatedAt: DateTime
+  createdBy: User
+  updatedBy: User
+}
+
+enum EventRegistrationStatusType {
+  registered
+  checkedIn
+  cancelled
+}
+
+enum EventRegistrationIdentityTypeType {
+  national_id
+  resident_certificate
+}
+
+input EventRegistrationWhereUniqueInput {
+  id: ID
+}
+
+input EventRegistrationWhereInput {
+  AND: [EventRegistrationWhereInput!]
+  OR: [EventRegistrationWhereInput!]
+  NOT: [EventRegistrationWhereInput!]
+  id: IDFilter
+  event: EventWhereInput
+  member: MemberWhereInput
+  status: EventRegistrationStatusTypeNullableFilter
+  registeredAt: DateTimeNullableFilter
+  checkedInAt: DateTimeNullableFilter
+  checkedInBy: UserWhereInput
+  cancelledAt: DateTimeNullableFilter
+  cancelledBy: UserWhereInput
+  identityType: EventRegistrationIdentityTypeTypeNullableFilter
+  identityMasked: StringNullableFilter
+  phoneMasked: StringNullableFilter
+  checkInNotes: StringFilter
+  createdAt: DateTimeNullableFilter
+  updatedAt: DateTimeNullableFilter
+  createdBy: UserWhereInput
+  updatedBy: UserWhereInput
+}
+
+input EventRegistrationStatusTypeNullableFilter {
+  equals: EventRegistrationStatusType
+  in: [EventRegistrationStatusType!]
+  notIn: [EventRegistrationStatusType!]
+  not: EventRegistrationStatusTypeNullableFilter
+}
+
+input EventRegistrationIdentityTypeTypeNullableFilter {
+  equals: EventRegistrationIdentityTypeType
+  in: [EventRegistrationIdentityTypeType!]
+  notIn: [EventRegistrationIdentityTypeType!]
+  not: EventRegistrationIdentityTypeTypeNullableFilter
+}
+
+input StringNullableFilter {
+  equals: String
+  in: [String!]
+  notIn: [String!]
+  lt: String
+  lte: String
+  gt: String
+  gte: String
+  contains: String
+  startsWith: String
+  endsWith: String
+  mode: QueryMode
+  not: StringNullableFilter
+}
+
+input EventRegistrationOrderByInput {
+  id: OrderDirection
+  status: OrderDirection
+  registeredAt: OrderDirection
+  checkedInAt: OrderDirection
+  cancelledAt: OrderDirection
+  identityType: OrderDirection
+  identityMasked: OrderDirection
+  phoneMasked: OrderDirection
+  checkInNotes: OrderDirection
+  createdAt: OrderDirection
+  updatedAt: OrderDirection
+}
+
+input EventRegistrationUpdateInput {
+  event: EventRelateToOneForUpdateInput
+  member: MemberRelateToOneForUpdateInput
+  status: EventRegistrationStatusType
+  registeredAt: DateTime
+  checkedInAt: DateTime
+  checkedInBy: UserRelateToOneForUpdateInput
+  cancelledAt: DateTime
+  cancelledBy: UserRelateToOneForUpdateInput
+  identityType: EventRegistrationIdentityTypeType
+  identityMasked: String
+  phoneMasked: String
+  checkInNotes: String
+  createdAt: DateTime
+  updatedAt: DateTime
+  createdBy: UserRelateToOneForUpdateInput
+  updatedBy: UserRelateToOneForUpdateInput
+}
+
+input EventRelateToOneForUpdateInput {
+  create: EventCreateInput
+  connect: EventWhereUniqueInput
+  disconnect: Boolean
+}
+
+input EventRegistrationUpdateArgs {
+  where: EventRegistrationWhereUniqueInput!
+  data: EventRegistrationUpdateInput!
+}
+
+input EventRegistrationCreateInput {
+  event: EventRelateToOneForCreateInput
+  member: MemberRelateToOneForCreateInput
+  status: EventRegistrationStatusType
+  registeredAt: DateTime
+  checkedInAt: DateTime
+  checkedInBy: UserRelateToOneForCreateInput
+  cancelledAt: DateTime
+  cancelledBy: UserRelateToOneForCreateInput
+  identityType: EventRegistrationIdentityTypeType
+  identityMasked: String
+  phoneMasked: String
+  checkInNotes: String
+  createdAt: DateTime
+  updatedAt: DateTime
+  createdBy: UserRelateToOneForCreateInput
+  updatedBy: UserRelateToOneForCreateInput
+}
+
+input EventRelateToOneForCreateInput {
+  create: EventCreateInput
+  connect: EventWhereUniqueInput
+}
+
 """
 The `JSON` scalar type represents JSON values as specified by [ECMA-404](http://www.ecma-international.org/publications/files/ECMA-ST/ECMA-404.pdf).
 """
@@ -3017,6 +3318,18 @@ type Mutation {
   updateHomepageImages(data: [HomepageImageUpdateArgs!]!): [HomepageImage]
   deleteHomepageImage(where: HomepageImageWhereUniqueInput!): HomepageImage
   deleteHomepageImages(where: [HomepageImageWhereUniqueInput!]!): [HomepageImage]
+  createEvent(data: EventCreateInput!): Event
+  createEvents(data: [EventCreateInput!]!): [Event]
+  updateEvent(where: EventWhereUniqueInput!, data: EventUpdateInput!): Event
+  updateEvents(data: [EventUpdateArgs!]!): [Event]
+  deleteEvent(where: EventWhereUniqueInput!): Event
+  deleteEvents(where: [EventWhereUniqueInput!]!): [Event]
+  createEventRegistration(data: EventRegistrationCreateInput!): EventRegistration
+  createEventRegistrations(data: [EventRegistrationCreateInput!]!): [EventRegistration]
+  updateEventRegistration(where: EventRegistrationWhereUniqueInput!, data: EventRegistrationUpdateInput!): EventRegistration
+  updateEventRegistrations(data: [EventRegistrationUpdateArgs!]!): [EventRegistration]
+  deleteEventRegistration(where: EventRegistrationWhereUniqueInput!): EventRegistration
+  deleteEventRegistrations(where: [EventRegistrationWhereUniqueInput!]!): [EventRegistration]
   endSession: Boolean!
   authenticateUserWithPassword(email: String!, password: String!): UserAuthenticationWithPasswordResult
   createInitialUser(data: CreateInitialUserInput!): UserAuthenticationWithPasswordSuccess!
@@ -3024,6 +3337,67 @@ type Mutation {
   redeemUserPasswordResetToken(email: String!, token: String!, password: String!): RedeemUserPasswordResetTokenResult
   changeMyPassword(data: ChangeMyPasswordInput!): ChangeMyPasswordResult!
   authenticateMemberWithFirebase(data: AuthenticateMemberWithFirebaseInput!): AuthenticateMemberWithFirebaseResult!
+  registerForEvent(data: RegisterForEventInput!): MemberEventRegistrationResult!
+  issueEventCheckInQrToken(registrationId: ID!): EventCheckInQrTokenResult!
+  confirmEventCheckIn(token: String!): EventCheckInPreviewResult!
+}
+
+type MemberEventRegistrationResult {
+  id: ID!
+  status: String
+  registeredAt: String
+  checkedInAt: String
+  identityMasked: String
+  phoneMasked: String
+  event: EventRegistrationEventResult!
+}
+
+type EventRegistrationEventResult {
+  id: ID!
+  title: String
+  slug: String
+  description: String
+  status: String
+  startAt: String
+  endAt: String
+  registrationStartAt: String
+  registrationEndAt: String
+  checkInStartAt: String
+  checkInEndAt: String
+  capacity: Int
+  registrationCount: Int!
+  remainingCapacity: Int
+  isRegistrationOpen: Boolean!
+}
+
+input RegisterForEventInput {
+  eventSlug: String!
+  identityType: String!
+  identityNumber: String!
+  phoneNumber: String!
+}
+
+type EventCheckInQrTokenResult {
+  token: String!
+  issuedAt: String!
+}
+
+type EventCheckInPreviewResult {
+  ok: Boolean!
+  canCheckIn: Boolean!
+  code: String!
+  message: String!
+  registrationId: ID
+  registrationStatus: String
+  eventId: ID
+  eventTitle: String
+  eventSlug: String
+  memberId: ID
+  memberName: String
+  memberNickname: String
+  memberEmail: String
+  registeredAt: String
+  checkedInAt: String
 }
 
 type AuthenticateMemberWithFirebaseResult {
@@ -3150,10 +3524,19 @@ type Query {
   homepageImage(where: HomepageImageWhereUniqueInput!): HomepageImage
   homepageImages(where: HomepageImageWhereInput! = {}, orderBy: [HomepageImageOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: HomepageImageWhereUniqueInput): [HomepageImage!]
   homepageImagesCount(where: HomepageImageWhereInput! = {}): Int
+  event(where: EventWhereUniqueInput!): Event
+  events(where: EventWhereInput! = {}, orderBy: [EventOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: EventWhereUniqueInput): [Event!]
+  eventsCount(where: EventWhereInput! = {}): Int
+  eventRegistration(where: EventRegistrationWhereUniqueInput!): EventRegistration
+  eventRegistrations(where: EventRegistrationWhereInput! = {}, orderBy: [EventRegistrationOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: EventRegistrationWhereUniqueInput): [EventRegistration!]
+  eventRegistrationsCount(where: EventRegistrationWhereInput! = {}): Int
   keystone: KeystoneMeta!
   authenticatedItem: AuthenticatedItem
   validateUserPasswordResetToken(email: String!, token: String!): ValidateUserPasswordResetTokenResult
   authenticatedMember: MemberSessionMember
+  eventBySlug(slug: String!): EventRegistrationEventResult
+  myEventRegistrations: [MemberEventRegistrationResult!]!
+  previewEventCheckInToken(token: String!): EventCheckInPreviewResult!
 }
 
 union AuthenticatedItem = User

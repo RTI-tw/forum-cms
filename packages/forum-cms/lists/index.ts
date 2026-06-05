@@ -18,6 +18,8 @@ import Image from './image'
 import Ad from './ad'
 import AdSlide from './ad-slide'
 import HomepageImage from './homepage-image'
+import Event from './event'
+import EventRegistration from './event-registration'
 
 export const listDefinition = {
   User,
@@ -40,4 +42,6 @@ export const listDefinition = {
   Ad,
   AdSlide,
   HomepageImage,
+  Event,
+  EventRegistration,
 }
