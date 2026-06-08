@@ -28,7 +28,8 @@ type EventRegistrationRecord = {
     id: number
     title?: string | null
     slug?: string | null
-    description?: string | null
+    content?: string | null
+    externalLink?: string | null
     status?: string | null
     startAt?: Date | string | null
     endAt?: Date | string | null
@@ -37,6 +38,7 @@ type EventRegistrationRecord = {
     checkInStartAt?: Date | string | null
     checkInEndAt?: Date | string | null
     capacity?: number | null
+    images?: EventImageRecord[] | null
   } | null
   member?: {
     id: number
@@ -45,6 +47,15 @@ type EventRegistrationRecord = {
     customId?: string | null
     email?: string | null
   } | null
+}
+
+type EventImageRecord = {
+  id: number
+  name?: string | null
+  urlOriginal?: string | null
+  altText?: string | null
+  caption?: string | null
+  sortOrder?: number | null
 }
 
 type CheckInPreview = {
@@ -74,7 +85,8 @@ type PublicEvent = {
   id: string
   title?: string | null
   slug?: string | null
-  description?: string | null
+  content?: string | null
+  externalLink?: string | null
   status?: string | null
   startAt?: string | null
   endAt?: string | null
@@ -83,9 +95,19 @@ type PublicEvent = {
   checkInStartAt?: string | null
   checkInEndAt?: string | null
   capacity?: number | null
+  images: PublicEventImage[]
   registrationCount: number
   remainingCapacity?: number | null
   isRegistrationOpen: boolean
+}
+
+type PublicEventImage = {
+  id: string
+  name?: string | null
+  urlOriginal?: string | null
+  altText?: string | null
+  caption?: string | null
+  sortOrder?: number | null
 }
 
 type MemberEventRegistration = {
@@ -263,7 +285,8 @@ function buildPublicEvent(
     id: String(event.id),
     title: event.title ?? null,
     slug: event.slug ?? null,
-    description: event.description ?? null,
+    content: event.content ?? null,
+    externalLink: event.externalLink ?? null,
     status: event.status ?? null,
     startAt: toIsoString(event.startAt),
     endAt: toIsoString(event.endAt),
@@ -272,6 +295,14 @@ function buildPublicEvent(
     checkInStartAt: toIsoString(event.checkInStartAt),
     checkInEndAt: toIsoString(event.checkInEndAt),
     capacity,
+    images: (event.images ?? []).map((image) => ({
+      id: String(image.id),
+      name: image.name ?? null,
+      urlOriginal: image.urlOriginal ?? null,
+      altText: image.altText ?? null,
+      caption: image.caption ?? null,
+      sortOrder: image.sortOrder ?? null,
+    })),
     registrationCount,
     remainingCapacity,
     isRegistrationOpen:
@@ -468,13 +499,26 @@ const EventCheckInPreviewResult = graphql.object<CheckInPreview>()({
   },
 })
 
+const EventRegistrationEventImageResult = graphql.object<PublicEventImage>()({
+  name: 'EventRegistrationEventImageResult',
+  fields: {
+    id: graphql.field({ type: graphql.nonNull(graphql.ID) }),
+    name: graphql.field({ type: graphql.String }),
+    urlOriginal: graphql.field({ type: graphql.String }),
+    altText: graphql.field({ type: graphql.String }),
+    caption: graphql.field({ type: graphql.String }),
+    sortOrder: graphql.field({ type: graphql.Int }),
+  },
+})
+
 const EventRegistrationEventResult = graphql.object<PublicEvent>()({
   name: 'EventRegistrationEventResult',
   fields: {
     id: graphql.field({ type: graphql.nonNull(graphql.ID) }),
     title: graphql.field({ type: graphql.String }),
     slug: graphql.field({ type: graphql.String }),
-    description: graphql.field({ type: graphql.String }),
+    content: graphql.field({ type: graphql.String }),
+    externalLink: graphql.field({ type: graphql.String }),
     status: graphql.field({ type: graphql.String }),
     startAt: graphql.field({ type: graphql.String }),
     endAt: graphql.field({ type: graphql.String }),
@@ -483,6 +527,11 @@ const EventRegistrationEventResult = graphql.object<PublicEvent>()({
     checkInStartAt: graphql.field({ type: graphql.String }),
     checkInEndAt: graphql.field({ type: graphql.String }),
     capacity: graphql.field({ type: graphql.Int }),
+    images: graphql.field({
+      type: graphql.nonNull(
+        graphql.list(graphql.nonNull(EventRegistrationEventImageResult))
+      ),
+    }),
     registrationCount: graphql.field({ type: graphql.nonNull(graphql.Int) }),
     remainingCapacity: graphql.field({ type: graphql.Int }),
     isRegistrationOpen: graphql.field({
@@ -535,6 +584,9 @@ export const eventRegistrationSchemaExtension = graphql.extend(() => ({
 
         const event = (await context.prisma.event.findUnique({
           where: { slug: normalizedSlug },
+          include: {
+            images: { orderBy: { sortOrder: 'asc' } },
+          },
         })) as EventRegistrationRecord['event']
 
         if (!event || event.status !== 'published') {
@@ -561,7 +613,13 @@ export const eventRegistrationSchemaExtension = graphql.extend(() => ({
         const member = await requireActiveMember(context)
         const registrations = (await context.prisma.eventRegistration.findMany({
           where: { memberId: member.id },
-          include: { event: true },
+          include: {
+            event: {
+              include: {
+                images: { orderBy: { sortOrder: 'asc' } },
+              },
+            },
+          },
           orderBy: { registeredAt: 'desc' },
         })) as EventRegistrationRecord[]
 
@@ -659,7 +717,13 @@ export const eventRegistrationSchemaExtension = graphql.extend(() => ({
               phoneMasked: form.phoneMasked,
               phoneHash: form.phoneHash,
             },
-            include: { event: true },
+            include: {
+              event: {
+                include: {
+                  images: { orderBy: { sortOrder: 'asc' } },
+                },
+              },
+            },
           })) as EventRegistrationRecord
 
           return buildMemberEventRegistration(context, registration)

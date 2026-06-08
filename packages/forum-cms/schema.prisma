@@ -498,6 +498,7 @@ model Photo {
   uploadedById             Int?            @map("uploadedBy")
   postsAsHeroImages        Post[]          @relation("Photo_postsAsHeroImages")
   staticContents           Content[]       @relation("Content_photos")
+  events                   Event[]         @relation("Event_images")
   createdAt                DateTime?
   updatedAt                DateTime?
   createdBy                User?           @relation("Photo_createdBy", fields: [createdById], references: [id])
@@ -587,7 +588,9 @@ model Event {
   id                  Int                 @id @default(autoincrement())
   title               String              @default("")
   slug                String              @unique @default("")
-  description         String              @default("")
+  content             String              @default("")
+  images              Photo[]             @relation("Event_images")
+  externalLink        String              @default("")
   status              EventStatusType     @default(draft)
   startAt             DateTime?
   endAt               DateTime?

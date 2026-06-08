@@ -2471,6 +2471,8 @@ type Photo {
   postsAsHeroImagesCount(where: PostWhereInput! = {}): Int
   staticContents(where: ContentWhereInput! = {}, orderBy: [ContentOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: ContentWhereUniqueInput): [Content!]
   staticContentsCount(where: ContentWhereInput! = {}): Int
+  events(where: EventWhereInput! = {}, orderBy: [EventOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: EventWhereUniqueInput): [Event!]
+  eventsCount(where: EventWhereInput! = {}): Int
   createdAt: DateTime
   updatedAt: DateTime
   createdBy: User
@@ -2530,10 +2532,17 @@ input PhotoWhereInput {
   uploadedBy: MemberWhereInput
   postsAsHeroImages: PostManyRelationFilter
   staticContents: ContentManyRelationFilter
+  events: EventManyRelationFilter
   createdAt: DateTimeNullableFilter
   updatedAt: DateTimeNullableFilter
   createdBy: UserWhereInput
   updatedBy: UserWhereInput
+}
+
+input EventManyRelationFilter {
+  every: EventWhereInput
+  some: EventWhereInput
+  none: EventWhereInput
 }
 
 input PhotoOrderByInput {
@@ -2561,6 +2570,7 @@ input PhotoUpdateInput {
   uploadedBy: MemberRelateToOneForUpdateInput
   postsAsHeroImages: PostRelateToManyForUpdateInput
   staticContents: ContentRelateToManyForUpdateInput
+  events: EventRelateToManyForUpdateInput
   createdAt: DateTime
   updatedAt: DateTime
   createdBy: UserRelateToOneForUpdateInput
@@ -2573,6 +2583,13 @@ input ImageFieldInput {
 
 """The `Upload` scalar type represents a file upload."""
 scalar Upload
+
+input EventRelateToManyForUpdateInput {
+  disconnect: [EventWhereUniqueInput!]
+  set: [EventWhereUniqueInput!]
+  create: [EventCreateInput!]
+  connect: [EventWhereUniqueInput!]
+}
 
 input PhotoUpdateArgs {
   where: PhotoWhereUniqueInput!
@@ -2591,10 +2608,16 @@ input PhotoCreateInput {
   uploadedBy: MemberRelateToOneForCreateInput
   postsAsHeroImages: PostRelateToManyForCreateInput
   staticContents: ContentRelateToManyForCreateInput
+  events: EventRelateToManyForCreateInput
   createdAt: DateTime
   updatedAt: DateTime
   createdBy: UserRelateToOneForCreateInput
   updatedBy: UserRelateToOneForCreateInput
+}
+
+input EventRelateToManyForCreateInput {
+  create: [EventCreateInput!]
+  connect: [EventWhereUniqueInput!]
 }
 
 type Ad {
@@ -2918,7 +2941,10 @@ type Event {
   id: ID!
   title: String
   slug: String
-  description: String
+  content: String
+  images(where: PhotoWhereInput! = {}, orderBy: [PhotoOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: PhotoWhereUniqueInput): [Photo!]
+  imagesCount(where: PhotoWhereInput! = {}): Int
+  externalLink: String
   status: EventStatusType
   startAt: DateTime
   endAt: DateTime
@@ -2954,7 +2980,9 @@ input EventWhereInput {
   id: IDFilter
   title: StringFilter
   slug: StringFilter
-  description: StringFilter
+  content: StringFilter
+  images: PhotoManyRelationFilter
+  externalLink: StringFilter
   status: EventStatusTypeNullableFilter
   startAt: DateTimeNullableFilter
   endAt: DateTimeNullableFilter
@@ -2981,7 +3009,8 @@ input EventOrderByInput {
   id: OrderDirection
   title: OrderDirection
   slug: OrderDirection
-  description: OrderDirection
+  content: OrderDirection
+  externalLink: OrderDirection
   status: OrderDirection
   startAt: OrderDirection
   endAt: OrderDirection
@@ -2997,7 +3026,9 @@ input EventOrderByInput {
 input EventUpdateInput {
   title: String
   slug: String
-  description: String
+  content: String
+  images: PhotoRelateToManyForUpdateInput
+  externalLink: String
   status: EventStatusType
   startAt: DateTime
   endAt: DateTime
@@ -3021,7 +3052,9 @@ input EventUpdateArgs {
 input EventCreateInput {
   title: String
   slug: String
-  description: String
+  content: String
+  images: PhotoRelateToManyForCreateInput
+  externalLink: String
   status: EventStatusType
   startAt: DateTime
   endAt: DateTime
@@ -3356,7 +3389,8 @@ type EventRegistrationEventResult {
   id: ID!
   title: String
   slug: String
-  description: String
+  content: String
+  externalLink: String
   status: String
   startAt: String
   endAt: String
@@ -3365,9 +3399,19 @@ type EventRegistrationEventResult {
   checkInStartAt: String
   checkInEndAt: String
   capacity: Int
+  images: [EventRegistrationEventImageResult!]!
   registrationCount: Int!
   remainingCapacity: Int
   isRegistrationOpen: Boolean!
+}
+
+type EventRegistrationEventImageResult {
+  id: ID!
+  name: String
+  urlOriginal: String
+  altText: String
+  caption: String
+  sortOrder: Int
 }
 
 input RegisterForEventInput {

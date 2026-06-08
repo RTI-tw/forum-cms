@@ -8,6 +8,7 @@ import {
   text,
   timestamp,
 } from '@keystone-6/core/fields'
+import { isSafeLinkUrl } from '../utils/url-safety'
 
 const listConfigurations = list({
   fields: {
@@ -23,9 +24,28 @@ const listConfigurations = list({
         description: '供前台活動頁與 API 查詢使用，建議使用英數與連字號。',
       },
     }),
-    description: text({
-      label: '活動說明',
+    content: text({
+      label: '活動內文',
       ui: { displayMode: 'textarea' },
+    }),
+    images: relationship({
+      ref: 'Photo.events',
+      many: true,
+      label: '圖片',
+      ui: {
+        description: '活動頁使用的圖片；可關聯多張圖片。',
+        displayMode: 'cards',
+        cardFields: ['name', 'urlOriginal', 'sortOrder'],
+        linkToItem: true,
+        inlineConnect: true,
+        removeMode: 'disconnect',
+      },
+    }),
+    externalLink: text({
+      label: '活動連結',
+      ui: {
+        description: '選填；可放活動外部頁面、直播、地圖或其他相關連結。',
+      },
     }),
     status: select({
       label: '狀態',
@@ -84,6 +104,10 @@ const listConfigurations = list({
       initialColumns: [
         'title',
         'status',
+        'images',
+        'externalLink',
+        'startAt',
+        'endAt',
         'registrationStartAt',
         'registrationEndAt',
         'checkInStartAt',
@@ -98,6 +122,17 @@ const listConfigurations = list({
       update: allowRoles(admin, moderator, editor),
       create: allowRoles(admin, moderator, editor),
       delete: allowRoles(admin, editor),
+    },
+  },
+  hooks: {
+    validateInput: ({ resolvedData, operation, addValidationError }) => {
+      if (operation !== 'create' && operation !== 'update') return
+      const externalLink = resolvedData.externalLink
+      if (typeof externalLink === 'string' && !isSafeLinkUrl(externalLink)) {
+        addValidationError(
+          '活動連結僅允許 http/https 絕對網址或以 / 開頭的站內路徑。'
+        )
+      }
     },
   },
 })

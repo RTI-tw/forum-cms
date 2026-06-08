@@ -227,6 +227,19 @@ const listConfigurations = list({
         removeMode: 'disconnect',
       },
     }),
+    events: relationship({
+      ref: 'Event.images',
+      many: true,
+      label: '活動',
+      ui: {
+        description: '使用此圖的活動（與「活動」之圖片欄位為同一關聯）。',
+        displayMode: 'cards',
+        cardFields: ['title', 'status', 'startAt'],
+        linkToItem: true,
+        inlineConnect: true,
+        removeMode: 'disconnect',
+      },
+    }),
   },
   ui: {
     label: '圖片',
@@ -236,6 +249,7 @@ const listConfigurations = list({
         'urlOriginal',
         'postsAsHeroImages',
         'staticContents',
+        'events',
       ],
       initialSort: { field: 'name', direction: 'ASC' },
       pageSize: 50,

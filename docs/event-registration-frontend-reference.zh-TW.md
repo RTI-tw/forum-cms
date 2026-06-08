@@ -2,7 +2,7 @@
 
 本文件整理 CMS 已實作的活動報名與現場報到 API，供前端串接使用。
 
-相關 CMS code changes 已落在 commit `6112c2d`。
+活動報名與報到初版 CMS code changes 已落在 commit `6112c2d`；活動內容欄位後續已更新為 `content`、`images`、`externalLink`。
 
 ## 已實作範圍
 
@@ -11,6 +11,7 @@
   - `EventRegistration`
 - DB migration：
   - `packages/forum-cms/migrations/20260605120000_add_event_registration_lists/migration.sql`
+  - `packages/forum-cms/migrations/20260608090000_update_event_content_fields/migration.sql`
 - Custom GraphQL：
   - `eventBySlug`
   - `registerForEvent`
@@ -52,7 +53,16 @@ query EventBySlug($slug: String!) {
     id
     title
     slug
-    description
+    content
+    externalLink
+    images {
+      id
+      name
+      urlOriginal
+      altText
+      caption
+      sortOrder
+    }
     status
     startAt
     endAt
@@ -93,6 +103,16 @@ mutation RegisterForEvent($data: RegisterForEventInput!) {
       id
       title
       slug
+      content
+      externalLink
+      images {
+        id
+        name
+        urlOriginal
+        altText
+        caption
+        sortOrder
+      }
       startAt
       endAt
       checkInStartAt
@@ -149,6 +169,16 @@ query MyEventRegistrations {
       id
       title
       slug
+      content
+      externalLink
+      images {
+        id
+        name
+        urlOriginal
+        altText
+        caption
+        sortOrder
+      }
       startAt
       endAt
       checkInStartAt
