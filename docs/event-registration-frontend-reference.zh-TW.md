@@ -47,6 +47,8 @@ Authorization: Bearer <member-session-token>
 
 只會回傳 `published` 活動；草稿、關閉、取消或不存在會回傳 `null`。
 
+`content` 是 CMS 以 Markdown editor 維護的 Markdown 字串；前端活動頁請用既有 Markdown renderer 顯示，並依前端既有規則處理 HTML sanitization。
+
 ```graphql
 query EventBySlug($slug: String!) {
   eventBySlug(slug: $slug) {

@@ -26,7 +26,11 @@ const listConfigurations = list({
     }),
     content: text({
       label: '活動內文',
-      ui: { displayMode: 'textarea' },
+      ui: {
+        displayMode: 'textarea',
+        views: './lists/views/markdown-editor/index',
+        description: '支援 Markdown 編輯與即時預覽。',
+      },
     }),
     images: relationship({
       ref: 'Photo.events',

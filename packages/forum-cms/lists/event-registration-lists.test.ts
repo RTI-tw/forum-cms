@@ -42,6 +42,12 @@ test('event exposes article-like content fields', () => {
   assert.ok(photoFields.events, 'Photo should expose related events')
 })
 
+test('event content uses markdown editor admin view', () => {
+  const source = fs.readFileSync(path.join(__dirname, 'event.ts'), 'utf8')
+  assert.match(source, /content:\s*text\(/)
+  assert.match(source, /views:\s*['"]\.\/lists\/views\/markdown-editor\/index['"]/)
+})
+
 test('event external link uses shared safe URL validation', () => {
   const source = fs.readFileSync(path.join(__dirname, 'event.ts'), 'utf8')
   assert.match(source, /isSafeLinkUrl/)
