@@ -150,7 +150,7 @@ MEMBER_SESSION_SECRET=<隨機字串，至少 32 字元>
 
 ## P2 — 批次修正
 
-### AC-002 + AC-007｜Bookmark query owner 隔離 + mutation owner binding
+### AC-002 + AC-007｜Bookmark query owner 隔離；mutation hard gate 已撤回
 
 | 項目 | 內容 |
 |---|---|
@@ -160,8 +160,8 @@ MEMBER_SESSION_SECRET=<隨機字串，至少 32 字元>
 **變更內容**
 
 - `filter.query`：非 CMS 呼叫加入 `member.id equals authenticatedMemberId` 條件，拒絕未登入查詢
-- 新增 `filter.update` / `filter.delete`：非 CMS 只允許操作自己的書籤
-- 新增 `hooks.resolveInput`：非 CMS create 強制覆寫 `member` 為已驗證會員，拒絕未登入
+- 歷史修正曾新增 `filter.update` / `filter.delete` 與 `hooks.resolveInput`，限制非 CMS write 只能操作自己的書籤
+- 2026-06-09 部署邊界校準後，上述非 CMS write owner hard gate 已撤回；Bookmark 目前保留 query owner filter
 
 ---
 
@@ -219,8 +219,8 @@ MEMBER_SESSION_SECRET=<隨機字串，至少 32 字元>
 
 | ID | 嚴重度 | 說明 |
 |---|---|---|
-| AC-008 | 高 | PollVote 缺少 poll 可見性/期限/唯一性驗證 |
-| AC-009 | 高 | Report create/update 對外開放時可隱藏任意內容 |
+| AC-008 | 高 | PollVote 缺少 poll 可見性/期限/唯一性驗證（GQL internal-only 時已自 active findings 移出） |
+| AC-009 | 高 | Report create/update 對外開放時可隱藏任意內容（GQL internal-only 時已自 active findings 移出） |
 | AC-005 | 中 | createPost 信任用戶端提供的 author 與 status（GQL internal-only 時已自 active findings 移出） |
 | AUTH-003 | 中 | 登入 lockout 可被 username/email prefix 觸發 |
 | AUTH-004 | 中 | 強制改密碼狀態僅靠 client-side redirect |

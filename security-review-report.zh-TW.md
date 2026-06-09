@@ -19,7 +19,7 @@
 
 ## Findings 弱點項目
 
-摘要：原始審查共列出 26 個 findings；依 2026-06-09 部署邊界校準，`[1]` / `[11]` 在 GraphQL internal-only 前提下自 active public findings 移出。校準後 active findings 為 24 個：高 5、中 16、低 3。未找到 first-party SQL injection、runtime user-controlled SSRF、first-party XXE parser 或 first-party prototype-pollution merge path；相關殘餘風險已納入下方 dependency 與 supply-chain findings。
+摘要：原始審查共列出 26 個 findings；依 2026-06-09 部署邊界校準，`[1]`、`[2]`、`[3]`、`[11]`、`[12]` 在 GraphQL internal-only 前提下自 active public findings 移出。校準後 active findings 為 21 個：高 3、中 15、低 3。未找到 first-party SQL injection、runtime user-controlled SSRF、first-party XXE parser 或 first-party prototype-pollution merge path；相關殘餘風險已納入下方 dependency 與 supply-chain findings。
 
 ### [1] （部署校準後移出 active findings）開放 API 的 createComment 信任用戶端提供的 member 關聯
 
@@ -60,16 +60,20 @@ API 呼叫者送出含有 `member.connect` 的 `createComment` -> hook 接受明
 
 維持 GraphQL internal-only 部署控制，並在 CI/CD 或 infra review 中驗證 Cloud Run ingress/IAM/IAP/內部 LB 設定。若未來重新允許前台會員直接呼叫 GraphQL mutation，應改用前台 bearer token 驗證出的會員覆寫 `member`，並拒絕未登入的 create；不可只依賴 CMS session mapping。
 
-### [2] PollVote mutation 可破壞投票與彙總票數
+### [2] （部署校準後移出 active findings）PollVote mutation 可破壞投票與彙總票數
 
 | 欄位 | 值 |
 |---|---|
-| 嚴重度 | 高 |
+| 嚴重度 | 原始：高；GQL internal-only：不列為 active finding |
 | 信心程度 | 中 |
 | 信心評估依據 | 靜態原始碼證據含明確行號；可達性假設列於下方。 |
 | 類別 | OWASP A01 權限控管失效, A04 不安全設計 |
 | CWE | CWE-862, CWE-345 |
 | 受影響行號 | packages/forum-cms/lists/poll-vote.ts:47-79; packages/forum-cms/utils/poll-vote-count-sync.ts:54-72 |
+
+#### Status 狀態
+
+此項已自 active public findings 移出。原始問題只在 PollVote write mutation 可被 public client 直接呼叫時成立；若 production 已強制 GraphQL 只接受 ingress/internal service traffic，public attacker 沒有可達 entry point。程式碼也已移除先前非 CMS create validation 與 member token 強制綁定，PollVote list 只保留票數同步 hook。
 
 #### Summary 摘要
 
@@ -95,16 +99,20 @@ PollVote 開放寫入時可達。README 的 API 範例啟用 `PollVote: read_wri
 
 驗證 poll 可見性與期限，要求 option 必須隸屬於 poll，強制每位會員每個 poll 只有一筆有效票，並把投票與票數更新包在 transaction 中。
 
-### [3] Report create/update 對外開放時可隱藏任意文章與留言
+### [3] （部署校準後移出 active findings）Report create/update 對外開放時可隱藏任意文章與留言
 
 | 欄位 | 值 |
 |---|---|
-| 嚴重度 | 高 |
+| 嚴重度 | 原始：高；GQL internal-only：不列為 active finding |
 | 信心程度 | 中 |
 | 信心評估依據 | 靜態原始碼證據含明確行號；可達性假設列於下方。 |
 | 類別 | OWASP A01 權限控管失效 |
 | CWE | CWE-862, CWE-285 |
 | 受影響行號 | packages/forum-cms/lists/report.ts:90-97; packages/forum-cms/lists/report.ts:99-123; packages/forum-cms/lists/report.ts:124-177 |
+
+#### Status 狀態
+
+此項已自 active public findings 移出。原始問題只在 Report write mutation 可被 public client 直接呼叫時成立；若 production 已強制 GraphQL 只接受 ingress/internal service traffic，public attacker 沒有可達 entry point。程式碼也已移除先前非 CMS CMS-only validateInput block；Report 仍保留 create 時 post/comment 擇一的資料完整性檢查與 resolved 狀態同步副作用。
 
 #### Summary 摘要
 
@@ -414,16 +422,20 @@ API 呼叫者送出含 `author.connect` 與自選 `status` 的 `createPost` -> h
 
 維持 GraphQL internal-only 部署控制，並在 CI/CD 或 infra review 中驗證 Cloud Run ingress/IAM/IAP/內部 LB 設定。若未來重新允許前台會員直接呼叫 GraphQL mutation，應以 bearer token member identity 綁定 `author`，而不是只依賴 CMS session mapping；`status` 仍應由伺服器端控制。
 
-### [12] Bookmark mutation 缺少擁有者隔離
+### [12] （部署校準後移出 active findings）Bookmark mutation 缺少擁有者隔離
 
 | 欄位 | 值 |
 |---|---|
-| 嚴重度 | 中 |
+| 嚴重度 | 原始：中；GQL internal-only：不列為 active finding |
 | 信心程度 | 高 |
 | 信心評估依據 | 靜態原始碼證據含明確行號；可達性假設列於下方。 |
 | 類別 | OWASP A01 權限控管失效 |
 | CWE | CWE-639, CWE-862 |
 | 受影響行號 | packages/forum-cms/lists/bookmark.ts:30-45 |
+
+#### Status 狀態
+
+此項已自 active public findings 移出。原始問題只在 Bookmark write mutation 可被 public client 直接呼叫時成立；若 production 已強制 GraphQL 只接受 ingress/internal service traffic，public attacker 沒有可達 entry point。程式碼也已移除先前非 CMS create/update/delete ownership hard gate；Bookmark 目前仍保留 query owner filter。
 
 #### Summary 摘要
 

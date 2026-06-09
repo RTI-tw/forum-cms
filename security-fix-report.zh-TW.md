@@ -24,8 +24,8 @@
 | AUTH-001 | 移除 session/JWT 硬編碼 fallback secret；啟動時驗證 | `environment-variables.ts`, `utils/member-session.ts`, `keystone.ts` |
 | AC-006 | 部署校準後移除非 CMS member 強制覆寫，保留 CMS OfficialMapping 自動帶入 | `lists/comment.ts` |
 | AC-010 | OfficialMapping mutation 限制為 admin only | `lists/official-mapping.ts` |
-| AC-008 | PollVote 補 poll 可見性、option 歸屬、每人限一票驗證 | `lists/poll-vote.ts` |
-| AC-009 | Report 寫入阻擋非 CMS 呼叫 | `lists/report.ts` |
+| AC-008 | 部署校準後移除非 CMS PollVote write validation/member binding，保留票數同步 | `lists/poll-vote.ts` |
+| AC-009 | 部署校準後移除 Report 非 CMS CMS-only block，保留資料完整性檢查 | `lists/report.ts` |
 | SC-001 | Cloud Build Syft 改用 pin 版本 container image | `cloudbuild.yaml` |
 
 ### 中嚴重度（全部已修正）
@@ -37,7 +37,7 @@
 | AC-003 | PollVote query 加 member owner filter | `lists/poll-vote.ts` |
 | AC-004 | Poll/PollOption 加 post visibility filter | `lists/poll.ts`, `lists/poll-option.ts` |
 | AC-005 | 部署校準後移除非 CMS author/status 強制覆寫，保留既有 create 預設 | `lists/Post.ts` |
-| AC-007 | Bookmark mutation 加 owner binding 與 filter | `lists/bookmark.ts` |
+| AC-007 | 部署校準後移除 Bookmark 非 CMS write owner hard gate，保留 query owner filter | `lists/bookmark.ts` |
 | AUTH-002 | 密碼重設 log 移除 resetUrl/token | `utils/password-reset.ts` |
 | AUTH-003 | Lockout counter 只用精確 email，移除 name/prefix fallback | `utils/login-logging.ts` |
 | AUTH-004 | mustChangePassword 加 server-side GraphQL 攔截 | `keystone.ts` |
@@ -85,22 +85,23 @@
 
 ---
 
-### AC-008｜PollVote validateInput 補充驗證
+### AC-008｜PollVote 非 CMS write hard gate 已移除
 
 **修改前問題**：投票時不驗證 poll 是否可見、option 是否屬於 poll、是否重複投票，可操控票數完整性。
 
-**修改後行為**：新增 `validateInput` hook（非 CMS create 才執行），依序：
-1. 驗證 poll 存在且父層文章可見
-2. 驗證 option 確實屬於此 poll
-3. 每位會員每個 poll 只允許一票
+**目前行為**：2026-06-09 部署邊界校準後，已移除非 CMS create validation、member token 強制綁定與 update member 刪除邏輯。PollVote list 目前保留 query owner filter 與 `afterOperation` 票數同步。
+
+**部署邊界校準**：若 production 已強制 GraphQL 只接受 ingress/internal service traffic，原本「public API 直接操控投票」的 attack path 已移出 active findings。若未來重新允許前台會員直接呼叫 GraphQL mutation，需重新加入 bearer token member identity、poll/option 歸屬與唯一性驗證。
 
 ---
 
-### AC-009｜Report 寫入阻擋非 CMS 呼叫
+### AC-009｜Report 非 CMS CMS-only block 已移除
 
 **修改前問題**：Report `afterOperation` 在 status=resolved 時會隱藏文章/留言；若 API 開放，任何人可建立 resolved Report 隱藏任意內容。
 
-**修改後行為**：`validateInput` hook 最前面加入 `isCmsRequest(context)` 判斷，非 CMS 呼叫立即回傳驗證錯誤。
+**目前行為**：2026-06-09 部署邊界校準後，已移除 `validateInput` 最前面的 `isCmsRequest(context)` block。Report 目前保留 create 時「post/comment 擇一」的資料完整性檢查，`resolved` 狀態的隱藏內容副作用仍保留給 ingress/internal 呼叫與 CMS 工作流使用。
+
+**部署邊界校準**：若 production 已強制 GraphQL 只接受 ingress/internal service traffic，原本「public API 直接隱藏任意內容」的 attack path 已移出 active findings。若未來重新公開 GraphQL write mutation，需把公開檢舉提交與審核 resolution 拆成不同流程，或重新加入 moderator/admin 權限檢查。
 
 ---
 

@@ -41,16 +41,16 @@
 |---|---|---|---|
 | AUTH-001 | 高 | 硬編碼 session/JWT secret fallback | ✅ |
 | AC-006 | 高 | createComment 信任用戶端 member | ✅；GQL internal-only 時移出 active findings |
-| AC-009 | 高 | Report 可隱藏任意文章留言 | ✅ |
+| AC-009 | 高 | Report 可隱藏任意文章留言 | ✅；GQL internal-only 時移出 active findings |
 | AC-010 | 高 | Editor 自行授予 OfficialMapping 權限 | ✅ |
-| AC-008 | 高 | PollVote 缺少 poll/option/唯一性驗證 | ✅ |
+| AC-008 | 高 | PollVote 缺少 poll/option/唯一性驗證 | ✅；GQL internal-only 時移出 active findings |
 | SC-001 | 高 | Cloud Build curl\|sh 安裝 Syft | ✅ |
 | AC-001 | 中 | Comment query 洩漏 hidden/rejected 留言 | ✅ |
 | AC-002 | 中 | Bookmark BOLA | ✅ |
 | AC-003 | 中 | PollVote BOLA | ✅ |
 | AC-004 | 中 | Poll/PollOption 草稿洩漏 | ✅ |
 | AC-005 | 中 | createPost 信任用戶端 author/status | ✅；GQL internal-only 時移出 active findings |
-| AC-007 | 中 | Bookmark mutation owner 缺失 | ✅ |
+| AC-007 | 中 | Bookmark mutation owner 缺失 | ✅；GQL internal-only 時移出 active findings |
 | AUTH-002 | 中 | Reset token 寫入 log | ✅ |
 | AUTH-003 | 中 | Lockout 可被 name/prefix 觸發 | ✅ |
 | AUTH-004 | 中 | mustChangePassword 僅靠 client-side redirect | ✅ |

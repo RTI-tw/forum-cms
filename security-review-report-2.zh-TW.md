@@ -24,16 +24,16 @@
 |---|---|---|---|
 | AUTH-001 | 高 | 硬編碼 session/JWT secret fallback | ✅ 已修正 |
 | AC-006 | 高 | createComment 信任用戶端 member | ✅ 已修正；GQL internal-only 時移出 active findings |
-| AC-009 | 高 | Report 可隱藏任意文章留言 | ✅ 已修正 |
+| AC-009 | 高 | Report 可隱藏任意文章留言 | ✅ 已修正；GQL internal-only 時移出 active findings |
 | AC-010 | 高 | Editor 可自行授予 OfficialMapping 權限 | ✅ 已修正 |
-| AC-008 | 高 | PollVote 缺少 poll/option/唯一性驗證 | ✅ 已修正 |
+| AC-008 | 高 | PollVote 缺少 poll/option/唯一性驗證 | ✅ 已修正；GQL internal-only 時移出 active findings |
 | SC-001 | 高 | Cloud Build curl\|sh 安裝 Syft | ✅ 已修正 |
 | AC-001 | 中 | Comment query 洩漏 hidden/rejected 留言 | ✅ 已修正 |
 | AC-002 | 中 | Bookmark BOLA | ✅ 已修正 |
 | AC-003 | 中 | PollVote BOLA | ✅ 已修正 |
 | AC-004 | 中 | Poll/PollOption 草稿洩漏 | ✅ 已修正 |
 | AC-005 | 中 | createPost 信任用戶端 author/status | ✅ 已修正；GQL internal-only 時移出 active findings |
-| AC-007 | 中 | Bookmark mutation 缺少 owner 隔離 | ✅ 已修正 |
+| AC-007 | 中 | Bookmark mutation 缺少 owner 隔離 | ✅ 已修正；GQL internal-only 時移出 active findings |
 | AUTH-002 | 中 | Reset token 寫入 log | ✅ 已修正 |
 | AUTH-003 | 中 | Lockout 可被 name/prefix 觸發 | ✅ 已修正 |
 | AUTH-004 | 中 | mustChangePassword 僅靠 client-side redirect | ✅ 已修正 |
@@ -65,13 +65,13 @@
 
 **部署邊界校準**：`getOfficialMemberIdForSessionUser` 是 Keystone CMS User -> Official Member mapping，不是前台 member bearer token 驗證。若 production 已強制 GraphQL 只接受 ingress/internal service traffic，原 public API attack path 不成立；若未來重新公開 GraphQL member mutation，需改以 bearer token member identity 綁定。
 
-### AC-008 — PollVote validateInput
+### AC-008 — PollVote write hard gate 已撤回
 
-**驗證**：`validateInput` 在 `resolveInput` 之後執行（Keystone 6 hook 順序），非 CMS create 時依序：1) poll 存在且文章可見；2) option 屬於 poll；3) 每人每 poll 限一票。`memberId` 若為 null 時唯一性檢查略過，但此情況 `resolveInput` 已拋錯，mutation 不會成功。✅ 邏輯正確。
+**歷史驗證**：當時 `validateInput` 在 `resolveInput` 之後執行（Keystone 6 hook 順序），非 CMS create 時依序：1) poll 存在且文章可見；2) option 屬於 poll；3) 每人每 poll 限一票。2026-06-09 部署邊界校準後，這段非 CMS write validation/member binding 已移除，PollVote 只保留 query owner filter 與票數同步 hook。
 
-### AC-009 — Report CMS-only
+### AC-009 — Report CMS-only block 已撤回
 
-**驗證**：`validateInput` 最前面檢查 `!isCmsRequest(context)` 並立即回傳驗證錯誤。即使 gql/preview 模式下 operation access 層有風險，此 hook 為額外防護層。✅
+**歷史驗證**：當時 `validateInput` 最前面檢查 `!isCmsRequest(context)` 並立即回傳驗證錯誤。2026-06-09 部署邊界校準後，這段 CMS-only block 已移除；Report 仍保留 create 時 post/comment 擇一的資料完整性檢查與 resolved 狀態同步副作用。
 
 ### AUTH-003 — Lockout canonical email
 

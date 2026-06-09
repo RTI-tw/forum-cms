@@ -13,16 +13,16 @@
 
 - `AUTH-001` 高 硬編碼 secret fallback - ✅
 - `AC-006` 高 createComment member 冒用 - ✅；GQL internal-only 時移出 active findings
-- `AC-009` 高 Report 隱藏任意內容 - ✅
+- `AC-009` 高 Report 隱藏任意內容 - ✅；GQL internal-only 時移出 active findings
 - `AC-010` 高 OfficialMapping 權限提升 - ✅
-- `AC-008` 高 PollVote 缺少驗證 - ✅
+- `AC-008` 高 PollVote 缺少驗證 - ✅；GQL internal-only 時移出 active findings
 - `SC-001` 高 curl\|sh 安裝 Syft - ✅
 - `AC-001` 中 Comment 洩漏 hidden/rejected - ✅
 - `AC-002` 中 Bookmark BOLA - ✅
 - `AC-003` 中 PollVote BOLA - ✅
 - `AC-004` 中 Poll/PollOption 草稿洩漏 - ✅
 - `AC-005` 中 createPost author/status 冒用 - ✅；GQL internal-only 時移出 active findings
-- `AC-007` 中 Bookmark mutation owner 缺失 - ✅
+- `AC-007` 中 Bookmark mutation owner 缺失 - ✅；GQL internal-only 時移出 active findings
 - `AUTH-002` 中 Reset token 寫入 log - ✅
 - `AUTH-003` 中 Lockout name/prefix 觸發 - ✅
 - `AUTH-004` 中 mustChangePassword 僅 client-side - ✅

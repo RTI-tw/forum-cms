@@ -1,17 +1,15 @@
 # Validation Summary（繁中台灣版）
 
-保留 findings 總數：24。
+保留 findings 總數：21。
 
-- 高：5
-- 中：16
+- 高：3
+- 中：15
 - 低：3
 
-2026-06-09 部署邊界校準：`AC-006` 與 `AC-005` 已自 active public findings 移出。這兩項原本依賴 public client 可直接呼叫 `/api/graphql` 的 attack path；若 production 強制 GraphQL 只接受 ingress/internal service traffic，該可達性不成立。若未來重新公開 GraphQL，需重新評估。
+2026-06-09 部署邊界校準：`AC-006`、`AC-008`、`AC-009`、`AC-005`、`AC-007` 已自 active public findings 移出。這些項目原本依賴 public client 可直接呼叫 `/api/graphql` write mutation 的 attack path；若 production 強制 GraphQL 只接受 ingress/internal service traffic，該可達性不成立。若未來重新公開 GraphQL，需重新評估。
 
 ## Findings 弱點項目
 
-- `AC-008` 高 PollVote mutation 可破壞投票與彙總票數 - 信心程度：中
-- `AC-009` 高 Report create/update 對外開放時可隱藏任意文章與留言 - 信心程度：中
 - `AC-010` 高 Editor 可自行授予 OfficialMapping 審核權限 - 信心程度：高
 - `AUTH-001` 高 CMS 與會員 session 簽章金鑰存在硬編碼 fallback - 信心程度：高
 - `SC-001` 高 Cloud Build 執行未 pin 版本的遠端 Syft installer - 信心程度：高
@@ -19,7 +17,6 @@
 - `AC-002` 中 Bookmark query 的 BOLA 會洩漏其他會員書籤 - 信心程度：高
 - `AC-003` 中 PollVote query 的 BOLA 會洩漏其他會員投票 - 信心程度：高
 - `AC-004` 中 直接查詢 Poll 與 PollOption 可能洩漏草稿或隱藏投票資料 - 信心程度：高
-- `AC-007` 中 Bookmark mutation 缺少擁有者隔離 - 信心程度：高
 - `AUTH-002` 中 密碼重設 URL（含 reset token）被寫入 log - 信心程度：高
 - `AUTH-003` 中 登入 lockout 可被 username 或 email prefix 觸發 - 信心程度：高
 - `AUTH-004` 中 強制改密碼狀態主要靠 client-side redirect 執行 - 信心程度：高
@@ -38,4 +35,7 @@
 ## Deployment-Suppressed 已依部署邊界移出
 
 - `AC-006` 原始：高 開放 API 的 createComment 信任用戶端提供的 member 關聯；GQL internal-only：不列為 active finding
+- `AC-008` 原始：高 PollVote mutation 可破壞投票與彙總票數；GQL internal-only：不列為 active finding
+- `AC-009` 原始：高 Report create/update 對外開放時可隱藏任意文章與留言；GQL internal-only：不列為 active finding
 - `AC-005` 原始：中 開放 API 的 createPost 信任用戶端提供的 author 與 status；GQL internal-only：不列為 active finding
+- `AC-007` 原始：中 Bookmark mutation 缺少擁有者隔離；GQL internal-only：不列為 active finding

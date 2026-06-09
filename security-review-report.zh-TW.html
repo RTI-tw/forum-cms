@@ -229,8 +229,8 @@
 <li class="toc-item depth-2"><a href="#threat-model">Threat Model 威脅模型</a></li>
 <li class="toc-item depth-2"><a href="#findings">Findings 弱點項目</a></li>
 <li class="toc-item depth-3"><a href="#1-api-createcomment-member">[1] （部署校準後移出 active findings）開放 API 的 createComment 信任用戶端提供的 member 關聯</a></li>
-<li class="toc-item depth-3"><a href="#2-pollvote-mutation">[2] PollVote mutation 可破壞投票與彙總票數</a></li>
-<li class="toc-item depth-3"><a href="#3-report-create-update">[3] Report create/update 對外開放時可隱藏任意文章與留言</a></li>
+<li class="toc-item depth-3"><a href="#2-pollvote-mutation">[2] （部署校準後移出 active findings）PollVote mutation 可破壞投票與彙總票數</a></li>
+<li class="toc-item depth-3"><a href="#3-report-create-update">[3] （部署校準後移出 active findings）Report create/update 對外開放時可隱藏任意文章與留言</a></li>
 <li class="toc-item depth-3"><a href="#4-editor-officialmapping">[4] Editor 可自行授予 OfficialMapping 審核權限</a></li>
 <li class="toc-item depth-3"><a href="#5-cms-session-fallback">[5] CMS 與會員 session 簽章金鑰存在硬編碼 fallback</a></li>
 <li class="toc-item depth-3"><a href="#6-cloud-build-pin-syft-installer">[6] Cloud Build 執行未 pin 版本的遠端 Syft installer</a></li>
@@ -239,7 +239,7 @@
 <li class="toc-item depth-3"><a href="#9-pollvote-query-bola">[9] PollVote query 的 BOLA 會洩漏其他會員投票</a></li>
 <li class="toc-item depth-3"><a href="#10-poll-polloption">[10] 直接查詢 Poll 與 PollOption 可能洩漏草稿或隱藏投票資料</a></li>
 <li class="toc-item depth-3"><a href="#11-api-createpost-author-status">[11] （部署校準後移出 active findings）開放 API 的 createPost 信任用戶端提供的 author 與 status</a></li>
-<li class="toc-item depth-3"><a href="#12-bookmark-mutation">[12] Bookmark mutation 缺少擁有者隔離</a></li>
+<li class="toc-item depth-3"><a href="#12-bookmark-mutation">[12] （部署校準後移出 active findings）Bookmark mutation 缺少擁有者隔離</a></li>
 <li class="toc-item depth-3"><a href="#13-url-reset-token-log">[13] 密碼重設 URL（含 reset token）被寫入 log</a></li>
 <li class="toc-item depth-3"><a href="#14-lockout-username-email-prefix">[14] 登入 lockout 可被 username 或 email prefix 觸發</a></li>
 <li class="toc-item depth-3"><a href="#15-client-side-redirect">[15] 強制改密碼狀態主要靠 client-side redirect 執行</a></li>
@@ -275,7 +275,7 @@
 
 <h2 id="findings">Findings 弱點項目</h2>
 
-<p>摘要：原始審查共列出 26 個 findings；依 2026-06-09 部署邊界校準，<code>[1]</code> / <code>[11]</code> 在 GraphQL internal-only 前提下自 active public findings 移出。校準後 active findings 為 24 個：高 5、中 16、低 3。未找到 first-party SQL injection、runtime user-controlled SSRF、first-party XXE parser 或 first-party prototype-pollution merge path；相關殘餘風險已納入下方 dependency 與 supply-chain findings。</p>
+<p>摘要：原始審查共列出 26 個 findings；依 2026-06-09 部署邊界校準，<code>[1]</code>、<code>[2]</code>、<code>[3]</code>、<code>[11]</code>、<code>[12]</code> 在 GraphQL internal-only 前提下自 active public findings 移出。校準後 active findings 為 21 個：高 3、中 15、低 3。未找到 first-party SQL injection、runtime user-controlled SSRF、first-party XXE parser 或 first-party prototype-pollution merge path；相關殘餘風險已納入下方 dependency 與 supply-chain findings。</p>
 
 <h3 id="1-api-createcomment-member">[1] （部署校準後移出 active findings）開放 API 的 createComment 信任用戶端提供的 member 關聯</h3>
 
@@ -339,7 +339,7 @@
 
 <p>維持 GraphQL internal-only 部署控制，並在 CI/CD 或 infra review 中驗證 Cloud Run ingress/IAM/IAP/內部 LB 設定。若未來重新允許前台會員直接呼叫 GraphQL mutation，應改用前台 bearer token 驗證出的會員覆寫 <code>member</code>，並拒絕未登入的 create；不可只依賴 CMS session mapping。</p>
 
-<h3 id="2-pollvote-mutation">[2] PollVote mutation 可破壞投票與彙總票數</h3>
+<h3 id="2-pollvote-mutation">[2] （部署校準後移出 active findings）PollVote mutation 可破壞投票與彙總票數</h3>
 
 <table>
 <thead><tr>
@@ -349,7 +349,7 @@
 <tbody>
 <tr>
 <td>嚴重度</td>
-<td>高</td>
+<td>原始：高；GQL internal-only：不列為 active finding</td>
 </tr>
 <tr>
 <td>信心程度</td>
@@ -372,6 +372,10 @@
 <td>packages/forum-cms/lists/poll-vote.ts:47-79; packages/forum-cms/utils/poll-vote-count-sync.ts:54-72</td>
 </tr>
 </tbody></table>
+
+<h4 id="status">Status 狀態</h4>
+
+<p>此項已自 active public findings 移出。原始問題只在 PollVote write mutation 可被 public client 直接呼叫時成立；若 production 已強制 GraphQL 只接受 ingress/internal service traffic，public attacker 沒有可達 entry point。程式碼也已移除先前非 CMS create validation 與 member token 強制綁定，PollVote list 只保留票數同步 hook。</p>
 
 <h4 id="summary">Summary 摘要</h4>
 
@@ -397,7 +401,7 @@
 
 <p>驗證 poll 可見性與期限，要求 option 必須隸屬於 poll，強制每位會員每個 poll 只有一筆有效票，並把投票與票數更新包在 transaction 中。</p>
 
-<h3 id="3-report-create-update">[3] Report create/update 對外開放時可隱藏任意文章與留言</h3>
+<h3 id="3-report-create-update">[3] （部署校準後移出 active findings）Report create/update 對外開放時可隱藏任意文章與留言</h3>
 
 <table>
 <thead><tr>
@@ -407,7 +411,7 @@
 <tbody>
 <tr>
 <td>嚴重度</td>
-<td>高</td>
+<td>原始：高；GQL internal-only：不列為 active finding</td>
 </tr>
 <tr>
 <td>信心程度</td>
@@ -430,6 +434,10 @@
 <td>packages/forum-cms/lists/report.ts:90-97; packages/forum-cms/lists/report.ts:99-123; packages/forum-cms/lists/report.ts:124-177</td>
 </tr>
 </tbody></table>
+
+<h4 id="status">Status 狀態</h4>
+
+<p>此項已自 active public findings 移出。原始問題只在 Report write mutation 可被 public client 直接呼叫時成立；若 production 已強制 GraphQL 只接受 ingress/internal service traffic，public attacker 沒有可達 entry point。程式碼也已移除先前非 CMS CMS-only validateInput block；Report 仍保留 create 時 post/comment 擇一的資料完整性檢查與 resolved 狀態同步副作用。</p>
 
 <h4 id="summary">Summary 摘要</h4>
 
@@ -923,7 +931,7 @@
 
 <p>維持 GraphQL internal-only 部署控制，並在 CI/CD 或 infra review 中驗證 Cloud Run ingress/IAM/IAP/內部 LB 設定。若未來重新允許前台會員直接呼叫 GraphQL mutation，應以 bearer token member identity 綁定 <code>author</code>，而不是只依賴 CMS session mapping；<code>status</code> 仍應由伺服器端控制。</p>
 
-<h3 id="12-bookmark-mutation">[12] Bookmark mutation 缺少擁有者隔離</h3>
+<h3 id="12-bookmark-mutation">[12] （部署校準後移出 active findings）Bookmark mutation 缺少擁有者隔離</h3>
 
 <table>
 <thead><tr>
@@ -933,7 +941,7 @@
 <tbody>
 <tr>
 <td>嚴重度</td>
-<td>中</td>
+<td>原始：中；GQL internal-only：不列為 active finding</td>
 </tr>
 <tr>
 <td>信心程度</td>
@@ -956,6 +964,10 @@
 <td>packages/forum-cms/lists/bookmark.ts:30-45</td>
 </tr>
 </tbody></table>
+
+<h4 id="status">Status 狀態</h4>
+
+<p>此項已自 active public findings 移出。原始問題只在 Bookmark write mutation 可被 public client 直接呼叫時成立；若 production 已強制 GraphQL 只接受 ingress/internal service traffic，public attacker 沒有可達 entry point。程式碼也已移除先前非 CMS create/update/delete ownership hard gate；Bookmark 目前仍保留 query owner filter。</p>
 
 <h4 id="summary">Summary 摘要</h4>
 
