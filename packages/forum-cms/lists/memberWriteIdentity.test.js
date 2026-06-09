@@ -88,6 +88,21 @@ assert.match(
 
 assert.match(
   reportSource,
-  /Report 操作僅限 CMS 管理者/,
-  'Report writes should remain CMS-only because resolved reports hide content'
+  /建立檢舉需要有效的會員登入狀態/,
+  'Report frontend create should require a frontend member token'
+)
+assert.match(
+  reportSource,
+  /data\.reporter = \{ connect: \{ id: memberId \} \}/,
+  'Report frontend create should bind reporter from the frontend bearer token'
+)
+assert.match(
+  reportSource,
+  /data\.status = 'pending'/,
+  'Report frontend create should force pending status'
+)
+assert.match(
+  reportSource,
+  /update:[\s\S]+?delete:[\s\S]+?Report 操作僅限 CMS 管理者/,
+  'Report non-CMS update/delete should remain blocked because resolved reports hide content'
 )

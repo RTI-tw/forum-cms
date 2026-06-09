@@ -69,9 +69,9 @@
 
 **驗證**：非 CMS create 會驗證 poll 可見、option 屬於 poll、每位會員每個投票只能投一票，並以 bearer token member 覆寫 `data.member`。非 CMS update/delete 保留 owner filter。
 
-### AC-009 — Report CMS-only block
+### AC-009 — Report create/moderation split
 
-**驗證**：`validateInput` 最前面檢查 `!isCmsRequest(context)` 並立即回傳 `Report 操作僅限 CMS 管理者`。Report create 仍保留 post/comment 擇一的資料完整性檢查與 resolved 狀態同步副作用。
+**驗證**：非 CMS create 會以 bearer token 綁定 `reporter` 並強制 `status = pending`；非 CMS update/delete 保留 CMS-only，避免 `resolved` 狀態同步副作用被前台觸發。Report create 仍保留 post/comment 擇一的資料完整性檢查。
 
 ### AUTH-003 — Lockout canonical email
 

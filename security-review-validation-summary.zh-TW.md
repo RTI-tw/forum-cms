@@ -36,6 +36,6 @@
 
 - `AC-006` createComment：非 CMS path 以 bearer token member 綁定；CMS path 才使用 OfficialMapping
 - `AC-008` PollVote：非 CMS path 保留 poll/option/唯一性驗證與 member 綁定
-- `AC-009` Report：write path 保留 CMS-only block
+- `AC-009` Report：非 CMS create 僅能建立 pending report；update/delete 與 resolved 副作用保留 CMS-only
 - `AC-005` createPost：非 CMS path 以 bearer token author 綁定並固定 pending
 - `AC-007` Bookmark：非 CMS create/update/delete 保留 owner hard gate

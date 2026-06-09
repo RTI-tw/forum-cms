@@ -25,7 +25,7 @@
 | AC-006 | 非 CMS createComment 改用 bearer token member 綁定，CMS path 保留 OfficialMapping 自動帶入 | `lists/comment.ts` |
 | AC-010 | OfficialMapping mutation 限制為 admin only | `lists/official-mapping.ts` |
 | AC-008 | 非 CMS PollVote 恢復 bearer token member 綁定、poll/option 歸屬與唯一性驗證 | `lists/poll-vote.ts` |
-| AC-009 | Report write 恢復 CMS-only block，避免 resolved 副作用被非 CMS 呼叫觸發 | `lists/report.ts` |
+| AC-009 | Report 前台 create 僅能建立 pending；resolved 審核副作用限 CMS update/delete | `lists/report.ts` |
 | SC-001 | Cloud Build Syft 改用 pin 版本 container image | `cloudbuild.yaml` |
 
 ### 中嚴重度（全部已修正）
@@ -95,13 +95,13 @@
 
 ---
 
-### AC-009｜Report 非 CMS CMS-only block 已恢復
+### AC-009｜Report 前台 create 與 CMS 審核分流
 
 **修改前問題**：Report `afterOperation` 在 status=resolved 時會隱藏文章/留言；若 API 開放，任何人可建立 resolved Report 隱藏任意內容。
 
-**目前行為**：`validateInput` 先檢查 `isCmsRequest(context)`；非 CMS 呼叫會收到 `Report 操作僅限 CMS 管理者`。CMS create 仍保留「post/comment 擇一」的資料完整性檢查，`resolved` 狀態副作用只留給 CMS 工作流。
+**目前行為**：非 CMS create 允許前台會員建立檢舉，但必須帶有效 bearer token；`resolveInput` 會以 token 綁定 `reporter`、強制 `status = 'pending'`、清除 `adminNotes`，並補上請求 IP。非 CMS update/delete 仍由 access filter 與 validation 擋下；`resolved` 狀態副作用只留給 CMS 工作流。
 
-**部署邊界校準**：GraphQL internal-only 可降低外部可達性，但不能取代 Report 狀態副作用的權限檢查。
+**部署邊界校準**：GraphQL internal-only 可降低外部可達性，但不能取代 Report 狀態副作用的權限檢查；公開檢舉提交與 CMS 審核 resolution 必須維持分流。
 
 ---
 

@@ -117,7 +117,7 @@ resolveInput: async ({ resolvedData, operation, context, inputData, item }) => {
 **問題**：Report list 只有 role-based operation access，非 CMS 呼叫者可直接 create/update
 並把 status 設為 `resolved`，觸發 afterOperation hook 隱藏任意內容。
 
-**修正方式**：在 access filter 層阻擋非 CMS 的 mutation，讓 `resolved` 狀態只能由具權限的 CMS 使用者設定。
+**修正方式**：把公開檢舉提交與 CMS 審核分流。非 CMS create 只允許建立 `pending` report，並以 bearer token 綁定 `reporter`；update/delete 與 `resolved` 狀態轉換只能由 CMS 執行。
 
 ```typescript
 // packages/forum-cms/lists/report.ts
@@ -129,22 +129,29 @@ access: {
     create:  allowRoles(admin, moderator, editor),
     delete:  allowRoles(admin, editor),
   },
-  // 新增：非 CMS 來源一律拒絕 mutation
+  // 非 CMS update/delete 一律拒絕，前台只允許 create pending report
   filter: {
-    query: ({ context }) => {
-      if (isCmsRequest(context)) return true
-      return false  // 非 CMS 無法查詢 Report
-    },
+    update: ({ context }) => isCmsRequest(context),
+    delete: ({ context }) => isCmsRequest(context),
   },
 },
 hooks: {
   validateInput: ({ resolvedData, addValidationError, context, operation }) => {
-    // 非 CMS 呼叫時直接拒絕（雙重防護）
-    if (!isCmsRequest(context)) {
+    if (!isCmsRequest(context) && operation !== 'create') {
       addValidationError('Report 操作僅限 CMS 管理者')
       return
     }
     // ... 原有 validateInput 邏輯
+  },
+  resolveInput: ({ resolvedData, operation, context }) => {
+    if (isCmsRequest(context) || operation !== 'create') return resolvedData
+    const memberId = getAuthenticatedMemberId(context)
+    if (!memberId) throw new Error('建立檢舉需要有效的會員登入狀態')
+    return {
+      ...resolvedData,
+      reporter: { connect: { id: memberId } },
+      status: 'pending',
+    }
   },
   // ... afterOperation 不變
 },

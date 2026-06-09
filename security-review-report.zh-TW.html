@@ -437,7 +437,7 @@
 
 <h4 id="status">Status 狀態</h4>
 
-<p>此項已修正。Report <code>validateInput</code> 保留 CMS-only block；非 CMS 呼叫會收到 <code>Report 操作僅限 CMS 管理者</code>。Report 仍保留 create 時 post/comment 擇一的資料完整性檢查與 resolved 狀態同步副作用。</p>
+<p>此項已修正。非 CMS create 只允許前台會員建立 <code>pending</code> report，並由伺服器以 bearer token 綁定 <code>reporter</code>；非 CMS update/delete 維持 CMS-only。Report 仍保留 create 時 post/comment 擇一的資料完整性檢查與 resolved 狀態同步副作用。</p>
 
 <h4 id="summary">Summary 摘要</h4>
 
@@ -445,11 +445,11 @@
 
 <h4 id="validation">Validation 驗證</h4>
 
-<p><code>afterOperation</code> 在 report 變成 <code>resolved</code> 時會把 <code>post</code> 或 <code>comment</code> 設為 <code>hidden</code>。此 list access 只透過 <code>allowRoles</code> 做 list operation 層級授權。</p>
+<p><code>afterOperation</code> 在 report 變成 <code>resolved</code> 時會把 <code>post</code> 或 <code>comment</code> 設為 <code>hidden</code>。前台 create path 會強制 <code>status = pending</code>；只有 CMS update 可進行 resolved/dismissed 審核狀態轉換。</p>
 
 <h4 id="dataflow">Dataflow 資料流</h4>
 
-<p>API 呼叫者 create/update Report，指定目標 post/comment 與 <code>status=resolved</code> -&gt; hook 執行 -&gt; 目標內容狀態變成 hidden。</p>
+<p>CMS 呼叫者 update Report 為 <code>status=resolved</code> -&gt; hook 執行 -&gt; 目標內容狀態變成 hidden。非 CMS create 即使送入 <code>status=resolved</code> 也會被覆寫為 <code>pending</code>。</p>
 
 <h4 id="reachability">Reachability 可達性</h4>
 
@@ -461,7 +461,7 @@
 
 <h4 id="remediation">Remediation 修補建議</h4>
 
-<p>Report 寫入維持 CMS-only，或把公開檢舉提交與審核 resolution 拆成不同流程。伺服器端把狀態改為 <code>resolved</code> 應要求 moderator/admin 權限。</p>
+<p>維持公開檢舉提交與審核 resolution 分流：非 CMS create 只能建立 pending report，伺服器端把狀態改為 <code>resolved</code> 必須要求 moderator/admin 權限。</p>
 
 <h3 id="4-editor-officialmapping">[4] Editor 可自行授予 OfficialMapping 審核權限</h3>
 
