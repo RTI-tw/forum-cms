@@ -103,6 +103,11 @@ assert.match(
 )
 assert.match(
   reportSource,
+  /data\.adminNotes = ''/,
+  'Report frontend create should preserve a valid empty adminNotes value'
+)
+assert.match(
+  reportSource,
   /update:[\s\S]+?delete:[\s\S]+?Report 操作僅限 CMS 管理者/,
   'Report non-CMS update/delete should remain blocked because resolved reports hide content'
 )

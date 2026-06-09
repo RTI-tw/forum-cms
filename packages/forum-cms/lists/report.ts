@@ -152,7 +152,7 @@ const listConfigurations = list({
       const data = { ...resolvedData }
       data.reporter = { connect: { id: memberId } }
       data.status = 'pending'
-      delete (data as Record<string, unknown>).adminNotes
+      data.adminNotes = ''
       if (!normText(data.ip)) {
         data.ip = getClientIpFromKeystoneContext(context)
       }
