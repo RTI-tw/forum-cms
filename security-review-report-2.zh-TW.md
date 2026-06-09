@@ -7,6 +7,7 @@
 - 修正 commits：`bbf64b9`、`c44de67`、`86e571a`
 - Re-review date：`2026-06-01`
 - 目標：驗證 26 個原始 findings 是否正確修正，並檢查修正是否引入新問題。
+- 2026-06-09 部署邊界校準：`AC-006` 與 `AC-005` 在 GraphQL internal-only／ingress-only 前提下不再列為 active public findings；下方保留程式修正驗證作為 defense-in-depth 紀錄。
 
 ---
 
@@ -22,7 +23,7 @@
 | ID | 嚴重度 | 說明 | 驗證結果 |
 |---|---|---|---|
 | AUTH-001 | 高 | 硬編碼 session/JWT secret fallback | ✅ 已修正 |
-| AC-006 | 高 | createComment 信任用戶端 member | ✅ 已修正 |
+| AC-006 | 高 | createComment 信任用戶端 member | ✅ 已修正；GQL internal-only 時移出 active findings |
 | AC-009 | 高 | Report 可隱藏任意文章留言 | ✅ 已修正 |
 | AC-010 | 高 | Editor 可自行授予 OfficialMapping 權限 | ✅ 已修正 |
 | AC-008 | 高 | PollVote 缺少 poll/option/唯一性驗證 | ✅ 已修正 |
@@ -31,7 +32,7 @@
 | AC-002 | 中 | Bookmark BOLA | ✅ 已修正 |
 | AC-003 | 中 | PollVote BOLA | ✅ 已修正 |
 | AC-004 | 中 | Poll/PollOption 草稿洩漏 | ✅ 已修正 |
-| AC-005 | 中 | createPost 信任用戶端 author/status | ✅ 已修正 |
+| AC-005 | 中 | createPost 信任用戶端 author/status | ✅ 已修正；GQL internal-only 時移出 active findings |
 | AC-007 | 中 | Bookmark mutation 缺少 owner 隔離 | ✅ 已修正 |
 | AUTH-002 | 中 | Reset token 寫入 log | ✅ 已修正 |
 | AUTH-003 | 中 | Lockout 可被 name/prefix 觸發 | ✅ 已修正 |
@@ -61,6 +62,8 @@
 ### AC-006 — createComment member 覆寫
 
 **驗證**：`resolveInput` 中 `!isCmsRequest(context)` 分支一律呼叫 `getOfficialMemberIdForSessionUser`，強制覆寫 member；session 無效拋錯。CMS 分支保留原有 `hasExplicitMemberRelationInput` 邏輯。✅ 無旁路路徑。
+
+**部署邊界校準**：`getOfficialMemberIdForSessionUser` 是 Keystone CMS User -> Official Member mapping，不是前台 member bearer token 驗證。若 production 已強制 GraphQL 只接受 ingress/internal service traffic，原 public API attack path 不成立；若未來重新公開 GraphQL member mutation，需改以 bearer token member identity 綁定。
 
 ### AC-008 — PollVote validateInput
 

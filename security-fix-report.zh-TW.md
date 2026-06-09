@@ -11,6 +11,10 @@
 
 ---
 
+> 2026-06-09 部署邊界校準：`AC-006` 與 `AC-005` 在 GraphQL internal-only／ingress-only 前提下已自 active public findings 移出。本報告仍保留相關程式修正紀錄，作為 defense-in-depth 與未來重新公開 GraphQL 時的安全基準。
+
+---
+
 ## 修正摘要
 
 ### 高嚴重度（全部已修正）
@@ -18,7 +22,7 @@
 | ID | 說明 | 修正位置 |
 |---|---|---|
 | AUTH-001 | 移除 session/JWT 硬編碼 fallback secret；啟動時驗證 | `environment-variables.ts`, `utils/member-session.ts`, `keystone.ts` |
-| AC-006 | createComment 強制以 session 身分覆寫 member | `lists/comment.ts` |
+| AC-006 | createComment 忽略用戶端 member，改以 CMS User -> Official Member mapping 覆寫 | `lists/comment.ts` |
 | AC-010 | OfficialMapping mutation 限制為 admin only | `lists/official-mapping.ts` |
 | AC-008 | PollVote 補 poll 可見性、option 歸屬、每人限一票驗證 | `lists/poll-vote.ts` |
 | AC-009 | Report 寫入阻擋非 CMS 呼叫 | `lists/report.ts` |
@@ -32,7 +36,7 @@
 | AC-002 | Bookmark query 加 owner filter，拒絕未登入 | `lists/bookmark.ts` |
 | AC-003 | PollVote query 加 member owner filter | `lists/poll-vote.ts` |
 | AC-004 | Poll/PollOption 加 post visibility filter | `lists/poll.ts`, `lists/poll-option.ts` |
-| AC-005 | createPost 強制覆寫 author/status（非 CMS） | `lists/Post.ts` |
+| AC-005 | createPost 忽略用戶端 author/status，改以 CMS User -> Official Member mapping 覆寫 | `lists/Post.ts` |
 | AC-007 | Bookmark mutation 加 owner binding 與 filter | `lists/bookmark.ts` |
 | AUTH-002 | 密碼重設 log 移除 resetUrl/token | `utils/password-reset.ts` |
 | AUTH-003 | Lockout counter 只用精確 email，移除 name/prefix fallback | `utils/login-logging.ts` |
@@ -77,6 +81,8 @@
 
 **修改後行為**：非 CMS 呼叫在 `resolveInput` 中一律以 `getOfficialMemberIdForSessionUser(context)` 覆寫，忽略用戶端傳入；session 無效則拋錯。
 
+**部署邊界校準**：`getOfficialMemberIdForSessionUser` 是 Keystone CMS User -> Official Member mapping，不是前台 member bearer token 驗證。若 production 已強制 GraphQL 只接受 ingress/internal service traffic，原本「public API 直接冒用 member」的 attack path 已移出 active findings；此修正屬於 defense-in-depth。若未來重新允許前台會員直接呼叫 GraphQL mutation，需改以 bearer token member identity 綁定 `member`。
+
 ---
 
 ### AC-008｜PollVote validateInput 補充驗證
@@ -102,7 +108,9 @@
 
 **修改前問題**：`resolveInput` 只在用戶端未傳入 author 時才自動帶入；明確傳入的 author/status 被信任。
 
-**修改後行為**：非 CMS 呼叫一律以 session member 覆寫 author，status 強制為 `'pending'`（進審核佇列）。
+**修改後行為**：非 CMS 呼叫一律以 `getOfficialMemberIdForSessionUser(context)` 取得 CMS User 對應的 Official Member 覆寫 author，status 強制為 `'pending'`（進審核佇列）。
+
+**部署邊界校準**：`getOfficialMemberIdForSessionUser` 是 Keystone CMS User -> Official Member mapping，不是前台 member bearer token 驗證。若 production 已強制 GraphQL 只接受 ingress/internal service traffic，原本「public API 直接冒用 author/status」的 attack path 已移出 active findings；此修正屬於 defense-in-depth。若未來重新允許前台會員直接呼叫 GraphQL mutation，需改以 bearer token member identity 綁定 `author`，並維持 server-side status transition。
 
 ---
 

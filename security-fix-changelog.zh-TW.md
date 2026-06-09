@@ -36,7 +36,7 @@ MEMBER_SESSION_SECRET=<隨機字串，至少 32 字元>
 
 ---
 
-### AC-006｜createComment 一律以 session 身分覆寫 member
+### AC-006｜createComment 一律以 CMS User 對應 Official Member 覆寫 member
 
 | 項目 | 內容 |
 |---|---|
@@ -46,8 +46,10 @@ MEMBER_SESSION_SECRET=<隨機字串，至少 32 字元>
 **變更內容**
 
 `resolveInput` hook（create 分支）
-- 非 CMS 呼叫：移除 `hasExplicitMemberRelationInput` 判斷，一律呼叫 `getOfficialMemberIdForSessionUser(context)` 取得 session member 並強制覆寫 `data.member`；若 session 無效則拋錯
+- 非 CMS 呼叫：移除 `hasExplicitMemberRelationInput` 判斷，一律呼叫 `getOfficialMemberIdForSessionUser(context)` 取得 Keystone CMS User 對應的 Official Member 並強制覆寫 `data.member`；若 session 無效則拋錯
 - CMS 呼叫：保留原有「未明確指定才自動帶入」邏輯
+
+部署邊界校準：若 production 已強制 GraphQL 只接受 ingress/internal service traffic，原本 public API member 冒用 attack path 已自 active findings 移出；此程式修正保留為 defense-in-depth。若未來重新讓前台會員直接呼叫 GraphQL mutation，需改以 bearer token member identity 綁定 `member`。
 
 ---
 
@@ -219,7 +221,7 @@ MEMBER_SESSION_SECRET=<隨機字串，至少 32 字元>
 |---|---|---|
 | AC-008 | 高 | PollVote 缺少 poll 可見性/期限/唯一性驗證 |
 | AC-009 | 高 | Report create/update 對外開放時可隱藏任意內容 |
-| AC-005 | 中 | createPost 信任用戶端提供的 author 與 status |
+| AC-005 | 中 | createPost 信任用戶端提供的 author 與 status（GQL internal-only 時已自 active findings 移出） |
 | AUTH-003 | 中 | 登入 lockout 可被 username/email prefix 觸發 |
 | AUTH-004 | 中 | 強制改密碼狀態僅靠 client-side redirect |
 | AUTH-006 | 中 | reCAPTCHA 關閉時密碼重設無 server-side throttle |

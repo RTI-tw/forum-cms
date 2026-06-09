@@ -4,12 +4,14 @@
 
 新發現 findings：**3 個**（中 1、低 2）。
 
+2026-06-09 部署邊界校準：`AC-006` 與 `AC-005` 在 GraphQL internal-only／ingress-only 前提下不再列為 active public findings；下方保留「已修正」紀錄作為 defense-in-depth。
+
 ---
 
 ## 原始 Findings（全部已修正）
 
 - `AUTH-001` 高 硬編碼 session/JWT secret fallback - ✅ 已修正
-- `AC-006` 高 createComment 信任用戶端 member - ✅ 已修正
+- `AC-006` 高 createComment 信任用戶端 member - ✅ 已修正；GQL internal-only 時移出 active findings
 - `AC-009` 高 Report 可隱藏任意文章留言 - ✅ 已修正
 - `AC-010` 高 Editor 自行授予 OfficialMapping 權限 - ✅ 已修正
 - `AC-008` 高 PollVote 缺少驗證 - ✅ 已修正
@@ -18,7 +20,7 @@
 - `AC-002` 中 Bookmark BOLA - ✅ 已修正
 - `AC-003` 中 PollVote BOLA - ✅ 已修正
 - `AC-004` 中 Poll/PollOption 草稿洩漏 - ✅ 已修正
-- `AC-005` 中 createPost 信任用戶端 author/status - ✅ 已修正
+- `AC-005` 中 createPost 信任用戶端 author/status - ✅ 已修正；GQL internal-only 時移出 active findings
 - `AC-007` 中 Bookmark mutation owner 缺失 - ✅ 已修正
 - `AUTH-002` 中 Reset token 寫入 log - ✅ 已修正
 - `AUTH-003` 中 Lockout 可被 name/prefix 觸發 - ✅ 已修正
