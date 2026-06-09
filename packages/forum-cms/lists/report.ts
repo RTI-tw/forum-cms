@@ -2,6 +2,7 @@ import { utils } from '@mirrormedia/lilith-core'
 import { allowRoles, admin, moderator, editor } from '../utils/access-control'
 import { list } from '@keystone-6/core'
 import { text, relationship, select, timestamp } from '@keystone-6/core/fields'
+import { isCmsRequest } from '../utils/post-visibility'
 
 /**
  * 檢舉規格（欄位對應）：
@@ -96,7 +97,12 @@ const listConfigurations = list({
     },
   },
   hooks: {
-    validateInput: ({ resolvedData, addValidationError, operation }) => {
+    validateInput: ({ resolvedData, addValidationError, operation, context }) => {
+      // [AC-009] Report 寫入（含 status=resolved 會觸發隱藏內容的副作用）只允許 CMS 呼叫。
+      if (!isCmsRequest(context)) {
+        addValidationError('Report 操作僅限 CMS 管理者')
+        return
+      }
       if (operation !== 'create') return
       const hasPost = Boolean(
         resolvedData.post &&

@@ -207,14 +207,23 @@ const listConfigurations = list({
     }) => {
       const data = { ...resolvedData }
       if (operation === 'create') {
-        const explicit = hasExplicitMemberRelationInput(
-          inputData as Record<string, unknown>,
-          'member',
-        )
-        if (!explicit) {
-          const memberId = await getOfficialMemberIdForSessionUser(context)
-          if (memberId != null) {
-            data.member = { connect: { id: memberId } }
+        if (!isCmsRequest(context)) {
+          // [AC-006] 非 CMS 建立留言時，以前台 bearer token 綁定 member。
+          const memberId = getAuthenticatedMemberId(context)
+          if (memberId == null) {
+            throw new Error('建立留言需要有效的會員登入狀態')
+          }
+          data.member = { connect: { id: memberId } }
+        } else {
+          const explicit = hasExplicitMemberRelationInput(
+            inputData as Record<string, unknown>,
+            'member',
+          )
+          if (!explicit) {
+            const memberId = await getOfficialMemberIdForSessionUser(context)
+            if (memberId != null) {
+              data.member = { connect: { id: memberId } }
+            }
           }
         }
       }

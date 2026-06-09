@@ -11,7 +11,7 @@
 
 ---
 
-> 2026-06-09 部署邊界校準：`AC-006` 與 `AC-005` 在 GraphQL internal-only／ingress-only 前提下已自 active public findings 移出。本報告仍保留相關程式修正紀錄，作為 defense-in-depth 與未來重新公開 GraphQL 時的安全基準。
+> 2026-06-09 修正校準：GraphQL internal-only／ingress-only 是必要部署邊界，但不得取代 list hook 的身分綁定。非 CMS write path 仍需使用前台 bearer token 解析出的 Member；CMS path 才可使用 Keystone CMS User -> Official Member mapping。
 
 ---
 
@@ -22,10 +22,10 @@
 | ID | 說明 | 修正位置 |
 |---|---|---|
 | AUTH-001 | 移除 session/JWT 硬編碼 fallback secret；啟動時驗證 | `environment-variables.ts`, `utils/member-session.ts`, `keystone.ts` |
-| AC-006 | 部署校準後移除非 CMS member 強制覆寫，保留 CMS OfficialMapping 自動帶入 | `lists/comment.ts` |
+| AC-006 | 非 CMS createComment 改用 bearer token member 綁定，CMS path 保留 OfficialMapping 自動帶入 | `lists/comment.ts` |
 | AC-010 | OfficialMapping mutation 限制為 admin only | `lists/official-mapping.ts` |
-| AC-008 | 部署校準後移除非 CMS PollVote write validation/member binding，保留票數同步 | `lists/poll-vote.ts` |
-| AC-009 | 部署校準後移除 Report 非 CMS CMS-only block，保留資料完整性檢查 | `lists/report.ts` |
+| AC-008 | 非 CMS PollVote 恢復 bearer token member 綁定、poll/option 歸屬與唯一性驗證 | `lists/poll-vote.ts` |
+| AC-009 | Report write 恢復 CMS-only block，避免 resolved 副作用被非 CMS 呼叫觸發 | `lists/report.ts` |
 | SC-001 | Cloud Build Syft 改用 pin 版本 container image | `cloudbuild.yaml` |
 
 ### 中嚴重度（全部已修正）
@@ -36,12 +36,12 @@
 | AC-002 | Bookmark query 加 owner filter，拒絕未登入 | `lists/bookmark.ts` |
 | AC-003 | PollVote query 加 member owner filter | `lists/poll-vote.ts` |
 | AC-004 | Poll/PollOption 加 post visibility filter | `lists/poll.ts`, `lists/poll-option.ts` |
-| AC-005 | 部署校準後移除非 CMS author/status 強制覆寫，保留既有 create 預設 | `lists/Post.ts` |
-| AC-007 | 部署校準後移除 Bookmark 非 CMS write owner hard gate，保留 query owner filter | `lists/bookmark.ts` |
+| AC-005 | 非 CMS createPost 改用 bearer token author 綁定，並固定進 pending 審核佇列 | `lists/Post.ts` |
+| AC-007 | Bookmark 非 CMS create/update/delete 恢復 owner hard gate 與 bearer token member 綁定 | `lists/bookmark.ts` |
 | AUTH-002 | 密碼重設 log 移除 resetUrl/token | `utils/password-reset.ts` |
 | AUTH-003 | Lockout counter 只用精確 email，移除 name/prefix fallback | `utils/login-logging.ts` |
 | AUTH-004 | mustChangePassword 加 server-side GraphQL 攔截 | `keystone.ts` |
-| AUTH-005 | JWT 驗後補 member.status 檢查（banned/inactive 立即失效） | `keystone.ts` |
+| AUTH-005 | JWT 驗後補 member.status 檢查（banned/deleted 立即失效；inactive 保留給補 profile） | `keystone.ts` |
 | AUTH-006 | 密碼重設加 per-email+IP rate limit（15 分鐘 5 次） | `utils/login-logging.ts` |
 | CONFIG-001 | 加入 helmet middleware（CSP / HSTS / frameguard / noSniff） | `keystone.ts`, `package.json` |
 | DEP-001 | resolutions 強制升級 protobufjs/fast-xml-parser/http-proxy-middleware 等 | `package.json` |
@@ -75,43 +75,43 @@
 
 ---
 
-### AC-006｜createComment 非 CMS 強制覆寫已移除
+### AC-006｜createComment 非 CMS 改用 bearer token member 綁定
 
 **修改前問題**：`hasExplicitMemberRelationInput` 為 true 時，hook 信任用戶端 `member.connect`，可冒用他人身分留言。
 
-**目前行為**：2026-06-09 部署邊界校準後，已移除非 CMS 呼叫的一律覆寫與 session 無效拋錯。`resolveInput` 目前只在用戶端未明確指定 `member` 時，才嘗試以 `getOfficialMemberIdForSessionUser(context)` 做 CMS User -> Official Member 自動帶入。
+**目前行為**：非 CMS create 會忽略用戶端傳入的 `member.connect`，改以 `getAuthenticatedMemberId(context)` 從前台 bearer token 取得 Member id 並覆寫 `data.member`；無有效 member token 時拒絕建立。CMS create path 才在未明確指定 `member` 時嘗試 `getOfficialMemberIdForSessionUser(context)`。
 
-**部署邊界校準**：`getOfficialMemberIdForSessionUser` 是 Keystone CMS User -> Official Member mapping，不是前台 member bearer token 驗證。若 production 已強制 GraphQL 只接受 ingress/internal service traffic，原本「public API 直接冒用 member」的 attack path 已移出 active findings。若未來重新允許前台會員直接呼叫 GraphQL mutation，需改以 bearer token member identity 綁定 `member`。
+**部署邊界校準**：`getOfficialMemberIdForSessionUser` 是 CMS mapping，不是前台會員驗證；非 CMS path 不可使用它。GraphQL internal-only 仍應保留於 infra，但程式碼層也維持 bearer token member identity 作為 defense-in-depth。
 
 ---
 
-### AC-008｜PollVote 非 CMS write hard gate 已移除
+### AC-008｜PollVote 非 CMS write validation/member binding 已恢復
 
 **修改前問題**：投票時不驗證 poll 是否可見、option 是否屬於 poll、是否重複投票，可操控票數完整性。
 
-**目前行為**：2026-06-09 部署邊界校準後，已移除非 CMS create validation、member token 強制綁定與 update member 刪除邏輯。PollVote list 目前保留 query owner filter 與 `afterOperation` 票數同步。
+**目前行為**：非 CMS create 會驗證 poll 可見性、option 隸屬於該 poll、每位會員每個投票只能投一票，並以 bearer token member 覆寫 `data.member`。非 CMS update/delete 保留 owner filter；`afterOperation` 持續同步票數。
 
-**部署邊界校準**：若 production 已強制 GraphQL 只接受 ingress/internal service traffic，原本「public API 直接操控投票」的 attack path 已移出 active findings。若未來重新允許前台會員直接呼叫 GraphQL mutation，需重新加入 bearer token member identity、poll/option 歸屬與唯一性驗證。
+**部署邊界校準**：即使 GraphQL 只接受 ingress/internal traffic，list hook 仍保留投票完整性檢查，避免內部呼叫或未來 exposure 造成資料破壞。
 
 ---
 
-### AC-009｜Report 非 CMS CMS-only block 已移除
+### AC-009｜Report 非 CMS CMS-only block 已恢復
 
 **修改前問題**：Report `afterOperation` 在 status=resolved 時會隱藏文章/留言；若 API 開放，任何人可建立 resolved Report 隱藏任意內容。
 
-**目前行為**：2026-06-09 部署邊界校準後，已移除 `validateInput` 最前面的 `isCmsRequest(context)` block。Report 目前保留 create 時「post/comment 擇一」的資料完整性檢查，`resolved` 狀態的隱藏內容副作用仍保留給 ingress/internal 呼叫與 CMS 工作流使用。
+**目前行為**：`validateInput` 先檢查 `isCmsRequest(context)`；非 CMS 呼叫會收到 `Report 操作僅限 CMS 管理者`。CMS create 仍保留「post/comment 擇一」的資料完整性檢查，`resolved` 狀態副作用只留給 CMS 工作流。
 
-**部署邊界校準**：若 production 已強制 GraphQL 只接受 ingress/internal service traffic，原本「public API 直接隱藏任意內容」的 attack path 已移出 active findings。若未來重新公開 GraphQL write mutation，需把公開檢舉提交與審核 resolution 拆成不同流程，或重新加入 moderator/admin 權限檢查。
+**部署邊界校準**：GraphQL internal-only 可降低外部可達性，但不能取代 Report 狀態副作用的權限檢查。
 
 ---
 
-### AC-005｜createPost 非 CMS 強制覆寫已移除
+### AC-005｜createPost 非 CMS 改用 bearer token author 綁定
 
 **修改前問題**：`resolveInput` 只在用戶端未傳入 author 時才自動帶入；明確傳入的 author/status 被信任。
 
-**目前行為**：2026-06-09 部署邊界校準後，已移除非 CMS 呼叫的一律 author 覆寫與 `status = 'pending'` 強制覆寫。`resolveInput` 目前只在用戶端未明確指定 `author` 時，才嘗試以 `getOfficialMemberIdForSessionUser(context)` 做 CMS User -> Official Member 自動帶入；`status` 回到既有的 server-side 預設值。
+**目前行為**：非 CMS create 會忽略用戶端傳入的 `author.connect` 與 `status`，改以 `getAuthenticatedMemberId(context)` 從前台 bearer token 取得 Member id 並覆寫 `data.author`，且一律設定 `status = 'pending'`。CMS create path 才使用 OfficialMapping 自動帶入與 CMS 預設狀態。
 
-**部署邊界校準**：`getOfficialMemberIdForSessionUser` 是 Keystone CMS User -> Official Member mapping，不是前台 member bearer token 驗證。若 production 已強制 GraphQL 只接受 ingress/internal service traffic，原本「public API 直接冒用 author/status」的 attack path 已移出 active findings。若未來重新允許前台會員直接呼叫 GraphQL mutation，需改以 bearer token member identity 綁定 `author`，並維持 server-side status transition。
+**部署邊界校準**：`getOfficialMemberIdForSessionUser` 是 CMS mapping，不是前台會員驗證；非 CMS path 不可使用它。GraphQL internal-only 仍應保留於 infra，但程式碼層也維持 bearer token author binding 與 server-side status transition。
 
 ---
 
@@ -143,9 +143,9 @@
 
 ### AUTH-005｜JWT 驗後補 member 狀態檢查
 
-**修改前問題**：`currentMember` resolver 驗完 JWT 後只確認 member 是否存在，不檢查 `status`；ban/inactive 後既有 token 仍有效。
+**修改前問題**：`authenticatedMember` resolver 驗完 JWT 後只確認 member 是否存在，不檢查 `status`；ban/delete 後既有 token 仍有效。
 
-**修改後行為**：在 `db.Member.findOne` 後加入 `member.status !== 'active'` 判斷，非 active 直接回傳 null，使 token 立即失效。
+**修改後行為**：在 `db.Member.findOne` 後加入 `isMemberRegistrationBlocked(member.status)` 判斷，`banned` / `deleted` 直接回傳 null，使 token 立即失效；`inactive` 仍回傳給前端完成 profile 流程。
 
 ---
 

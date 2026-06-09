@@ -15,7 +15,7 @@
 
 本次為第三次審查，前兩次審查共識別 26 個原始 findings 及 3 個再審發現（NEW-001～003），加上一次 Cloud Build 相容性問題（DEP-001 regression）。本次目的為驗證所有問題已完整修正，並全面掃描是否有新問題。
 
-2026-06-09 部署邊界校準：`AC-006` 與 `AC-005` 在 GraphQL internal-only／ingress-only 前提下不再列為 active public findings；本報告保留其程式修正驗證作為 defense-in-depth 紀錄。若未來重新允許 public client 直接呼叫 GraphQL mutation，需重新評估並改以 bearer token member identity 綁定前台會員身分。
+2026-06-09 修正校準：GraphQL internal-only／ingress-only 是部署邊界；非 CMS write path 仍保留 bearer token member identity 綁定，CMS path 才使用 OfficialMapping。
 
 ---
 
@@ -40,17 +40,17 @@
 | ID | 嚴重度 | 說明 | 驗證結果 |
 |---|---|---|---|
 | AUTH-001 | 高 | 硬編碼 session/JWT secret fallback | ✅ |
-| AC-006 | 高 | createComment 信任用戶端 member | ✅；GQL internal-only 時移出 active findings |
-| AC-009 | 高 | Report 可隱藏任意文章留言 | ✅；GQL internal-only 時移出 active findings |
+| AC-006 | 高 | createComment 信任用戶端 member | ✅ |
+| AC-009 | 高 | Report 可隱藏任意文章留言 | ✅ |
 | AC-010 | 高 | Editor 自行授予 OfficialMapping 權限 | ✅ |
-| AC-008 | 高 | PollVote 缺少 poll/option/唯一性驗證 | ✅；GQL internal-only 時移出 active findings |
+| AC-008 | 高 | PollVote 缺少 poll/option/唯一性驗證 | ✅ |
 | SC-001 | 高 | Cloud Build curl\|sh 安裝 Syft | ✅ |
 | AC-001 | 中 | Comment query 洩漏 hidden/rejected 留言 | ✅ |
 | AC-002 | 中 | Bookmark BOLA | ✅ |
 | AC-003 | 中 | PollVote BOLA | ✅ |
 | AC-004 | 中 | Poll/PollOption 草稿洩漏 | ✅ |
-| AC-005 | 中 | createPost 信任用戶端 author/status | ✅；GQL internal-only 時移出 active findings |
-| AC-007 | 中 | Bookmark mutation owner 缺失 | ✅；GQL internal-only 時移出 active findings |
+| AC-005 | 中 | createPost 信任用戶端 author/status | ✅ |
+| AC-007 | 中 | Bookmark mutation owner 缺失 | ✅ |
 | AUTH-002 | 中 | Reset token 寫入 log | ✅ |
 | AUTH-003 | 中 | Lockout 可被 name/prefix 觸發 | ✅ |
 | AUTH-004 | 中 | mustChangePassword 僅靠 client-side redirect | ✅ |

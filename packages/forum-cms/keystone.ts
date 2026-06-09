@@ -436,9 +436,9 @@ const memberAuthSchemaExtension = graphql.extend(() => ({
                         return null;
                     }
 
-                    // [AUTH-005] 即使 JWT 簽章有效，仍需確認 member 當前狀態為 active，
-                    // 避免已被 ban/inactive 的帳號在 token 到期前繼續操作。
-                    if (member.status !== "active") {
+                    // [AUTH-005] 即使 JWT 簽章有效，仍需封鎖已停權/刪帳會員。
+                    // inactive 是首次註冊後補 profile 的中間狀態，仍需回傳給前端完成流程。
+                    if (isMemberRegistrationBlocked(member.status)) {
                         return null;
                     }
 

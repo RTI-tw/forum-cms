@@ -36,7 +36,7 @@ MEMBER_SESSION_SECRET=<隨機字串，至少 32 字元>
 
 ---
 
-### AC-006｜createComment 非 CMS 強制覆寫已撤回
+### AC-006｜createComment 非 CMS 改用 bearer token member 綁定
 
 | 項目 | 內容 |
 |---|---|
@@ -46,10 +46,10 @@ MEMBER_SESSION_SECRET=<隨機字串，至少 32 字元>
 **變更內容**
 
 `resolveInput` hook（create 分支）
-- 歷史修正曾將非 CMS 呼叫改為一律呼叫 `getOfficialMemberIdForSessionUser(context)` 強制覆寫 `data.member`
-- 2026-06-09 部署邊界校準後，已撤回上述非 CMS 強制覆寫；目前回到「未明確指定 member 時才嘗試自動帶入」邏輯
+- 非 CMS 呼叫一律以 `getAuthenticatedMemberId(context)` 從前台 bearer token 解析 Member id，並覆寫 `data.member`
+- CMS 呼叫才保留「未明確指定 member 時嘗試 OfficialMapping 自動帶入」邏輯
 
-部署邊界校準：若 production 已強制 GraphQL 只接受 ingress/internal service traffic，原本 public API member 冒用 attack path 已自 active findings 移出。`getOfficialMemberIdForSessionUser` 是 Keystone CMS User -> Official Member mapping，不是前台 member bearer token 驗證；若未來重新讓前台會員直接呼叫 GraphQL mutation，需改以 bearer token member identity 綁定 `member`。
+部署邊界校準：GraphQL internal-only 仍應由 infra 保證，但非 CMS write path 不可使用 `getOfficialMemberIdForSessionUser` 當前台會員身份來源。
 
 ---
 
@@ -143,14 +143,14 @@ MEMBER_SESSION_SECRET=<隨機字串，至少 32 字元>
 **變更內容**
 
 `currentMember` GraphQL resolver
-- 在 `context.sudo().db.Member.findOne()` 取回 member 後，補上 `member.status !== 'active'` 檢查
-- 狀態非 `active`（即 `inactive` 或 `banned`）時回傳 `null`，使既有 JWT 立即失效
+- 在 `context.sudo().db.Member.findOne()` 取回 member 後，補上 `isMemberRegistrationBlocked(member.status)` 檢查
+- 狀態為 `banned` 或 `deleted` 時回傳 `null`，使既有 JWT 立即失效；`inactive` 仍回傳給前端完成 profile 流程
 
 ---
 
 ## P2 — 批次修正
 
-### AC-002 + AC-007｜Bookmark query owner 隔離；mutation hard gate 已撤回
+### AC-002 + AC-007｜Bookmark query owner 隔離與 mutation owner hard gate
 
 | 項目 | 內容 |
 |---|---|
@@ -160,8 +160,8 @@ MEMBER_SESSION_SECRET=<隨機字串，至少 32 字元>
 **變更內容**
 
 - `filter.query`：非 CMS 呼叫加入 `member.id equals authenticatedMemberId` 條件，拒絕未登入查詢
-- 歷史修正曾新增 `filter.update` / `filter.delete` 與 `hooks.resolveInput`，限制非 CMS write 只能操作自己的書籤
-- 2026-06-09 部署邊界校準後，上述非 CMS write owner hard gate 已撤回；Bookmark 目前保留 query owner filter
+- `filter.update` / `filter.delete`：非 CMS 呼叫只允許操作自己的書籤
+- `hooks.resolveInput`：非 CMS create 以 bearer token member 覆寫 `data.member`
 
 ---
 
@@ -219,9 +219,6 @@ MEMBER_SESSION_SECRET=<隨機字串，至少 32 字元>
 
 | ID | 嚴重度 | 說明 |
 |---|---|---|
-| AC-008 | 高 | PollVote 缺少 poll 可見性/期限/唯一性驗證（GQL internal-only 時已自 active findings 移出） |
-| AC-009 | 高 | Report create/update 對外開放時可隱藏任意內容（GQL internal-only 時已自 active findings 移出） |
-| AC-005 | 中 | createPost 信任用戶端提供的 author 與 status（GQL internal-only 時已自 active findings 移出） |
 | AUTH-003 | 中 | 登入 lockout 可被 username/email prefix 觸發 |
 | AUTH-004 | 中 | 強制改密碼狀態僅靠 client-side redirect |
 | AUTH-006 | 中 | reCAPTCHA 關閉時密碼重設無 server-side throttle |

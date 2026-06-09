@@ -7,7 +7,7 @@
 - 修正 commits：`bbf64b9`、`c44de67`、`86e571a`
 - Re-review date：`2026-06-01`
 - 目標：驗證 26 個原始 findings 是否正確修正，並檢查修正是否引入新問題。
-- 2026-06-09 部署邊界校準：`AC-006` 與 `AC-005` 在 GraphQL internal-only／ingress-only 前提下不再列為 active public findings；下方保留程式修正驗證作為 defense-in-depth 紀錄。
+- 2026-06-09 修正校準：GraphQL internal-only／ingress-only 是部署邊界；非 CMS write path 仍保留 bearer token member identity 綁定，CMS path 才使用 OfficialMapping。
 
 ---
 
@@ -23,17 +23,17 @@
 | ID | 嚴重度 | 說明 | 驗證結果 |
 |---|---|---|---|
 | AUTH-001 | 高 | 硬編碼 session/JWT secret fallback | ✅ 已修正 |
-| AC-006 | 高 | createComment 信任用戶端 member | ✅ 已修正；GQL internal-only 時移出 active findings |
-| AC-009 | 高 | Report 可隱藏任意文章留言 | ✅ 已修正；GQL internal-only 時移出 active findings |
+| AC-006 | 高 | createComment 信任用戶端 member | ✅ 已修正 |
+| AC-009 | 高 | Report 可隱藏任意文章留言 | ✅ 已修正 |
 | AC-010 | 高 | Editor 可自行授予 OfficialMapping 權限 | ✅ 已修正 |
-| AC-008 | 高 | PollVote 缺少 poll/option/唯一性驗證 | ✅ 已修正；GQL internal-only 時移出 active findings |
+| AC-008 | 高 | PollVote 缺少 poll/option/唯一性驗證 | ✅ 已修正 |
 | SC-001 | 高 | Cloud Build curl\|sh 安裝 Syft | ✅ 已修正 |
 | AC-001 | 中 | Comment query 洩漏 hidden/rejected 留言 | ✅ 已修正 |
 | AC-002 | 中 | Bookmark BOLA | ✅ 已修正 |
 | AC-003 | 中 | PollVote BOLA | ✅ 已修正 |
 | AC-004 | 中 | Poll/PollOption 草稿洩漏 | ✅ 已修正 |
-| AC-005 | 中 | createPost 信任用戶端 author/status | ✅ 已修正；GQL internal-only 時移出 active findings |
-| AC-007 | 中 | Bookmark mutation 缺少 owner 隔離 | ✅ 已修正；GQL internal-only 時移出 active findings |
+| AC-005 | 中 | createPost 信任用戶端 author/status | ✅ 已修正 |
+| AC-007 | 中 | Bookmark mutation 缺少 owner 隔離 | ✅ 已修正 |
 | AUTH-002 | 中 | Reset token 寫入 log | ✅ 已修正 |
 | AUTH-003 | 中 | Lockout 可被 name/prefix 觸發 | ✅ 已修正 |
 | AUTH-004 | 中 | mustChangePassword 僅靠 client-side redirect | ✅ 已修正 |
@@ -61,17 +61,17 @@
 
 ### AC-006 — createComment member 覆寫
 
-**歷史驗證**：當時 `resolveInput` 中 `!isCmsRequest(context)` 分支一律呼叫 `getOfficialMemberIdForSessionUser`，強制覆寫 member；session 無效拋錯。2026-06-09 部署邊界校準後，這段非 CMS 強制覆寫已移除，回到「未明確指定 member 時才嘗試自動帶入」邏輯。
+**驗證**：`resolveInput` 中 `!isCmsRequest(context)` 分支使用 `getAuthenticatedMemberId(context)` 從前台 bearer token 綁定 `member`，並拒絕未登入 create。CMS 分支才保留 OfficialMapping 自動帶入。
 
-**部署邊界校準**：`getOfficialMemberIdForSessionUser` 是 Keystone CMS User -> Official Member mapping，不是前台 member bearer token 驗證。若 production 已強制 GraphQL 只接受 ingress/internal service traffic，原 public API attack path 不成立；若未來重新公開 GraphQL member mutation，需改以 bearer token member identity 綁定。
+**部署邊界校準**：`getOfficialMemberIdForSessionUser` 是 Keystone CMS User -> Official Member mapping，不是前台 member bearer token 驗證；非 CMS path 不使用它。
 
-### AC-008 — PollVote write hard gate 已撤回
+### AC-008 — PollVote write validation/member binding
 
-**歷史驗證**：當時 `validateInput` 在 `resolveInput` 之後執行（Keystone 6 hook 順序），非 CMS create 時依序：1) poll 存在且文章可見；2) option 屬於 poll；3) 每人每 poll 限一票。2026-06-09 部署邊界校準後，這段非 CMS write validation/member binding 已移除，PollVote 只保留 query owner filter 與票數同步 hook。
+**驗證**：非 CMS create 會驗證 poll 可見、option 屬於 poll、每位會員每個投票只能投一票，並以 bearer token member 覆寫 `data.member`。非 CMS update/delete 保留 owner filter。
 
-### AC-009 — Report CMS-only block 已撤回
+### AC-009 — Report CMS-only block
 
-**歷史驗證**：當時 `validateInput` 最前面檢查 `!isCmsRequest(context)` 並立即回傳驗證錯誤。2026-06-09 部署邊界校準後，這段 CMS-only block 已移除；Report 仍保留 create 時 post/comment 擇一的資料完整性檢查與 resolved 狀態同步副作用。
+**驗證**：`validateInput` 最前面檢查 `!isCmsRequest(context)` 並立即回傳 `Report 操作僅限 CMS 管理者`。Report create 仍保留 post/comment 擇一的資料完整性檢查與 resolved 狀態同步副作用。
 
 ### AUTH-003 — Lockout canonical email
 
@@ -85,7 +85,7 @@
 
 ### AUTH-005 — member.status 檢查
 
-**驗證**：`(member as { status?: string }).status !== 'active'` 正確比對 member.ts 定義的三個狀態（`active` / `inactive` / `banned`）。✅
+**驗證**：`authenticatedMember` 以 `isMemberRegistrationBlocked(member.status)` 封鎖 `banned` / `deleted`；`inactive` 保留給首次註冊後的補 profile 流程。✅
 
 ### CONFIG-001 — helmet headers
 

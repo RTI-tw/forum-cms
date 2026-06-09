@@ -6,7 +6,7 @@
 - 中：15
 - 低：3
 
-2026-06-09 部署邊界校準：`AC-006`、`AC-008`、`AC-009`、`AC-005`、`AC-007` 已自 active public findings 移出。這些項目原本依賴 public client 可直接呼叫 `/api/graphql` write mutation 的 attack path；若 production 強制 GraphQL 只接受 ingress/internal service traffic，該可達性不成立。若未來重新公開 GraphQL，需重新評估。
+2026-06-09 修正校準：`AC-006`、`AC-008`、`AC-009`、`AC-005`、`AC-007` 仍以程式碼修正處理；GraphQL internal-only／ingress-only 是額外部署邊界，不取代非 CMS write path 的 bearer token member identity 綁定。
 
 ## Findings 弱點項目
 
@@ -32,10 +32,10 @@
 - `XSS-002` 低 Rich-text link URL 缺少 scheme allowlist - 信心程度：中
 - `XSS-003` 低 RECAPTCHA_SITE_KEY 未經 JS escape 就插入 generated Admin UI TSX - 信心程度：高
 
-## Deployment-Suppressed 已依部署邊界移出
+## 已修正且需維持部署邊界
 
-- `AC-006` 原始：高 開放 API 的 createComment 信任用戶端提供的 member 關聯；GQL internal-only：不列為 active finding
-- `AC-008` 原始：高 PollVote mutation 可破壞投票與彙總票數；GQL internal-only：不列為 active finding
-- `AC-009` 原始：高 Report create/update 對外開放時可隱藏任意文章與留言；GQL internal-only：不列為 active finding
-- `AC-005` 原始：中 開放 API 的 createPost 信任用戶端提供的 author 與 status；GQL internal-only：不列為 active finding
-- `AC-007` 原始：中 Bookmark mutation 缺少擁有者隔離；GQL internal-only：不列為 active finding
+- `AC-006` createComment：非 CMS path 以 bearer token member 綁定；CMS path 才使用 OfficialMapping
+- `AC-008` PollVote：非 CMS path 保留 poll/option/唯一性驗證與 member 綁定
+- `AC-009` Report：write path 保留 CMS-only block
+- `AC-005` createPost：非 CMS path 以 bearer token author 綁定並固定 pending
+- `AC-007` Bookmark：非 CMS create/update/delete 保留 owner hard gate

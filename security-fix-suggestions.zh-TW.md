@@ -3,7 +3,7 @@
 依據 `security-review-report.zh-TW.md` 與 `security-review-validation-summary.zh-TW.md`，
 針對各 finding 提出具體程式碼修正方式，按嚴重度排列。
 
-2026-06-09 部署邊界校準：`AC-006` 與 `AC-005` 在 GraphQL internal-only／ingress-only 前提下已自 active public findings 移出。下列修正建議保留為 defense-in-depth 與「未來若重新公開 GraphQL」時的參考；若要支援前台會員直接呼叫 mutation，身分綁定應使用 bearer token member identity，而不是 Keystone CMS session mapping。
+2026-06-09 修正校準：GraphQL internal-only／ingress-only 是部署邊界；非 CMS write path 仍應使用 bearer token member identity，CMS path 才可使用 Keystone CMS User -> Official Member mapping。
 
 ---
 
@@ -912,7 +912,7 @@ if (envVar.recaptcha.enabled) {
 | 優先 | Finding | 原因 |
 |------|---------|------|
 | P0 | AUTH-001 | 硬編碼 secret 可直接偽造 session，修改簡單且影響高 |
-| P0 | AC-006 | 僅在 GraphQL 重新對 public/member client 開放時適用；目前 GQL internal-only 時移出 active findings |
+| P0 | AC-006 | createComment 身分冒用風險高；非 CMS path 應以 bearer token member 綁定 |
 | P0 | AUTH-002 | Reset token 已進 log，需立即確認歷史 log 並輪替 token |
 | P1 | AC-010 | Editor 可自行提升權限，一行改動即可修復 |
 | P1 | SC-001 | Build pipeline 供應鏈風險，影響所有產出 image |
