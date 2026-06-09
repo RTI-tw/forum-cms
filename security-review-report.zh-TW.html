@@ -313,7 +313,7 @@
 
 <h4 id="status">Status 狀態</h4>
 
-<p>此項已自 active public findings 移出。原始問題只在 GraphQL/list mutation 可被 public client 直接呼叫時成立；若 production 已強制 GraphQL 只接受 ingress/internal service traffic，public attacker 沒有可達 entry point。另目前程式碼已在非 CMS create 分支忽略用戶端傳入的 <code>member.connect</code>，改以 <code>getOfficialMemberIdForSessionUser(context)</code> 覆寫；需注意該 helper 是 Keystone CMS User -&gt; Official Member mapping，不是前台 bearer token member identity。</p>
+<p>此項已自 active public findings 移出。原始問題只在 GraphQL/list mutation 可被 public client 直接呼叫時成立；若 production 已強制 GraphQL 只接受 ingress/internal service traffic，public attacker 沒有可達 entry point。程式碼也已移除先前非 CMS create 分支的 CMS-session 強制覆寫；目前僅在用戶端未明確指定 <code>member</code> 時，才嘗試以 <code>getOfficialMemberIdForSessionUser(context)</code> 做 CMS User -&gt; Official Member 自動帶入，無 CMS session 時不會因此拋錯。</p>
 
 <h4 id="summary">Summary 摘要</h4>
 
@@ -897,7 +897,7 @@
 
 <h4 id="status">Status 狀態</h4>
 
-<p>此項已自 active public findings 移出。原始問題只在 GraphQL/list mutation 可被 public client 直接呼叫時成立；若 production 已強制 GraphQL 只接受 ingress/internal service traffic，public attacker 沒有可達 entry point。另目前程式碼已在非 CMS create 分支忽略用戶端傳入的 <code>author</code> 與 <code>status</code>，改以 <code>getOfficialMemberIdForSessionUser(context)</code> 覆寫作者並強制 <code>pending</code>；該 helper 是 Keystone CMS User -&gt; Official Member mapping，不是前台 bearer token member identity。</p>
+<p>此項已自 active public findings 移出。原始問題只在 GraphQL/list mutation 可被 public client 直接呼叫時成立；若 production 已強制 GraphQL 只接受 ingress/internal service traffic，public attacker 沒有可達 entry point。程式碼也已移除先前非 CMS create 分支的 CMS-session 強制覆寫；目前 create hook 只在未明確指定 <code>author</code> 時，才嘗試以 <code>getOfficialMemberIdForSessionUser(context)</code> 做 CMS User -&gt; Official Member 自動帶入，<code>status</code> 則回到既有的 server-side 預設值。</p>
 
 <h4 id="summary">Summary 摘要</h4>
 

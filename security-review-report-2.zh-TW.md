@@ -61,7 +61,7 @@
 
 ### AC-006 — createComment member 覆寫
 
-**驗證**：`resolveInput` 中 `!isCmsRequest(context)` 分支一律呼叫 `getOfficialMemberIdForSessionUser`，強制覆寫 member；session 無效拋錯。CMS 分支保留原有 `hasExplicitMemberRelationInput` 邏輯。✅ 無旁路路徑。
+**歷史驗證**：當時 `resolveInput` 中 `!isCmsRequest(context)` 分支一律呼叫 `getOfficialMemberIdForSessionUser`，強制覆寫 member；session 無效拋錯。2026-06-09 部署邊界校準後，這段非 CMS 強制覆寫已移除，回到「未明確指定 member 時才嘗試自動帶入」邏輯。
 
 **部署邊界校準**：`getOfficialMemberIdForSessionUser` 是 Keystone CMS User -> Official Member mapping，不是前台 member bearer token 驗證。若 production 已強制 GraphQL 只接受 ingress/internal service traffic，原 public API attack path 不成立；若未來重新公開 GraphQL member mutation，需改以 bearer token member identity 綁定。
 

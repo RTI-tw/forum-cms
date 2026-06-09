@@ -207,25 +207,14 @@ const listConfigurations = list({
     }) => {
       const data = { ...resolvedData }
       if (operation === 'create') {
-        if (!isCmsRequest(context)) {
-          // [AC-006] 非 CMS 呼叫：一律強制以 session 身分覆寫 member，
-          // 忽略用戶端傳入的 member.connect，防止冒用其他會員身分留言。
+        const explicit = hasExplicitMemberRelationInput(
+          inputData as Record<string, unknown>,
+          'member',
+        )
+        if (!explicit) {
           const memberId = await getOfficialMemberIdForSessionUser(context)
-          if (memberId == null) {
-            throw new Error('建立留言需要有效的會員登入狀態')
-          }
-          data.member = { connect: { id: memberId } }
-        } else {
-          // CMS 呼叫：若未明確指定 member 則嘗試自動帶入
-          const explicit = hasExplicitMemberRelationInput(
-            inputData as Record<string, unknown>,
-            'member',
-          )
-          if (!explicit) {
-            const memberId = await getOfficialMemberIdForSessionUser(context)
-            if (memberId != null) {
-              data.member = { connect: { id: memberId } }
-            }
+          if (memberId != null) {
+            data.member = { connect: { id: memberId } }
           }
         }
       }

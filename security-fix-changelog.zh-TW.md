@@ -36,7 +36,7 @@ MEMBER_SESSION_SECRET=<隨機字串，至少 32 字元>
 
 ---
 
-### AC-006｜createComment 一律以 CMS User 對應 Official Member 覆寫 member
+### AC-006｜createComment 非 CMS 強制覆寫已撤回
 
 | 項目 | 內容 |
 |---|---|
@@ -46,10 +46,10 @@ MEMBER_SESSION_SECRET=<隨機字串，至少 32 字元>
 **變更內容**
 
 `resolveInput` hook（create 分支）
-- 非 CMS 呼叫：移除 `hasExplicitMemberRelationInput` 判斷，一律呼叫 `getOfficialMemberIdForSessionUser(context)` 取得 Keystone CMS User 對應的 Official Member 並強制覆寫 `data.member`；若 session 無效則拋錯
-- CMS 呼叫：保留原有「未明確指定才自動帶入」邏輯
+- 歷史修正曾將非 CMS 呼叫改為一律呼叫 `getOfficialMemberIdForSessionUser(context)` 強制覆寫 `data.member`
+- 2026-06-09 部署邊界校準後，已撤回上述非 CMS 強制覆寫；目前回到「未明確指定 member 時才嘗試自動帶入」邏輯
 
-部署邊界校準：若 production 已強制 GraphQL 只接受 ingress/internal service traffic，原本 public API member 冒用 attack path 已自 active findings 移出；此程式修正保留為 defense-in-depth。若未來重新讓前台會員直接呼叫 GraphQL mutation，需改以 bearer token member identity 綁定 `member`。
+部署邊界校準：若 production 已強制 GraphQL 只接受 ingress/internal service traffic，原本 public API member 冒用 attack path 已自 active findings 移出。`getOfficialMemberIdForSessionUser` 是 Keystone CMS User -> Official Member mapping，不是前台 member bearer token 驗證；若未來重新讓前台會員直接呼叫 GraphQL mutation，需改以 bearer token member identity 綁定 `member`。
 
 ---
 
