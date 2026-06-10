@@ -214,6 +214,8 @@ model EditorChoice {
   id          Int                    @id @default(autoincrement())
   post        Post?                  @relation("EditorChoice_post", fields: [postId], references: [id])
   postId      Int?                   @map("post")
+  event       Event?                 @relation("EditorChoice_event", fields: [eventId], references: [id])
+  eventId     Int?                   @map("event")
   sortOrder   Int?                   @default(0)
   state       EditorChoiceStateType? @default(inactive)
   createdAt   DateTime?
@@ -224,6 +226,7 @@ model EditorChoice {
   updatedById Int?                   @map("updatedBy")
 
   @@index([postId])
+  @@index([eventId])
   @@index([createdById])
   @@index([updatedById])
 }
@@ -593,6 +596,7 @@ model Event {
   images              Photo[]             @relation("Event_images")
   externalLink        String              @default("")
   status              EventStatusType     @default(draft)
+  isBoost             Boolean             @default(false)
   startAt             DateTime?
   endAt               DateTime?
   registrationStartAt DateTime?
@@ -601,6 +605,7 @@ model Event {
   checkInEndAt        DateTime?
   capacity            Int?
   registrations       EventRegistration[] @relation("EventRegistration_event")
+  editorChoices       EditorChoice[]      @relation("EditorChoice_event")
   createdAt           DateTime?
   updatedAt           DateTime?
   createdBy           User?               @relation("Event_createdBy", fields: [createdById], references: [id])

@@ -2,6 +2,7 @@ import { utils } from '@mirrormedia/lilith-core'
 import { allowRoles, admin, moderator, editor } from '../utils/access-control'
 import { list } from '@keystone-6/core'
 import {
+  checkbox,
   integer,
   relationship,
   select,
@@ -9,6 +10,7 @@ import {
   timestamp,
 } from '@keystone-6/core/fields'
 import { isSafeLinkUrl } from '../utils/url-safety'
+import { syncEditorChoiceStateForEventId } from '../utils/sync-editor-choice-state'
 
 const listConfigurations = list({
   fields: {
@@ -63,6 +65,13 @@ const listConfigurations = list({
       defaultValue: 'draft',
       validation: { isRequired: true },
     }),
+    isBoost: checkbox({
+      label: '置頂',
+      defaultValue: false,
+      ui: {
+        description: '勾選後供前台或 API 將此活動優先排序／置頂顯示。',
+      },
+    }),
     startAt: timestamp({
       label: '活動開始時間',
       db: { isNullable: true },
@@ -100,6 +109,16 @@ const listConfigurations = list({
       many: true,
       label: '報名紀錄',
     }),
+    editorChoices: relationship({
+      ref: 'EditorChoice.event',
+      many: true,
+      label: '編輯精選（關聯）',
+      ui: {
+        createView: { fieldMode: 'hidden' },
+        itemView: { fieldMode: 'hidden' },
+        listView: { fieldMode: 'hidden' },
+      },
+    }),
   },
   ui: {
     label: '活動',
@@ -108,6 +127,7 @@ const listConfigurations = list({
       initialColumns: [
         'title',
         'status',
+        'isBoost',
         'images',
         'externalLink',
         'startAt',
@@ -136,6 +156,19 @@ const listConfigurations = list({
         addValidationError(
           '活動連結僅允許 http/https 絕對網址或以 / 開頭的站內路徑。'
         )
+      }
+    },
+    afterOperation: async ({ operation, item, context }) => {
+      if (operation === 'delete') return
+      const rawId = (item as { id?: unknown })?.id
+      const eventId =
+        typeof rawId === 'number'
+          ? rawId
+          : rawId != null
+            ? Number(rawId)
+            : NaN
+      if (Number.isFinite(eventId)) {
+        await syncEditorChoiceStateForEventId(context, eventId)
       }
     },
   },

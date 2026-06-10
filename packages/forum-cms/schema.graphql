@@ -1297,6 +1297,7 @@ input TopicCreateInput {
 type EditorChoice {
   id: ID!
   post: Post
+  event: Event
   sortOrder: Int
   state: EditorChoiceStateType
   createdAt: DateTime
@@ -1320,6 +1321,7 @@ input EditorChoiceWhereInput {
   NOT: [EditorChoiceWhereInput!]
   id: IDFilter
   post: PostWhereInput
+  event: EventWhereInput
   sortOrder: IntNullableFilter
   state: EditorChoiceStateTypeNullableFilter
   createdAt: DateTimeNullableFilter
@@ -1345,6 +1347,7 @@ input EditorChoiceOrderByInput {
 
 input EditorChoiceUpdateInput {
   post: PostRelateToOneForUpdateInput
+  event: EventRelateToOneForUpdateInput
   sortOrder: Int
   createdAt: DateTime
   updatedAt: DateTime
@@ -1358,6 +1361,12 @@ input PostRelateToOneForUpdateInput {
   disconnect: Boolean
 }
 
+input EventRelateToOneForUpdateInput {
+  create: EventCreateInput
+  connect: EventWhereUniqueInput
+  disconnect: Boolean
+}
+
 input EditorChoiceUpdateArgs {
   where: EditorChoiceWhereUniqueInput!
   data: EditorChoiceUpdateInput!
@@ -1365,6 +1374,7 @@ input EditorChoiceUpdateArgs {
 
 input EditorChoiceCreateInput {
   post: PostRelateToOneForCreateInput
+  event: EventRelateToOneForCreateInput
   sortOrder: Int
   createdAt: DateTime
   updatedAt: DateTime
@@ -1375,6 +1385,11 @@ input EditorChoiceCreateInput {
 input PostRelateToOneForCreateInput {
   create: PostCreateInput
   connect: PostWhereUniqueInput
+}
+
+input EventRelateToOneForCreateInput {
+  create: EventCreateInput
+  connect: EventWhereUniqueInput
 }
 
 type Comment {
@@ -2945,6 +2960,7 @@ type Event {
   imagesCount(where: PhotoWhereInput! = {}): Int
   externalLink: String
   status: EventStatusType
+  isBoost: Boolean
   startAt: DateTime
   endAt: DateTime
   registrationStartAt: DateTime
@@ -2954,6 +2970,8 @@ type Event {
   capacity: Int
   registrations(where: EventRegistrationWhereInput! = {}, orderBy: [EventRegistrationOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: EventRegistrationWhereUniqueInput): [EventRegistration!]
   registrationsCount(where: EventRegistrationWhereInput! = {}): Int
+  editorChoices(where: EditorChoiceWhereInput! = {}, orderBy: [EditorChoiceOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: EditorChoiceWhereUniqueInput): [EditorChoice!]
+  editorChoicesCount(where: EditorChoiceWhereInput! = {}): Int
   createdAt: DateTime
   updatedAt: DateTime
   createdBy: User
@@ -2983,6 +3001,7 @@ input EventWhereInput {
   images: PhotoManyRelationFilter
   externalLink: StringFilter
   status: EventStatusTypeNullableFilter
+  isBoost: BooleanFilter
   startAt: DateTimeNullableFilter
   endAt: DateTimeNullableFilter
   registrationStartAt: DateTimeNullableFilter
@@ -2991,6 +3010,7 @@ input EventWhereInput {
   checkInEndAt: DateTimeNullableFilter
   capacity: IntNullableFilter
   registrations: EventRegistrationManyRelationFilter
+  editorChoices: EditorChoiceManyRelationFilter
   createdAt: DateTimeNullableFilter
   updatedAt: DateTimeNullableFilter
   createdBy: UserWhereInput
@@ -3011,6 +3031,7 @@ input EventOrderByInput {
   content: OrderDirection
   externalLink: OrderDirection
   status: OrderDirection
+  isBoost: OrderDirection
   startAt: OrderDirection
   endAt: OrderDirection
   registrationStartAt: OrderDirection
@@ -3029,6 +3050,7 @@ input EventUpdateInput {
   images: PhotoRelateToManyForUpdateInput
   externalLink: String
   status: EventStatusType
+  isBoost: Boolean
   startAt: DateTime
   endAt: DateTime
   registrationStartAt: DateTime
@@ -3037,6 +3059,7 @@ input EventUpdateInput {
   checkInEndAt: DateTime
   capacity: Int
   registrations: EventRegistrationRelateToManyForUpdateInput
+  editorChoices: EditorChoiceRelateToManyForUpdateInput
   createdAt: DateTime
   updatedAt: DateTime
   createdBy: UserRelateToOneForUpdateInput
@@ -3055,6 +3078,7 @@ input EventCreateInput {
   images: PhotoRelateToManyForCreateInput
   externalLink: String
   status: EventStatusType
+  isBoost: Boolean
   startAt: DateTime
   endAt: DateTime
   registrationStartAt: DateTime
@@ -3063,6 +3087,7 @@ input EventCreateInput {
   checkInEndAt: DateTime
   capacity: Int
   registrations: EventRegistrationRelateToManyForCreateInput
+  editorChoices: EditorChoiceRelateToManyForCreateInput
   createdAt: DateTime
   updatedAt: DateTime
   createdBy: UserRelateToOneForCreateInput
@@ -3189,12 +3214,6 @@ input EventRegistrationUpdateInput {
   updatedBy: UserRelateToOneForUpdateInput
 }
 
-input EventRelateToOneForUpdateInput {
-  create: EventCreateInput
-  connect: EventWhereUniqueInput
-  disconnect: Boolean
-}
-
 input EventRegistrationUpdateArgs {
   where: EventRegistrationWhereUniqueInput!
   data: EventRegistrationUpdateInput!
@@ -3217,11 +3236,6 @@ input EventRegistrationCreateInput {
   updatedAt: DateTime
   createdBy: UserRelateToOneForCreateInput
   updatedBy: UserRelateToOneForCreateInput
-}
-
-input EventRelateToOneForCreateInput {
-  create: EventCreateInput
-  connect: EventWhereUniqueInput
 }
 
 """
