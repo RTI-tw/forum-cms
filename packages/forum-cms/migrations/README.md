@@ -21,6 +21,7 @@ yarn db-migrate
 | `20260408000000_post_is_boost` | `Post` 新增 `isBoost`（置頂／boost 旗標，`BOOLEAN NOT NULL DEFAULT false`） |
 | `20260409000000_rename_topic_editor_choice_enums_to_prisma_names` | 將 `TopicState` → `TopicStateType`、`EditorChoiceState` → `EditorChoiceStateType`（與 Prisma enum 預設名一致） |
 | `20260409120000_member_nationality_iso_enum` | 移除 `Nationality` 表；`Member.nationality` 改為 ISO 3166-1 alpha-2（`MemberNationalityType` enum），與 `data/countries.json` 一致（**既有國籍關聯資料會清空**） |
+| `20260610031000_allow_multiple_polls_per_post` | `Poll.post` 移除唯一索引，改為非唯一索引，允許同一篇文章關聯多個投票活動 |
 
 ## 為何「自動翻譯 hook」沒有對應 migration？
 

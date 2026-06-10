@@ -255,6 +255,9 @@ const listConfigurations = list({
             ref: 'Poll.post',
             many: true,
             label: '投票',
+            ui: {
+                description: '可關聯多個投票活動。',
+            },
         }),
         comments: relationship({
             ref: 'Comment.post',
