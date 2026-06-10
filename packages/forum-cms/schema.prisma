@@ -158,6 +158,7 @@ model Post {
   isLifeGuide        Boolean          @default(false)
   isBoost            Boolean          @default(false)
   editorChoices      EditorChoice[]   @relation("EditorChoice_post")
+  events             Event[]          @relation("Event_post")
   topics             Topic?           @relation("Post_topics", fields: [topicsId], references: [id])
   topicsId           Int?             @map("topics")
   status             PostStatusType?  @default(draft)
@@ -214,8 +215,6 @@ model EditorChoice {
   id          Int                    @id @default(autoincrement())
   post        Post?                  @relation("EditorChoice_post", fields: [postId], references: [id])
   postId      Int?                   @map("post")
-  event       Event?                 @relation("EditorChoice_event", fields: [eventId], references: [id])
-  eventId     Int?                   @map("event")
   sortOrder   Int?                   @default(0)
   state       EditorChoiceStateType? @default(inactive)
   createdAt   DateTime?
@@ -226,7 +225,6 @@ model EditorChoice {
   updatedById Int?                   @map("updatedBy")
 
   @@index([postId])
-  @@index([eventId])
   @@index([createdById])
   @@index([updatedById])
 }
@@ -502,7 +500,6 @@ model Photo {
   uploadedById             Int?            @map("uploadedBy")
   postsAsHeroImages        Post[]          @relation("Photo_postsAsHeroImages")
   staticContents           Content[]       @relation("Content_photos")
-  events                   Event[]         @relation("Event_images")
   createdAt                DateTime?
   updatedAt                DateTime?
   createdBy                User?           @relation("Photo_createdBy", fields: [createdById], references: [id])
@@ -590,13 +587,10 @@ model HomepageImage {
 
 model Event {
   id                  Int                 @id @default(autoincrement())
-  title               String              @default("")
   slug                String              @unique @default("")
-  content             String              @default("")
-  images              Photo[]             @relation("Event_images")
+  post                Post?               @relation("Event_post", fields: [postId], references: [id])
+  postId              Int?                @map("post")
   externalLink        String              @default("")
-  status              EventStatusType     @default(draft)
-  isBoost             Boolean             @default(false)
   startAt             DateTime?
   endAt               DateTime?
   registrationStartAt DateTime?
@@ -605,7 +599,6 @@ model Event {
   checkInEndAt        DateTime?
   capacity            Int?
   registrations       EventRegistration[] @relation("EventRegistration_event")
-  editorChoices       EditorChoice[]      @relation("EditorChoice_event")
   createdAt           DateTime?
   updatedAt           DateTime?
   createdBy           User?               @relation("Event_createdBy", fields: [createdById], references: [id])
@@ -613,6 +606,7 @@ model Event {
   updatedBy           User?               @relation("Event_updatedBy", fields: [updatedById], references: [id])
   updatedById         Int?                @map("updatedBy")
 
+  @@index([postId])
   @@index([createdById])
   @@index([updatedById])
 }
@@ -1033,13 +1027,6 @@ enum HomepageImageStatusType {
   draft
   active
   inactive
-}
-
-enum EventStatusType {
-  draft
-  published
-  closed
-  cancelled
 }
 
 enum EventRegistrationStatusType {

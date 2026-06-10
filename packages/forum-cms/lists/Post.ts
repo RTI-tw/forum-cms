@@ -205,6 +205,52 @@ const listConfigurations = list({
                 listView: { fieldMode: 'hidden' },
             },
         }),
+        events: relationship({
+            ref: 'Event.post',
+            many: true,
+            label: '活動',
+            ui: {
+                description:
+                    '此文章關聯的活動。活動頁的內容、圖片、發布狀態、投票、留言與反應功能皆由此文章管理。',
+                displayMode: 'cards',
+                cardFields: [
+                    'slug',
+                    'externalLink',
+                    'startAt',
+                    'endAt',
+                    'registrationStartAt',
+                    'registrationEndAt',
+                ],
+                linkToItem: true,
+                inlineCreate: {
+                    fields: [
+                        'slug',
+                        'externalLink',
+                        'startAt',
+                        'endAt',
+                        'registrationStartAt',
+                        'registrationEndAt',
+                        'checkInStartAt',
+                        'checkInEndAt',
+                        'capacity',
+                    ],
+                },
+                inlineEdit: {
+                    fields: [
+                        'slug',
+                        'externalLink',
+                        'startAt',
+                        'endAt',
+                        'registrationStartAt',
+                        'registrationEndAt',
+                        'checkInStartAt',
+                        'checkInEndAt',
+                        'capacity',
+                    ],
+                },
+                removeMode: 'none',
+            },
+        }),
         topics: relationship({
             ref: 'Topic.posts',
             many: false,

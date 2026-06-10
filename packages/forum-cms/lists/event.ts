@@ -1,23 +1,22 @@
 import { utils } from '@mirrormedia/lilith-core'
 import { allowRoles, admin, moderator, editor } from '../utils/access-control'
 import { list } from '@keystone-6/core'
-import {
-  checkbox,
-  integer,
-  relationship,
-  select,
-  text,
-  timestamp,
-} from '@keystone-6/core/fields'
+import { integer, relationship, text, timestamp } from '@keystone-6/core/fields'
 import { isSafeLinkUrl } from '../utils/url-safety'
-import { syncEditorChoiceStateForEventId } from '../utils/sync-editor-choice-state'
+
+type ToOneRelationInput = {
+  connect?: { id?: string | number | null } | null
+  create?: unknown
+  disconnect?: boolean
+}
+
+function hasRelatedPost(value: unknown) {
+  const relation = value as ToOneRelationInput | undefined
+  return Boolean(relation?.connect?.id != null || relation?.create)
+}
 
 const listConfigurations = list({
   fields: {
-    title: text({
-      label: '活動名稱',
-      validation: { isRequired: true },
-    }),
     slug: text({
       label: '活動網址名稱',
       validation: { isRequired: true },
@@ -26,50 +25,20 @@ const listConfigurations = list({
         description: '供前台活動頁與 API 查詢使用，建議使用英數與連字號。',
       },
     }),
-    content: text({
-      label: '活動內文',
+    post: relationship({
+      ref: 'Post.events',
+      many: false,
+      label: '文章',
       ui: {
-        displayMode: 'textarea',
-        views: './lists/views/markdown-editor/index',
-        description: '支援 Markdown 編輯與即時預覽。',
-      },
-    }),
-    images: relationship({
-      ref: 'Photo.events',
-      many: true,
-      label: '圖片',
-      ui: {
-        description: '活動頁使用的圖片；可關聯多張圖片。',
-        displayMode: 'cards',
-        cardFields: ['name', 'urlOriginal', 'sortOrder'],
-        linkToItem: true,
-        inlineConnect: true,
-        removeMode: 'disconnect',
+        hideCreate: true,
+        description:
+          '活動內容、圖片、發布狀態、互動功能由關聯文章管理；此處只保留活動特定設定。',
       },
     }),
     externalLink: text({
       label: '活動連結',
       ui: {
         description: '選填；可放活動外部頁面、直播、地圖或其他相關連結。',
-      },
-    }),
-    status: select({
-      label: '狀態',
-      type: 'enum',
-      options: [
-        { label: 'Draft（草稿）', value: 'draft' },
-        { label: 'Published（發布）', value: 'published' },
-        { label: 'Closed（關閉）', value: 'closed' },
-        { label: 'Cancelled（取消）', value: 'cancelled' },
-      ],
-      defaultValue: 'draft',
-      validation: { isRequired: true },
-    }),
-    isBoost: checkbox({
-      label: '置頂',
-      defaultValue: false,
-      ui: {
-        description: '勾選後供前台或 API 將此活動優先排序／置頂顯示。',
       },
     }),
     startAt: timestamp({
@@ -109,26 +78,14 @@ const listConfigurations = list({
       many: true,
       label: '報名紀錄',
     }),
-    editorChoices: relationship({
-      ref: 'EditorChoice.event',
-      many: true,
-      label: '編輯精選（關聯）',
-      ui: {
-        createView: { fieldMode: 'hidden' },
-        itemView: { fieldMode: 'hidden' },
-        listView: { fieldMode: 'hidden' },
-      },
-    }),
   },
   ui: {
     label: '活動',
-    labelField: 'title',
+    labelField: 'slug',
     listView: {
       initialColumns: [
-        'title',
-        'status',
-        'isBoost',
-        'images',
+        'slug',
+        'post',
         'externalLink',
         'startAt',
         'endAt',
@@ -151,24 +108,18 @@ const listConfigurations = list({
   hooks: {
     validateInput: ({ resolvedData, operation, addValidationError }) => {
       if (operation !== 'create' && operation !== 'update') return
+      const postRelation = resolvedData.post as ToOneRelationInput | undefined
+      if (operation === 'create' && !hasRelatedPost(postRelation)) {
+        addValidationError('活動必須關聯一篇文章。')
+      }
+      if (operation === 'update' && postRelation?.disconnect === true) {
+        addValidationError('活動必須保留關聯文章，不能解除關聯。')
+      }
       const externalLink = resolvedData.externalLink
       if (typeof externalLink === 'string' && !isSafeLinkUrl(externalLink)) {
         addValidationError(
           '活動連結僅允許 http/https 絕對網址或以 / 開頭的站內路徑。'
         )
-      }
-    },
-    afterOperation: async ({ operation, item, context }) => {
-      if (operation === 'delete') return
-      const rawId = (item as { id?: unknown })?.id
-      const eventId =
-        typeof rawId === 'number'
-          ? rawId
-          : rawId != null
-            ? Number(rawId)
-            : NaN
-      if (Number.isFinite(eventId)) {
-        await syncEditorChoiceStateForEventId(context, eventId)
       }
     },
   },

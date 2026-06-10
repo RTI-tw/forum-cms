@@ -1,10 +1,9 @@
 import assert from 'assert'
+import test from 'node:test'
 import {
   normalizeEventRegistrationForm,
   isRegistrationOpen,
 } from './event-registration-gql'
-
-declare const test: (name: string, fn: () => void) => void
 
 test('normalizes and hashes event registration form identifiers', () => {
   const output = normalizeEventRegistrationForm({

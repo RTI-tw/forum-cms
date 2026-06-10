@@ -26,11 +26,8 @@ type EventRegistrationRecord = {
   memberId?: number | null
   event?: {
     id: number
-    title?: string | null
     slug?: string | null
-    content?: string | null
     externalLink?: string | null
-    status?: string | null
     startAt?: Date | string | null
     endAt?: Date | string | null
     registrationStartAt?: Date | string | null
@@ -38,7 +35,7 @@ type EventRegistrationRecord = {
     checkInStartAt?: Date | string | null
     checkInEndAt?: Date | string | null
     capacity?: number | null
-    images?: EventImageRecord[] | null
+    post?: EventPostRecord | null
   } | null
   member?: {
     id: number
@@ -47,6 +44,14 @@ type EventRegistrationRecord = {
     customId?: string | null
     email?: string | null
   } | null
+}
+
+type EventPostRecord = {
+  id: number
+  title?: string | null
+  content?: string | null
+  status?: string | null
+  heroImages?: EventImageRecord[] | null
 }
 
 type EventImageRecord = {
@@ -280,14 +285,15 @@ function buildPublicEvent(
   const capacity = typeof event.capacity === 'number' ? event.capacity : null
   const remainingCapacity =
     capacity === null ? null : Math.max(capacity - registrationCount, 0)
+  const post = event.post ?? null
 
   return {
     id: String(event.id),
-    title: event.title ?? null,
+    title: post?.title ?? null,
     slug: event.slug ?? null,
-    content: event.content ?? null,
+    content: post?.content ?? null,
     externalLink: event.externalLink ?? null,
-    status: event.status ?? null,
+    status: post?.status ?? null,
     startAt: toIsoString(event.startAt),
     endAt: toIsoString(event.endAt),
     registrationStartAt: toIsoString(event.registrationStartAt),
@@ -295,7 +301,7 @@ function buildPublicEvent(
     checkInStartAt: toIsoString(event.checkInStartAt),
     checkInEndAt: toIsoString(event.checkInEndAt),
     capacity,
-    images: (event.images ?? []).map((image) => ({
+    images: (post?.heroImages ?? []).map((image) => ({
       id: String(image.id),
       name: image.name ?? null,
       urlOriginal: image.urlOriginal ?? null,
@@ -306,7 +312,7 @@ function buildPublicEvent(
     registrationCount,
     remainingCapacity,
     isRegistrationOpen:
-      event.status === 'published' && isRegistrationOpen(event, now),
+      post?.status === 'published' && isRegistrationOpen(event, now),
   }
 }
 
@@ -363,7 +369,7 @@ export function buildEventCheckInPreview(
     registrationId: String(registration.id),
     registrationStatus: registration.status ?? null,
     eventId: registration.event?.id != null ? String(registration.event.id) : null,
-    eventTitle: registration.event?.title ?? null,
+    eventTitle: registration.event?.post?.title ?? null,
     eventSlug: registration.event?.slug ?? null,
     memberId: registration.member?.id != null ? String(registration.member.id) : null,
     memberName: registration.member?.name ?? null,
@@ -413,7 +419,7 @@ export function buildEventCheckInPreview(
     }
   }
 
-  if (!registration.event || registration.event.status !== 'published') {
+  if (!registration.event || registration.event.post?.status !== 'published') {
     return {
       ok: false,
       canCheckIn: false,
@@ -461,7 +467,11 @@ async function findRegistrationByToken(context: KeystoneContext, token: string) 
   return context.prisma.eventRegistration.findFirst({
     where: { lastQrTokenHash: hashEventQrToken(normalized) },
     include: {
-      event: true,
+      event: {
+        include: {
+          post: true,
+        },
+      },
       member: true,
     },
   }) as Promise<EventRegistrationRecord | null>
@@ -585,11 +595,15 @@ export const eventRegistrationSchemaExtension = graphql.extend(() => ({
         const event = (await context.prisma.event.findUnique({
           where: { slug: normalizedSlug },
           include: {
-            images: { orderBy: { sortOrder: 'asc' } },
+            post: {
+              include: {
+                heroImages: { orderBy: { sortOrder: 'asc' } },
+              },
+            },
           },
         })) as EventRegistrationRecord['event']
 
-        if (!event || event.status !== 'published') {
+        if (!event || event.post?.status !== 'published') {
           return null
         }
 
@@ -616,7 +630,11 @@ export const eventRegistrationSchemaExtension = graphql.extend(() => ({
           include: {
             event: {
               include: {
-                images: { orderBy: { sortOrder: 'asc' } },
+                post: {
+                  include: {
+                    heroImages: { orderBy: { sortOrder: 'asc' } },
+                  },
+                },
               },
             },
           },
@@ -669,9 +687,12 @@ export const eventRegistrationSchemaExtension = graphql.extend(() => ({
         const form = normalizeEventRegistrationForm(data)
         const event = (await context.prisma.event.findUnique({
           where: { slug: normalizedSlug },
+          include: {
+            post: true,
+          },
         })) as EventRegistrationRecord['event']
 
-        if (!event || event.status !== 'published') {
+        if (!event || event.post?.status !== 'published') {
           throw new Error('活動目前未開放報名')
         }
 
@@ -720,7 +741,11 @@ export const eventRegistrationSchemaExtension = graphql.extend(() => ({
             include: {
               event: {
                 include: {
-                  images: { orderBy: { sortOrder: 'asc' } },
+                  post: {
+                    include: {
+                      heroImages: { orderBy: { sortOrder: 'asc' } },
+                    },
+                  },
                 },
               },
             },
@@ -753,7 +778,11 @@ export const eventRegistrationSchemaExtension = graphql.extend(() => ({
         const registration = (await context.prisma.eventRegistration.findUnique({
           where: { id: Number(registrationId) },
           include: {
-            event: true,
+            event: {
+              include: {
+                post: true,
+              },
+            },
             member: true,
           },
         })) as EventRegistrationRecord | null
@@ -832,7 +861,11 @@ export const eventRegistrationSchemaExtension = graphql.extend(() => ({
         const updated = (await context.prisma.eventRegistration.findUnique({
           where: { id: registration.id },
           include: {
-            event: true,
+            event: {
+              include: {
+                post: true,
+              },
+            },
             member: true,
           },
         })) as EventRegistrationRecord | null
