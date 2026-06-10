@@ -2517,6 +2517,8 @@ const baseKeystoneConfig = config({
                 }
             })()
 
+            const isProduction = process.env.NODE_ENV === 'production'
+
             // [CONFIG-001] Security headers：CSP / HSTS / clickjacking / nosniff
             app.use(
                 helmet({
@@ -2528,6 +2530,7 @@ const baseKeystoneConfig = config({
                             scriptSrc: [
                                 "'self'",
                                 "'unsafe-inline'",
+                                ...(isProduction ? [] : ["'unsafe-eval'"]),
                                 "https://www.google.com",   // reCAPTCHA api.js
                                 "https://www.gstatic.com",  // reCAPTCHA widget assets
                             ],
@@ -2550,7 +2553,9 @@ const baseKeystoneConfig = config({
                             fontSrc: ["'self'", "data:"],
                             objectSrc: ["'none'"],
                             frameAncestors: ["'none'"],
-                            upgradeInsecureRequests: [],
+                            ...(isProduction
+                                ? { upgradeInsecureRequests: [] }
+                                : {}),
                         },
                     },
                     hsts: {

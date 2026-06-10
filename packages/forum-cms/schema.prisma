@@ -66,6 +66,10 @@ model User {
   from_AdSlide_updatedBy          AdSlide[]          @relation("AdSlide_updatedBy")
   from_HomepageImage_createdBy    HomepageImage[]    @relation("HomepageImage_createdBy")
   from_HomepageImage_updatedBy    HomepageImage[]    @relation("HomepageImage_updatedBy")
+  from_RssKeyword_createdBy       RssKeyword[]       @relation("RssKeyword_createdBy")
+  from_RssKeyword_updatedBy       RssKeyword[]       @relation("RssKeyword_updatedBy")
+  from_RssTopicMapping_createdBy  RssTopicMapping[]  @relation("RssTopicMapping_createdBy")
+  from_RssTopicMapping_updatedBy  RssTopicMapping[]  @relation("RssTopicMapping_updatedBy")
 }
 
 model Member {
@@ -135,6 +139,7 @@ model Post {
   title_id           String           @default("")
   title_th           String           @default("")
   content            String           @default("")
+  rssSourceUrl       String           @default("")
   language           PostLanguageType
   content_zh         String           @default("")
   content_en         String           @default("")
@@ -149,6 +154,7 @@ model Post {
   spamScore          Float?
   isEditorChoice     Boolean          @default(false)
   isLifeGuide        Boolean          @default(false)
+  isRtiChoice        Boolean          @default(false)
   isBoost            Boolean          @default(false)
   editorChoices      EditorChoice[]   @relation("EditorChoice_post")
   topics             Topic?           @relation("Post_topics", fields: [topicsId], references: [id])
@@ -170,6 +176,7 @@ model Post {
   updatedById        Int?             @map("updatedBy")
   from_Bookmark_post Bookmark[]       @relation("Bookmark_post")
 
+  @@index([rssSourceUrl])
   @@index([authorId])
   @@index([topicsId])
   @@index([commentCount])
@@ -179,25 +186,26 @@ model Post {
 }
 
 model Topic {
-  id          Int                @id @default(autoincrement())
-  name        String             @default("")
-  language    TopicLanguageType?
-  name_zh     String             @default("")
-  name_en     String             @default("")
-  name_vi     String             @default("")
-  name_id     String             @default("")
-  name_th     String             @default("")
-  slug        String             @unique @default("")
-  sortOrder   Int?               @default(0)
-  state       TopicStateType?    @default(active)
-  description String             @default("")
-  posts       Post[]             @relation("Post_topics")
-  createdAt   DateTime?
-  updatedAt   DateTime?
-  createdBy   User?              @relation("Topic_createdBy", fields: [createdById], references: [id])
-  createdById Int?               @map("createdBy")
-  updatedBy   User?              @relation("Topic_updatedBy", fields: [updatedById], references: [id])
-  updatedById Int?               @map("updatedBy")
+  id               Int                @id @default(autoincrement())
+  name             String             @default("")
+  language         TopicLanguageType?
+  name_zh          String             @default("")
+  name_en          String             @default("")
+  name_vi          String             @default("")
+  name_id          String             @default("")
+  name_th          String             @default("")
+  slug             String             @unique @default("")
+  sortOrder        Int?               @default(0)
+  state            TopicStateType?    @default(active)
+  description      String             @default("")
+  posts            Post[]             @relation("Post_topics")
+  rssTopicMappings RssTopicMapping[]  @relation("RssTopicMapping_topic")
+  createdAt        DateTime?
+  updatedAt        DateTime?
+  createdBy        User?              @relation("Topic_createdBy", fields: [createdById], references: [id])
+  createdById      Int?               @map("createdBy")
+  updatedBy        User?              @relation("Topic_updatedBy", fields: [updatedById], references: [id])
+  updatedById      Int?               @map("updatedBy")
 
   @@index([createdById])
   @@index([updatedById])
@@ -576,6 +584,42 @@ model HomepageImage {
   @@index([updatedById])
 }
 
+model RssKeyword {
+  id          Int                    @id @default(autoincrement())
+  keyword     String                 @unique @default("")
+  language    RssKeywordLanguageType @default(zh)
+  note        String                 @default("")
+  isEnabled   Boolean                @default(true)
+  createdAt   DateTime?
+  updatedAt   DateTime?
+  createdBy   User?                  @relation("RssKeyword_createdBy", fields: [createdById], references: [id])
+  createdById Int?                   @map("createdBy")
+  updatedBy   User?                  @relation("RssKeyword_updatedBy", fields: [updatedById], references: [id])
+  updatedById Int?                   @map("updatedBy")
+
+  @@index([createdById])
+  @@index([updatedById])
+}
+
+model RssTopicMapping {
+  id          Int       @id @default(autoincrement())
+  rssTopic    String    @unique @default("")
+  topic       Topic?    @relation("RssTopicMapping_topic", fields: [topicId], references: [id])
+  topicId     Int?      @map("topic")
+  isEnabled   Boolean   @default(true)
+  note        String    @default("")
+  createdAt   DateTime?
+  updatedAt   DateTime?
+  createdBy   User?     @relation("RssTopicMapping_createdBy", fields: [createdById], references: [id])
+  createdById Int?      @map("createdBy")
+  updatedBy   User?     @relation("RssTopicMapping_updatedBy", fields: [updatedById], references: [id])
+  updatedById Int?      @map("updatedBy")
+
+  @@index([topicId])
+  @@index([createdById])
+  @@index([updatedById])
+}
+
 enum MemberStatusType {
   active
   inactive
@@ -948,4 +992,12 @@ enum HomepageImageStatusType {
   draft
   active
   inactive
+}
+
+enum RssKeywordLanguageType {
+  zh
+  en
+  vi
+  id
+  th
 }

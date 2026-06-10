@@ -4,6 +4,7 @@ import { list } from '@keystone-6/core'
 import { text, relationship, checkbox, select, timestamp } from '@keystone-6/core/fields'
 import { nationalitySelectOptions } from '../utils/countries-data'
 import { computeIsCompleteProfile } from '../utils/member-profile'
+import { isCronServiceRequest } from '../utils/cron-service-auth'
 
 const hiddenFromCmsUi = {
   createView: { fieldMode: 'hidden' as const },
@@ -170,10 +171,22 @@ const listConfigurations = list({
   },
   access: {
     operation: {
-      query: allowAdminOnly(),
+      query: async (auth) =>
+        isCronServiceRequest(auth.context) || allowAdminOnly()(auth),
       update: allowAdminOnly(),
       create: allowAdminOnly(),
       delete: allowAdminOnly(),
+    },
+    filter: {
+      query: ({ context }) => {
+        if (!isCronServiceRequest(context)) {
+          return true
+        }
+        return {
+          status: { equals: 'active' },
+          isOfficial: { equals: true },
+        }
+      },
     },
   },
   hooks: {

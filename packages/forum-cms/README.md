@@ -107,6 +107,27 @@ ACCESS_CONTROL_STRATEGY=gql npm run dev
 | `ACCESS_CONTROL_API_RULES_JSON` | 強烈建議 | JSON 字串：物件的 **key** 為 list key，**value** 為下列字串之一。 |
 | `ACCESS_CONTROL_API_DEFAULT` | 否 | 當某個 list **未**出現在 JSON 且也**沒有**使用 `"*"` 時的預設等級；可為 `none`、`read`、`read_write`。未設定時預設為 **`none`**（最安全）。 |
 
+### Cron services RSS 自動發文
+
+`cron-services` 匯入央廣 RSS 並寫入論壇文章時，GraphQL request 必須帶一組 cron 專用 Bearer token。CMS 端設定：
+
+```
+CRON_SERVICES_GQL_WRITE_TOKEN=<shared-secret>
+```
+
+cron-services 端設定同一組值：
+
+```
+KEYSTONE_AUTH_TOKEN=<shared-secret>
+```
+
+目前這組 token 只開放 cron 讀取 `RSS 關鍵字`、`RSS 主題合併` 與平台主題，
+以及建立／查詢／更新 `Post`；不會開放一般 CMS 管理操作。
+
+後台可在 `RSS 主題合併` list 建立多對一 mapping：多個央廣 RSS category
+可分別對應到同一個平台主題。RSS 匯入時若沒有任何啟用中的 mapping 命中，
+文章主題會保持空白。
+
 **每個 list 的等級（`ACCESS_CONTROL_API_RULES_JSON` 的值）**
 
 | 值 | 效果 |
