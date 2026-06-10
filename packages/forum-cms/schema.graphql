@@ -857,7 +857,8 @@ type Post {
   heroImagesCount(where: PhotoWhereInput! = {}): Int
   videos(where: VideoWhereInput! = {}, orderBy: [VideoOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: VideoWhereUniqueInput): [Video!]
   videosCount(where: VideoWhereInput! = {}): Int
-  poll: Poll
+  poll(where: PollWhereInput! = {}, orderBy: [PollOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: PollWhereUniqueInput): [Poll!]
+  pollCount(where: PollWhereInput! = {}): Int
   comments(where: CommentWhereInput! = {}, orderBy: [CommentOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: CommentWhereUniqueInput): [Comment!]
   commentsCount(where: CommentWhereInput! = {}): Int
   commentCount: Int
@@ -891,7 +892,6 @@ enum PostStatusType {
 
 input PostWhereUniqueInput {
   id: ID
-  poll: PollWhereUniqueInput
 }
 
 input PostWhereInput {
@@ -925,7 +925,7 @@ input PostWhereInput {
   status: PostStatusTypeNullableFilter
   heroImages: PhotoManyRelationFilter
   videos: VideoManyRelationFilter
-  poll: PollWhereInput
+  poll: PollManyRelationFilter
   comments: CommentManyRelationFilter
   commentCount: IntNullableFilter
   reactions: ReactionManyRelationFilter
@@ -1042,7 +1042,7 @@ input PostUpdateInput {
   status: PostStatusType
   heroImages: PhotoRelateToManyForUpdateInput
   videos: VideoRelateToManyForUpdateInput
-  poll: PollRelateToOneForUpdateInput
+  poll: PollRelateToManyForUpdateInput
   comments: CommentRelateToManyForUpdateInput
   commentCount: Int
   reactions: ReactionRelateToManyForUpdateInput
@@ -1079,12 +1079,6 @@ input VideoRelateToManyForUpdateInput {
   set: [VideoWhereUniqueInput!]
   create: [VideoCreateInput!]
   connect: [VideoWhereUniqueInput!]
-}
-
-input PollRelateToOneForUpdateInput {
-  create: PollCreateInput
-  connect: PollWhereUniqueInput
-  disconnect: Boolean
 }
 
 input ReportRelateToManyForUpdateInput {
@@ -1126,7 +1120,7 @@ input PostCreateInput {
   status: PostStatusType
   heroImages: PhotoRelateToManyForCreateInput
   videos: VideoRelateToManyForCreateInput
-  poll: PollRelateToOneForCreateInput
+  poll: PollRelateToManyForCreateInput
   comments: CommentRelateToManyForCreateInput
   commentCount: Int
   reactions: ReactionRelateToManyForCreateInput
@@ -1156,11 +1150,6 @@ input PhotoRelateToManyForCreateInput {
 input VideoRelateToManyForCreateInput {
   create: [VideoCreateInput!]
   connect: [VideoWhereUniqueInput!]
-}
-
-input PollRelateToOneForCreateInput {
-  create: PollCreateInput
-  connect: PollWhereUniqueInput
 }
 
 input ReportRelateToManyForCreateInput {
@@ -1729,7 +1718,6 @@ type Poll {
 
 input PollWhereUniqueInput {
   id: ID
-  post: PostWhereUniqueInput
 }
 
 input PollWhereInput {
@@ -1894,6 +1882,12 @@ input PollOptionUpdateInput {
   updatedBy: UserRelateToOneForUpdateInput
 }
 
+input PollRelateToOneForUpdateInput {
+  create: PollCreateInput
+  connect: PollWhereUniqueInput
+  disconnect: Boolean
+}
+
 input PollOptionUpdateArgs {
   where: PollOptionWhereUniqueInput!
   data: PollOptionUpdateInput!
@@ -1912,6 +1906,11 @@ input PollOptionCreateInput {
   updatedAt: DateTime
   createdBy: UserRelateToOneForCreateInput
   updatedBy: UserRelateToOneForCreateInput
+}
+
+input PollRelateToOneForCreateInput {
+  create: PollCreateInput
+  connect: PollWhereUniqueInput
 }
 
 type PollVote {

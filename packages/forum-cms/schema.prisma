@@ -163,7 +163,7 @@ model Post {
   status             PostStatusType?  @default(draft)
   heroImages         Photo[]          @relation("Photo_postsAsHeroImages")
   videos             Video[]          @relation("Video_post")
-  poll               Poll?            @relation("Poll_post")
+  poll               Poll[]           @relation("Poll_post")
   comments           Comment[]        @relation("Comment_post")
   commentCount       Int?             @default(0)
   reactions          Reaction[]       @relation("Reaction_post")
@@ -315,7 +315,7 @@ model Poll {
   title_id           String       @default("")
   title_th           String       @default("")
   post               Post?        @relation("Poll_post", fields: [postId], references: [id])
-  postId             Int?         @unique @map("post")
+  postId             Int?         @map("post")
   expiresAt          DateTime?
   options            PollOption[] @relation("PollOption_poll")
   totalVotes         Int?         @default(0)
@@ -329,6 +329,7 @@ model Poll {
   updatedById        Int?         @map("updatedBy")
   from_PollVote_poll PollVote[]   @relation("PollVote_poll")
 
+  @@index([postId])
   @@index([memberId])
   @@index([createdById])
   @@index([updatedById])

@@ -253,7 +253,7 @@ const listConfigurations = list({
         }),
         poll: relationship({
             ref: 'Poll.post',
-            many: false,
+            many: true,
             label: '投票',
         }),
         comments: relationship({
