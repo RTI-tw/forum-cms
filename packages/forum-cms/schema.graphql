@@ -834,6 +834,7 @@ type Post {
   title_id: String
   title_th: String
   content: String
+  rssSourceUrl: String
   language: PostLanguageType
   content_zh: String
   content_en: String
@@ -848,6 +849,7 @@ type Post {
   displayPendingWarning: Boolean
   isEditorChoice: Boolean
   isLifeGuide: Boolean
+  isRtiChoice: Boolean
   isBoost: Boolean
   editorChoices(where: EditorChoiceWhereInput! = {}, orderBy: [EditorChoiceOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: EditorChoiceWhereUniqueInput): [EditorChoice!]
   editorChoicesCount(where: EditorChoiceWhereInput! = {}): Int
@@ -908,6 +910,7 @@ input PostWhereInput {
   title_id: StringFilter
   title_th: StringFilter
   content: StringFilter
+  rssSourceUrl: StringFilter
   language: PostLanguageTypeNullableFilter
   content_zh: StringFilter
   content_en: StringFilter
@@ -921,6 +924,7 @@ input PostWhereInput {
   spamScore: FloatNullableFilter
   isEditorChoice: BooleanFilter
   isLifeGuide: BooleanFilter
+  isRtiChoice: BooleanFilter
   isBoost: BooleanFilter
   editorChoices: EditorChoiceManyRelationFilter
   events: EventManyRelationFilter
@@ -1004,6 +1008,7 @@ input PostOrderByInput {
   title_id: OrderDirection
   title_th: OrderDirection
   content: OrderDirection
+  rssSourceUrl: OrderDirection
   language: OrderDirection
   content_zh: OrderDirection
   content_en: OrderDirection
@@ -1016,6 +1021,7 @@ input PostOrderByInput {
   spamScore: OrderDirection
   isEditorChoice: OrderDirection
   isLifeGuide: OrderDirection
+  isRtiChoice: OrderDirection
   isBoost: OrderDirection
   status: OrderDirection
   commentCount: OrderDirection
@@ -1032,6 +1038,7 @@ input PostUpdateInput {
   title_id: String
   title_th: String
   content: String
+  rssSourceUrl: String
   language: PostLanguageType
   content_zh: String
   content_en: String
@@ -1045,6 +1052,7 @@ input PostUpdateInput {
   spamScore: Float
   isEditorChoice: Boolean
   isLifeGuide: Boolean
+  isRtiChoice: Boolean
   isBoost: Boolean
   editorChoices: EditorChoiceRelateToManyForUpdateInput
   events: EventRelateToManyForUpdateInput
@@ -1118,6 +1126,7 @@ input PostCreateInput {
   title_id: String
   title_th: String
   content: String
+  rssSourceUrl: String
   language: PostLanguageType
   content_zh: String
   content_en: String
@@ -1131,6 +1140,7 @@ input PostCreateInput {
   spamScore: Float
   isEditorChoice: Boolean
   isLifeGuide: Boolean
+  isRtiChoice: Boolean
   isBoost: Boolean
   editorChoices: EditorChoiceRelateToManyForCreateInput
   events: EventRelateToManyForCreateInput
@@ -1195,6 +1205,8 @@ type Topic {
   description: String
   posts(where: PostWhereInput! = {}, orderBy: [PostOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: PostWhereUniqueInput): [Post!]
   postsCount(where: PostWhereInput! = {}): Int
+  rssTopicMappings(where: RssTopicMappingWhereInput! = {}, orderBy: [RssTopicMappingOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: RssTopicMappingWhereUniqueInput): [RssTopicMapping!]
+  rssTopicMappingsCount(where: RssTopicMappingWhereInput! = {}): Int
   todayPostsCount: Int
   createdAt: DateTime
   updatedAt: DateTime
@@ -1237,6 +1249,7 @@ input TopicWhereInput {
   state: TopicStateTypeNullableFilter
   description: StringFilter
   posts: PostManyRelationFilter
+  rssTopicMappings: RssTopicMappingManyRelationFilter
   createdAt: DateTimeNullableFilter
   updatedAt: DateTimeNullableFilter
   createdBy: UserWhereInput
@@ -1255,6 +1268,12 @@ input TopicStateTypeNullableFilter {
   in: [TopicStateType!]
   notIn: [TopicStateType!]
   not: TopicStateTypeNullableFilter
+}
+
+input RssTopicMappingManyRelationFilter {
+  every: RssTopicMappingWhereInput
+  some: RssTopicMappingWhereInput
+  none: RssTopicMappingWhereInput
 }
 
 input TopicOrderByInput {
@@ -1287,10 +1306,18 @@ input TopicUpdateInput {
   state: TopicStateType
   description: String
   posts: PostRelateToManyForUpdateInput
+  rssTopicMappings: RssTopicMappingRelateToManyForUpdateInput
   createdAt: DateTime
   updatedAt: DateTime
   createdBy: UserRelateToOneForUpdateInput
   updatedBy: UserRelateToOneForUpdateInput
+}
+
+input RssTopicMappingRelateToManyForUpdateInput {
+  disconnect: [RssTopicMappingWhereUniqueInput!]
+  set: [RssTopicMappingWhereUniqueInput!]
+  create: [RssTopicMappingCreateInput!]
+  connect: [RssTopicMappingWhereUniqueInput!]
 }
 
 input TopicUpdateArgs {
@@ -1311,10 +1338,16 @@ input TopicCreateInput {
   state: TopicStateType
   description: String
   posts: PostRelateToManyForCreateInput
+  rssTopicMappings: RssTopicMappingRelateToManyForCreateInput
   createdAt: DateTime
   updatedAt: DateTime
   createdBy: UserRelateToOneForCreateInput
   updatedBy: UserRelateToOneForCreateInput
+}
+
+input RssTopicMappingRelateToManyForCreateInput {
+  create: [RssTopicMappingCreateInput!]
+  connect: [RssTopicMappingWhereUniqueInput!]
 }
 
 type EditorChoice {
@@ -2936,6 +2969,12 @@ input HomepageImageCreateInput {
   updatedBy: UserRelateToOneForCreateInput
 }
 
+type RssKeyword {
+  id: ID!
+  keyword: String
+  language: RssKeywordLanguageType
+  note: String
+  isEnabled: Boolean
 type Event {
   id: ID!
   slug: String
@@ -2956,6 +2995,28 @@ type Event {
   updatedBy: User
 }
 
+enum RssKeywordLanguageType {
+  zh
+  en
+  vi
+  id
+  th
+}
+
+input RssKeywordWhereUniqueInput {
+  id: ID
+  keyword: String
+}
+
+input RssKeywordWhereInput {
+  AND: [RssKeywordWhereInput!]
+  OR: [RssKeywordWhereInput!]
+  NOT: [RssKeywordWhereInput!]
+  id: IDFilter
+  keyword: StringFilter
+  language: RssKeywordLanguageTypeNullableFilter
+  note: StringFilter
+  isEnabled: BooleanFilter
 input EventWhereUniqueInput {
   id: ID
   slug: String
@@ -2983,6 +3044,19 @@ input EventWhereInput {
   updatedBy: UserWhereInput
 }
 
+input RssKeywordLanguageTypeNullableFilter {
+  equals: RssKeywordLanguageType
+  in: [RssKeywordLanguageType!]
+  notIn: [RssKeywordLanguageType!]
+  not: RssKeywordLanguageTypeNullableFilter
+}
+
+input RssKeywordOrderByInput {
+  id: OrderDirection
+  keyword: OrderDirection
+  language: OrderDirection
+  note: OrderDirection
+  isEnabled: OrderDirection
 input EventOrderByInput {
   id: OrderDirection
   slug: OrderDirection
@@ -2998,6 +3072,11 @@ input EventOrderByInput {
   updatedAt: OrderDirection
 }
 
+input RssKeywordUpdateInput {
+  keyword: String
+  language: RssKeywordLanguageType
+  note: String
+  isEnabled: Boolean
 input EventUpdateInput {
   slug: String
   post: PostRelateToOneForUpdateInput
@@ -3016,6 +3095,16 @@ input EventUpdateInput {
   updatedBy: UserRelateToOneForUpdateInput
 }
 
+input RssKeywordUpdateArgs {
+  where: RssKeywordWhereUniqueInput!
+  data: RssKeywordUpdateInput!
+}
+
+input RssKeywordCreateInput {
+  keyword: String
+  language: RssKeywordLanguageType
+  note: String
+  isEnabled: Boolean
 input EventUpdateArgs {
   where: EventWhereUniqueInput!
   data: EventUpdateInput!
@@ -3039,6 +3128,12 @@ input EventCreateInput {
   updatedBy: UserRelateToOneForCreateInput
 }
 
+type RssTopicMapping {
+  id: ID!
+  rssTopic: String
+  topic: Topic
+  isEnabled: Boolean
+  note: String
 type EventRegistration {
   id: ID!
   event: Event
@@ -3059,6 +3154,20 @@ type EventRegistration {
   updatedBy: User
 }
 
+input RssTopicMappingWhereUniqueInput {
+  id: ID
+  rssTopic: String
+}
+
+input RssTopicMappingWhereInput {
+  AND: [RssTopicMappingWhereInput!]
+  OR: [RssTopicMappingWhereInput!]
+  NOT: [RssTopicMappingWhereInput!]
+  id: IDFilter
+  rssTopic: StringFilter
+  topic: TopicWhereInput
+  isEnabled: BooleanFilter
+  note: StringFilter
 enum EventRegistrationStatusType {
   registered
   checkedIn
@@ -3097,6 +3206,11 @@ input EventRegistrationWhereInput {
   updatedBy: UserWhereInput
 }
 
+input RssTopicMappingOrderByInput {
+  id: OrderDirection
+  rssTopic: OrderDirection
+  isEnabled: OrderDirection
+  note: OrderDirection
 input EventRegistrationStatusTypeNullableFilter {
   equals: EventRegistrationStatusType
   in: [EventRegistrationStatusType!]
@@ -3140,6 +3254,11 @@ input EventRegistrationOrderByInput {
   updatedAt: OrderDirection
 }
 
+input RssTopicMappingUpdateInput {
+  rssTopic: String
+  topic: TopicRelateToOneForUpdateInput
+  isEnabled: Boolean
+  note: String
 input EventRegistrationUpdateInput {
   event: EventRelateToOneForUpdateInput
   member: MemberRelateToOneForUpdateInput
@@ -3159,6 +3278,16 @@ input EventRegistrationUpdateInput {
   updatedBy: UserRelateToOneForUpdateInput
 }
 
+input RssTopicMappingUpdateArgs {
+  where: RssTopicMappingWhereUniqueInput!
+  data: RssTopicMappingUpdateInput!
+}
+
+input RssTopicMappingCreateInput {
+  rssTopic: String
+  topic: TopicRelateToOneForCreateInput
+  isEnabled: Boolean
+  note: String
 input EventRelateToOneForUpdateInput {
   create: EventCreateInput
   connect: EventWhereUniqueInput
@@ -3188,6 +3317,7 @@ input EventRegistrationCreateInput {
   createdBy: UserRelateToOneForCreateInput
   updatedBy: UserRelateToOneForCreateInput
 }
+
 
 input EventRelateToOneForCreateInput {
   create: EventCreateInput
@@ -3320,6 +3450,18 @@ type Mutation {
   updateHomepageImages(data: [HomepageImageUpdateArgs!]!): [HomepageImage]
   deleteHomepageImage(where: HomepageImageWhereUniqueInput!): HomepageImage
   deleteHomepageImages(where: [HomepageImageWhereUniqueInput!]!): [HomepageImage]
+  createRssKeyword(data: RssKeywordCreateInput!): RssKeyword
+  createRssKeywords(data: [RssKeywordCreateInput!]!): [RssKeyword]
+  updateRssKeyword(where: RssKeywordWhereUniqueInput!, data: RssKeywordUpdateInput!): RssKeyword
+  updateRssKeywords(data: [RssKeywordUpdateArgs!]!): [RssKeyword]
+  deleteRssKeyword(where: RssKeywordWhereUniqueInput!): RssKeyword
+  deleteRssKeywords(where: [RssKeywordWhereUniqueInput!]!): [RssKeyword]
+  createRssTopicMapping(data: RssTopicMappingCreateInput!): RssTopicMapping
+  createRssTopicMappings(data: [RssTopicMappingCreateInput!]!): [RssTopicMapping]
+  updateRssTopicMapping(where: RssTopicMappingWhereUniqueInput!, data: RssTopicMappingUpdateInput!): RssTopicMapping
+  updateRssTopicMappings(data: [RssTopicMappingUpdateArgs!]!): [RssTopicMapping]
+  deleteRssTopicMapping(where: RssTopicMappingWhereUniqueInput!): RssTopicMapping
+  deleteRssTopicMappings(where: [RssTopicMappingWhereUniqueInput!]!): [RssTopicMapping]
   createEvent(data: EventCreateInput!): Event
   createEvents(data: [EventCreateInput!]!): [Event]
   updateEvent(where: EventWhereUniqueInput!, data: EventUpdateInput!): Event
@@ -3537,6 +3679,12 @@ type Query {
   homepageImage(where: HomepageImageWhereUniqueInput!): HomepageImage
   homepageImages(where: HomepageImageWhereInput! = {}, orderBy: [HomepageImageOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: HomepageImageWhereUniqueInput): [HomepageImage!]
   homepageImagesCount(where: HomepageImageWhereInput! = {}): Int
+  rssKeyword(where: RssKeywordWhereUniqueInput!): RssKeyword
+  rssKeywords(where: RssKeywordWhereInput! = {}, orderBy: [RssKeywordOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: RssKeywordWhereUniqueInput): [RssKeyword!]
+  rssKeywordsCount(where: RssKeywordWhereInput! = {}): Int
+  rssTopicMapping(where: RssTopicMappingWhereUniqueInput!): RssTopicMapping
+  rssTopicMappings(where: RssTopicMappingWhereInput! = {}, orderBy: [RssTopicMappingOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: RssTopicMappingWhereUniqueInput): [RssTopicMapping!]
+  rssTopicMappingsCount(where: RssTopicMappingWhereInput! = {}): Int
   event(where: EventWhereUniqueInput!): Event
   events(where: EventWhereInput! = {}, orderBy: [EventOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: EventWhereUniqueInput): [Event!]
   eventsCount(where: EventWhereInput! = {}): Int

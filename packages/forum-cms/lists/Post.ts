@@ -19,6 +19,7 @@ import {
 import { getClientIpFromKeystoneContext } from '../utils/client-ip'
 import { syncEditorChoiceStateForPostId } from '../utils/sync-editor-choice-state'
 import { applyPostUpdateCmsRules } from '../utils/cms-content-moderation'
+import { isCronServiceRequest } from '../utils/cron-service-auth'
 import {
     buildPostVisibilityWhere,
     getAuthenticatedMemberId,
@@ -42,7 +43,7 @@ function toFiniteNumber(value: unknown): number | null {
 /**
  * 欄位對應需求：標題原文（必填、≤80 字）、五語標題、貼文原文（必填）、五語內容、
  * 原始語言（必填）、作者（央廣後台預設 OfficialMapping 會員）、發文時間、已編輯、IP、SPAM、
- * 編輯精選／生活須知／置頂 boost（checkbox 旗標）、主題（選填，僅能單選）、狀態、主圖（多張 Photo）、關聯影片、
+ * 編輯精選／生活須知／央廣精選／置頂 boost（checkbox 旗標）、主題（選填，僅能單選）、狀態、主圖（多張 Photo）、關聯影片、
  * 投票、留言、留言數、反應、反應數、檢舉。留言數／反應數由 Comment／Reaction 的 hook 同步。
  */
 const listConfigurations = list({
@@ -81,6 +82,17 @@ const listConfigurations = list({
             validation: { isRequired: true },
             label: '貼文原文',
             ui: { displayMode: 'textarea' },
+        }),
+        rssSourceUrl: text({
+            label: 'RSS 來源網址',
+            isIndexed: true,
+            ui: {
+                description:
+                    '由 cron 匯入央廣 RSS 時寫入，用於再次抓取同一篇新聞時覆蓋更新。',
+                createView: { fieldMode: 'hidden' },
+                itemView: { fieldMode: 'read' },
+                listView: { fieldMode: 'read' },
+            },
         }),
         language: select({
             label: '原始語言（使用者設定語言）',
@@ -185,6 +197,13 @@ const listConfigurations = list({
             defaultValue: false,
             ui: {
                 description: '生活須知相關旗標（僅標記於文章，供前台或 API 使用）。',
+            },
+        }),
+        isRtiChoice: checkbox({
+            label: '央廣精選',
+            defaultValue: false,
+            ui: {
+                description: '央廣精選相關旗標，供前台集中展示央廣 RSS 匯入文章。',
             },
         }),
         isBoost: checkbox({
@@ -357,6 +376,7 @@ const listConfigurations = list({
                 'author',
                 'status',
                 'spamScore',
+                'isRtiChoice',
                 'isBoost',
                 'heroImages',
                 'commentCount',
@@ -367,9 +387,15 @@ const listConfigurations = list({
     },
     access: {
         operation: {
-            query: allowRoles(admin, moderator, editor),
-            update: allowRoles(admin, moderator, editor),
-            create: allowRoles(admin, moderator, editor),
+            query: async (auth) =>
+                isCronServiceRequest(auth.context) ||
+                allowRoles(admin, moderator, editor)(auth),
+            update: async (auth) =>
+                isCronServiceRequest(auth.context) ||
+                allowRoles(admin, moderator, editor)(auth),
+            create: async (auth) =>
+                isCronServiceRequest(auth.context) ||
+                allowRoles(admin, moderator, editor)(auth),
             delete: allowRoles(admin, editor),
         },
         /**
@@ -378,6 +404,9 @@ const listConfigurations = list({
          */
         filter: {
             query: ({ context }) => {
+                if (isCronServiceRequest(context)) {
+                    return true
+                }
                 // CMS logged-in users should be able to query all post statuses.
                 if (isCmsRequest(context)) {
                     return true
@@ -478,6 +507,9 @@ const listConfigurations = list({
                 }
             }
             if (operation === 'update') {
+                if (isCronServiceRequest(context)) {
+                    return data
+                }
                 const moderated = await applyPostUpdateCmsRules(
                     context,
                     operation,

@@ -3,6 +3,7 @@ import { allowRoles, admin, moderator, editor } from '../utils/access-control'
 import { list, graphql } from '@keystone-6/core'
 import { text, integer, relationship, select, virtual } from '@keystone-6/core/fields'
 import { createMessageServicesTranslationHook } from '../utils/message-services-translation-hook'
+import { isCronServiceRequest } from '../utils/cron-service-auth'
 
 const listConfigurations = list({
   fields: {
@@ -53,6 +54,16 @@ const listConfigurations = list({
       many: true,
       label: '文章',
     }),
+    rssTopicMappings: relationship({
+      ref: 'RssTopicMapping.topic',
+      many: true,
+      label: 'RSS 主題合併',
+      ui: {
+        createView: { fieldMode: 'hidden' },
+        itemView: { fieldMode: 'read' },
+        listView: { fieldMode: 'hidden' },
+      },
+    }),
     todayPostsCount: virtual({
       label: '今日新增文章數',
       field: graphql.field({
@@ -87,7 +98,9 @@ const listConfigurations = list({
   },
   access: {
     operation: {
-      query: allowRoles(admin, moderator, editor),
+      query: async (auth) =>
+        isCronServiceRequest(auth.context) ||
+        allowRoles(admin, moderator, editor)(auth),
       update: allowRoles(admin, moderator, editor),
       create: allowRoles(admin, moderator, editor),
       delete: allowRoles(admin, editor),
