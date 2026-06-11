@@ -19,7 +19,7 @@ import { Button } from '@keystone-ui/button'
 import { Tooltip } from '@keystone-ui/tooltip'
 import { LoadingDots } from '@keystone-ui/loading'
 import { useEffect, useRef, useState } from 'react'
-import { FieldProps, ListMeta } from '@keystone-6/core/types'
+import { ListMeta } from '@keystone-6/core/types'
 import {
   getRootGraphQLFieldsFromFieldController,
   makeDataGetter,
@@ -27,6 +27,10 @@ import {
 import { Link } from '@keystone-6/core/admin-ui/router'
 import { gql, useApolloClient } from '@keystone-6/core/admin-ui/apollo'
 import { controller } from '../index'
+import type {
+  CardsRelationshipValue,
+  RelationshipFieldChangeHandler,
+} from '../index'
 import { RelationshipSelect } from '../RelationshipSelect'
 import { useItemState } from './useItemState'
 import { InlineEdit } from './InlineEdit'
@@ -82,8 +86,11 @@ export function Cards({
   foreignList: ListMeta
   localList: ListMeta
   id: string | null
-  value: { kind: 'cards-view' }
-} & FieldProps<typeof controller>) {
+  value: CardsRelationshipValue
+  field: ReturnType<typeof controller>
+  onChange?: RelationshipFieldChangeHandler
+  forceValidation?: boolean
+}) {
   const { displayOptions } = value
   let selectedFields = [
     ...new Set([

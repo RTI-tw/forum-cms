@@ -1,16 +1,15 @@
 # Validation Summary（繁中台灣版）
 
-保留 findings 總數：26。
+保留 findings 總數：21。
 
-- 高：6
-- 中：17
+- 高：3
+- 中：15
 - 低：3
+
+2026-06-09 修正校準：`AC-006`、`AC-008`、`AC-009`、`AC-005`、`AC-007` 仍以程式碼修正處理；GraphQL internal-only／ingress-only 是額外部署邊界，不取代非 CMS write path 的 bearer token member identity 綁定。
 
 ## Findings 弱點項目
 
-- `AC-006` 高 開放 API 的 createComment 信任用戶端提供的 member 關聯 - 信心程度：高
-- `AC-008` 高 PollVote mutation 可破壞投票與彙總票數 - 信心程度：中
-- `AC-009` 高 Report create/update 對外開放時可隱藏任意文章與留言 - 信心程度：中
 - `AC-010` 高 Editor 可自行授予 OfficialMapping 審核權限 - 信心程度：高
 - `AUTH-001` 高 CMS 與會員 session 簽章金鑰存在硬編碼 fallback - 信心程度：高
 - `SC-001` 高 Cloud Build 執行未 pin 版本的遠端 Syft installer - 信心程度：高
@@ -18,8 +17,6 @@
 - `AC-002` 中 Bookmark query 的 BOLA 會洩漏其他會員書籤 - 信心程度：高
 - `AC-003` 中 PollVote query 的 BOLA 會洩漏其他會員投票 - 信心程度：高
 - `AC-004` 中 直接查詢 Poll 與 PollOption 可能洩漏草稿或隱藏投票資料 - 信心程度：高
-- `AC-005` 中 開放 API 的 createPost 信任用戶端提供的 author 與 status - 信心程度：中
-- `AC-007` 中 Bookmark mutation 缺少擁有者隔離 - 信心程度：高
 - `AUTH-002` 中 密碼重設 URL（含 reset token）被寫入 log - 信心程度：高
 - `AUTH-003` 中 登入 lockout 可被 username 或 email prefix 觸發 - 信心程度：高
 - `AUTH-004` 中 強制改密碼狀態主要靠 client-side redirect 執行 - 信心程度：高
@@ -34,3 +31,11 @@
 - `AUTH-007` 低 會員註冊會揭露 email、customId 與 blocked account 狀態 - 信心程度：高
 - `XSS-002` 低 Rich-text link URL 缺少 scheme allowlist - 信心程度：中
 - `XSS-003` 低 RECAPTCHA_SITE_KEY 未經 JS escape 就插入 generated Admin UI TSX - 信心程度：高
+
+## 已修正且需維持部署邊界
+
+- `AC-006` createComment：非 CMS path 以 bearer token member 綁定；CMS path 才使用 OfficialMapping
+- `AC-008` PollVote：非 CMS path 保留 poll/option/唯一性驗證與 member 綁定
+- `AC-009` Report：非 CMS create 僅能建立 pending report；update/delete 與 resolved 副作用保留 CMS-only
+- `AC-005` createPost：非 CMS path 以 bearer token author 綁定並固定 pending
+- `AC-007` Bookmark：非 CMS create/update/delete 保留 owner hard gate

@@ -1,5 +1,6 @@
 import "dotenv/config";
 import { config, graphql } from "@keystone-6/core";
+import path from "path";
 import { listDefinition as lists } from "./lists";
 import envVar from "./environment-variables";
 import { computeIsCompleteProfile } from "./utils/member-profile";
@@ -37,6 +38,7 @@ import {
     signMemberSession,
     verifyMemberSession,
 } from "./utils/member-session";
+import { eventRegistrationSchemaExtension } from "./utils/event-registration-gql";
 
 // 获取 createLoginLoggingPlugin 函数（兼容新旧版本）
 // const createLoginLoggingPlugin =
@@ -273,6 +275,30 @@ const AuthenticateMemberWithFirebaseInput = graphql.inputObject({
     },
 });
 
+type MemberStatus = "active" | "inactive" | "banned" | "deleted";
+
+type MemberSessionMemberValue = {
+    id: string;
+    firebaseId: string;
+    customId: string;
+    name: string;
+    nickname: string;
+    isCompleteProfile: boolean;
+    status: MemberStatus;
+    email?: string | null;
+};
+
+type MemberRecord = {
+    id: string | number;
+    firebaseId?: string | null;
+    customId?: string | null;
+    name?: string | null;
+    nickname?: string | null;
+    isCompleteProfile?: boolean | null;
+    status?: MemberStatus | string | null;
+    email?: string | null;
+};
+
 const MemberSessionMember = graphql.object<{
     id: string;
     firebaseId: string;
@@ -318,6 +344,15 @@ const AuthenticateMemberWithFirebaseResult = graphql.object<{
     },
 });
 
+function normalizeMemberStatus(status?: string | null): MemberStatus {
+    return status === "active" ||
+        status === "inactive" ||
+        status === "banned" ||
+        status === "deleted"
+        ? status
+        : "inactive";
+}
+
 function normalizeMemberMemberField(value?: string | null) {
     const normalized = typeof value === "string" ? value.trim() : "";
     return normalized.length > 0 ? normalized : undefined;
@@ -346,15 +381,15 @@ function resolveMemberDisplayName(options: {
     return { name, nickname };
 }
 
-function mapMemberSessionMember(member: any) {
+function mapMemberSessionMember(member: MemberRecord): MemberSessionMemberValue {
     return {
         id: String(member.id),
-        firebaseId: member.firebaseId,
-        customId: member.customId,
-        name: member.name,
-        nickname: member.nickname,
+        firebaseId: member.firebaseId ?? "",
+        customId: member.customId ?? "",
+        name: member.name ?? "",
+        nickname: member.nickname ?? "",
         isCompleteProfile: Boolean(member.isCompleteProfile),
-        status: member.status,
+        status: normalizeMemberStatus(member.status),
         email: member.email ?? null,
     };
 }
@@ -393,17 +428,17 @@ const memberAuthSchemaExtension = graphql.extend(() => ({
 
                 try {
                     const payload = verifyMemberSession(token);
-                    const member = await context.sudo().db.Member.findOne({
+                    const member = (await context.sudo().db.Member.findOne({
                         where: { id: payload.memberId },
-                    });
+                    })) as MemberRecord | null;
 
                     if (!member) {
                         return null;
                     }
 
-                    // [AUTH-005] 即使 JWT 簽章有效，仍需確認 member 當前狀態為 active，
-                    // 避免已被 ban/inactive 的帳號在 token 到期前繼續操作。
-                    if ((member as { status?: string }).status !== 'active') {
+                    // [AUTH-005] 即使 JWT 簽章有效，仍需封鎖已停權/刪帳會員。
+                    // inactive 是首次註冊後補 profile 的中間狀態，仍需回傳給前端完成流程。
+                    if (isMemberRegistrationBlocked(member.status)) {
                         return null;
                     }
 
@@ -462,11 +497,11 @@ const memberAuthSchemaExtension = graphql.extend(() => ({
                 });
 
                 if (customIdInput) {
-                    const existingByCustomId = await context
+                    const existingByCustomId = (await context
                         .sudo()
                         .db.Member.findOne({
                             where: { customId: customIdInput },
-                        });
+                        })) as MemberRecord | null;
                     if (
                         existingByCustomId &&
                         existingByCustomId.firebaseId !== firebaseId
@@ -478,11 +513,11 @@ const memberAuthSchemaExtension = graphql.extend(() => ({
                 }
 
                 if (firebaseEmail) {
-                    const existingByEmail = await context
+                    const existingByEmail = (await context
                         .sudo()
                         .db.Member.findOne({
                             where: { email: firebaseEmail },
-                        });
+                        })) as MemberRecord | null;
                     if (
                         existingByEmail &&
                         existingByEmail.firebaseId !== firebaseId
@@ -493,11 +528,11 @@ const memberAuthSchemaExtension = graphql.extend(() => ({
                     }
                 }
 
-                const existingMember = await context.sudo().db.Member.findOne({
+                const existingMember = (await context.sudo().db.Member.findOne({
                     where: { firebaseId },
-                });
+                })) as MemberRecord | null;
 
-                let member;
+                let member: MemberRecord | null;
 
                 if (existingMember) {
                     if (isMemberRegistrationBlocked(existingMember.status)) {
@@ -532,13 +567,13 @@ const memberAuthSchemaExtension = graphql.extend(() => ({
                     });
 
                     member = Object.keys(updateData).length
-                        ? await context.sudo().db.Member.updateOne({
+                        ? ((await context.sudo().db.Member.updateOne({
                               where: { id: String(existingMember.id) },
                               data: updateData,
-                          })
+                          })) as MemberRecord | null)
                         : existingMember;
                 } else {
-                    member = await context.sudo().db.Member.createOne({
+                    member = (await context.sudo().db.Member.createOne({
                         data: {
                             firebaseId,
                             customId: customIdInput || firebaseId,
@@ -549,7 +584,7 @@ const memberAuthSchemaExtension = graphql.extend(() => ({
                             status: "inactive",
                             verified: Boolean(decoded.email_verified),
                         },
-                    });
+                    })) as MemberRecord | null;
                 }
 
                 if (!member) {
@@ -2052,6 +2087,11 @@ export default function SigninPage() {
 
 const customAdminAdditionalFiles = async () => [
   {
+    mode: 'copy' as const,
+    inputPath: path.join(process.cwd(), 'admin/pages/event-checkin.tsx'),
+    outputPath: 'pages/event-checkin.tsx',
+  },
+  {
     mode: 'write' as const,
     outputPath: 'pages/change-password.tsx',
     src: changePasswordPageTemplate,
@@ -2391,6 +2431,7 @@ const graphqlConfig = {
     extendGraphqlSchema: (schema: any) => {
         schema = passwordSchemaExtension(schema);
         schema = memberAuthSchemaExtension(schema);
+        schema = eventRegistrationSchemaExtension(schema);
         return schema;
     },
 };

@@ -7,6 +7,7 @@
 - 修正 commits：`bbf64b9`、`c44de67`、`86e571a`
 - Re-review date：`2026-06-01`
 - 目標：驗證 26 個原始 findings 是否正確修正，並檢查修正是否引入新問題。
+- 2026-06-09 修正校準：GraphQL internal-only／ingress-only 是部署邊界；非 CMS write path 仍保留 bearer token member identity 綁定，CMS path 才使用 OfficialMapping。
 
 ---
 
@@ -60,15 +61,17 @@
 
 ### AC-006 — createComment member 覆寫
 
-**驗證**：`resolveInput` 中 `!isCmsRequest(context)` 分支一律呼叫 `getOfficialMemberIdForSessionUser`，強制覆寫 member；session 無效拋錯。CMS 分支保留原有 `hasExplicitMemberRelationInput` 邏輯。✅ 無旁路路徑。
+**驗證**：`resolveInput` 中 `!isCmsRequest(context)` 分支使用 `getAuthenticatedMemberId(context)` 從前台 bearer token 綁定 `member`，並拒絕未登入 create。CMS 分支才保留 OfficialMapping 自動帶入。
 
-### AC-008 — PollVote validateInput
+**部署邊界校準**：`getOfficialMemberIdForSessionUser` 是 Keystone CMS User -> Official Member mapping，不是前台 member bearer token 驗證；非 CMS path 不使用它。
 
-**驗證**：`validateInput` 在 `resolveInput` 之後執行（Keystone 6 hook 順序），非 CMS create 時依序：1) poll 存在且文章可見；2) option 屬於 poll；3) 每人每 poll 限一票。`memberId` 若為 null 時唯一性檢查略過，但此情況 `resolveInput` 已拋錯，mutation 不會成功。✅ 邏輯正確。
+### AC-008 — PollVote write validation/member binding
 
-### AC-009 — Report CMS-only
+**驗證**：非 CMS create 會驗證 poll 可見、option 屬於 poll、每位會員每個投票只能投一票，並以 bearer token member 覆寫 `data.member`。非 CMS update/delete 保留 owner filter。
 
-**驗證**：`validateInput` 最前面檢查 `!isCmsRequest(context)` 並立即回傳驗證錯誤。即使 gql/preview 模式下 operation access 層有風險，此 hook 為額外防護層。✅
+### AC-009 — Report create/moderation split
+
+**驗證**：非 CMS create 會以 bearer token 綁定 `reporter` 並強制 `status = pending`；非 CMS update/delete 保留 CMS-only，避免 `resolved` 狀態同步副作用被前台觸發。Report create 仍保留 post/comment 擇一的資料完整性檢查。
 
 ### AUTH-003 — Lockout canonical email
 
@@ -82,7 +85,7 @@
 
 ### AUTH-005 — member.status 檢查
 
-**驗證**：`(member as { status?: string }).status !== 'active'` 正確比對 member.ts 定義的三個狀態（`active` / `inactive` / `banned`）。✅
+**驗證**：`authenticatedMember` 以 `isMemberRegistrationBlocked(member.status)` 封鎖 `banned` / `deleted`；`inactive` 保留給首次註冊後的補 profile 流程。✅
 
 ### CONFIG-001 — helmet headers
 

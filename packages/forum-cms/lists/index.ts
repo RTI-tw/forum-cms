@@ -20,6 +20,8 @@ import AdSlide from './ad-slide'
 import HomepageImage from './homepage-image'
 import RssKeyword from './rss-keyword'
 import RssTopicMapping from './rss-topic-mapping'
+import Event from './event'
+import EventRegistration from './event-registration'
 
 export const listDefinition = {
   User,
@@ -44,4 +46,6 @@ export const listDefinition = {
   HomepageImage,
   RssKeyword,
   RssTopicMapping,
+  Event,
+  EventRegistration,
 }

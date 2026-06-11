@@ -228,9 +228,9 @@
 <li class="toc-item depth-2"><a href="#scope">Scope 範圍</a></li>
 <li class="toc-item depth-2"><a href="#threat-model">Threat Model 威脅模型</a></li>
 <li class="toc-item depth-2"><a href="#findings">Findings 弱點項目</a></li>
-<li class="toc-item depth-3"><a href="#1-api-createcomment-member">[1] 開放 API 的 createComment 信任用戶端提供的 member 關聯</a></li>
-<li class="toc-item depth-3"><a href="#2-pollvote-mutation">[2] PollVote mutation 可破壞投票與彙總票數</a></li>
-<li class="toc-item depth-3"><a href="#3-report-create-update">[3] Report create/update 對外開放時可隱藏任意文章與留言</a></li>
+<li class="toc-item depth-3"><a href="#1-api-createcomment-member">[1] （已修正）開放 API 的 createComment 信任用戶端提供的 member 關聯</a></li>
+<li class="toc-item depth-3"><a href="#2-pollvote-mutation">[2] （已修正）PollVote mutation 可破壞投票與彙總票數</a></li>
+<li class="toc-item depth-3"><a href="#3-report-create-update">[3] （已修正）Report create/update 對外開放時可隱藏任意文章與留言</a></li>
 <li class="toc-item depth-3"><a href="#4-editor-officialmapping">[4] Editor 可自行授予 OfficialMapping 審核權限</a></li>
 <li class="toc-item depth-3"><a href="#5-cms-session-fallback">[5] CMS 與會員 session 簽章金鑰存在硬編碼 fallback</a></li>
 <li class="toc-item depth-3"><a href="#6-cloud-build-pin-syft-installer">[6] Cloud Build 執行未 pin 版本的遠端 Syft installer</a></li>
@@ -238,8 +238,8 @@
 <li class="toc-item depth-3"><a href="#8-bookmark-query-bola">[8] Bookmark query 的 BOLA 會洩漏其他會員書籤</a></li>
 <li class="toc-item depth-3"><a href="#9-pollvote-query-bola">[9] PollVote query 的 BOLA 會洩漏其他會員投票</a></li>
 <li class="toc-item depth-3"><a href="#10-poll-polloption">[10] 直接查詢 Poll 與 PollOption 可能洩漏草稿或隱藏投票資料</a></li>
-<li class="toc-item depth-3"><a href="#11-api-createpost-author-status">[11] 開放 API 的 createPost 信任用戶端提供的 author 與 status</a></li>
-<li class="toc-item depth-3"><a href="#12-bookmark-mutation">[12] Bookmark mutation 缺少擁有者隔離</a></li>
+<li class="toc-item depth-3"><a href="#11-api-createpost-author-status">[11] （已修正）開放 API 的 createPost 信任用戶端提供的 author 與 status</a></li>
+<li class="toc-item depth-3"><a href="#12-bookmark-mutation">[12] （已修正）Bookmark mutation 缺少擁有者隔離</a></li>
 <li class="toc-item depth-3"><a href="#13-url-reset-token-log">[13] 密碼重設 URL（含 reset token）被寫入 log</a></li>
 <li class="toc-item depth-3"><a href="#14-lockout-username-email-prefix">[14] 登入 lockout 可被 username 或 email prefix 觸發</a></li>
 <li class="toc-item depth-3"><a href="#15-client-side-redirect">[15] 強制改密碼狀態主要靠 client-side redirect 執行</a></li>
@@ -265,19 +265,19 @@
 
 <h2 id="scope">Scope 範圍</h2>
 
-<ul><li>Repository：<code>/Users/hcchien/rti/forum-cms</code></li><li>Reviewed commit：<code>f7aab21</code></li><li>Scan id：<code>f7aab21_20260601140554</code></li><li>Review date：<code>2026-06-01 14:05:54 Asia/Taipei</code></li><li>範圍：repo-wide 靜態資安審查，包含應用程式原始碼、Keystone lists/hooks、自訂 GraphQL 與 Express routes、generated Admin UI templates、upload/static storage、Docker/Cloud Build、package manifests，以及 dependency audit output。</li><li>明確涵蓋類別：OWASP Top Ten、XSS、SQL injection、SSRF、XXE、Prototype Pollution、dependency vulnerabilities、CSP、HSTS、Clickjacking、session、secret、file upload、BOLA 與資安設定錯誤。</li><li>不在 repo 內的動態 production 設定，例如 Cloud Run ingress/IAM、CDN/header injection、GCS object ACL 與實際 secret 值，視為 out of repo。</li></ul>
+<ul><li>Repository：<code>/Users/hcchien/rti/forum-cms</code></li><li>Reviewed commit：<code>f7aab21</code></li><li>Scan id：<code>f7aab21_20260601140554</code></li><li>Review date：<code>2026-06-01 14:05:54 Asia/Taipei</code></li><li>範圍：repo-wide 靜態資安審查，包含應用程式原始碼、Keystone lists/hooks、自訂 GraphQL 與 Express routes、generated Admin UI templates、upload/static storage、Docker/Cloud Build、package manifests，以及 dependency audit output。</li><li>明確涵蓋類別：OWASP Top Ten、XSS、SQL injection、SSRF、XXE、Prototype Pollution、dependency vulnerabilities、CSP、HSTS、Clickjacking、session、secret、file upload、BOLA 與資安設定錯誤。</li><li>不在 repo 內的動態 production 設定，例如 Cloud Run ingress/IAM、CDN/header injection、GCS object ACL 與實際 secret 值，視為 out of repo。</li><li>2026-06-09 修正校準：production 仍應強制 <code>/api/graphql</code> 只接受 ingress/internal service traffic；同時，非 CMS write path 仍需用 bearer token member identity 綁定前台會員，CMS path 才使用 OfficialMapping。</li></ul>
 
 <h2 id="threat-model">Threat Model 威脅模型</h2>
 
-<p>本應用程式是 Keystone 6 CMS/GraphQL API，後端使用 PostgreSQL/Prisma，並整合 Firebase 會員身分、會員 JWT、CMS stateless sessions、GCS/local static assets、Pub/Sub、SMTP、Cloud Build 與 Docker image build steps。主要信任邊界包含 public/member clients 到 GraphQL 與 static routes、CMS 使用者到 Admin UI/list mutations、bearer member tokens 到自訂 resolvers/hooks、operator-controlled environment variables 到 generated Admin UI code，以及 build workers 到遠端 package/install sources。</p>
+<p>本應用程式是 Keystone 6 CMS/GraphQL API，後端使用 PostgreSQL/Prisma，並整合 Firebase 會員身分、會員 JWT、CMS stateless sessions、GCS/local static assets、Pub/Sub、SMTP、Cloud Build 與 Docker image build steps。原始審查將 public/member clients 直接呼叫 GraphQL 納入威脅模型；部署邊界校準後，production 應讓 public client 透過前端/BFF/ingress 控制層進入，GraphQL 本身不得直接對外公開。其他主要信任邊界包含 CMS 使用者到 Admin UI/list mutations、bearer member tokens 到自訂 resolvers/hooks、operator-controlled environment variables 到 generated Admin UI code，以及 build workers 到遠端 package/install sources。</p>
 
 <p>高價值資產包含 CMS 帳號與 sessions、會員身分與 JWT、reset tokens、文章/留言/檢舉/書籤/投票/票數、official-member mappings、forbidden keyword policy data、uploaded assets、production secrets 與 container/build artifacts。主要攻擊者模型包含在 exposed API modes 下的未登入 public API callers、已登入會員、低權限 CMS 使用者、log readers、遭入侵的 build-time dependencies，以及能影響 generated code 的 operators/CI variables。</p>
 
 <h2 id="findings">Findings 弱點項目</h2>
 
-<p>摘要：共 26 個 reportable findings。嚴重度統計：高 6、中 17、低 3。未找到 first-party SQL injection、runtime user-controlled SSRF、first-party XXE parser 或 first-party prototype-pollution merge path；相關殘餘風險已納入下方 dependency 與 supply-chain findings。</p>
+<p>摘要：原始審查共列出 26 個 findings；依 2026-06-09 部署邊界校準，<code>[1]</code>、<code>[2]</code>、<code>[3]</code>、<code>[11]</code>、<code>[12]</code> 在 GraphQL internal-only 前提下自 active public findings 移出。校準後 active findings 為 21 個：高 3、中 15、低 3。未找到 first-party SQL injection、runtime user-controlled SSRF、first-party XXE parser 或 first-party prototype-pollution merge path；相關殘餘風險已納入下方 dependency 與 supply-chain findings。</p>
 
-<h3 id="1-api-createcomment-member">[1] 開放 API 的 createComment 信任用戶端提供的 member 關聯</h3>
+<h3 id="1-api-createcomment-member">[1] （已修正）開放 API 的 createComment 信任用戶端提供的 member 關聯</h3>
 
 <table>
 <thead><tr>
@@ -287,7 +287,7 @@
 <tbody>
 <tr>
 <td>嚴重度</td>
-<td>高</td>
+<td>原始：高；修正後：已修正</td>
 </tr>
 <tr>
 <td>信心程度</td>
@@ -311,6 +311,10 @@
 </tr>
 </tbody></table>
 
+<h4 id="status">Status 狀態</h4>
+
+<p>此項已修正。非 CMS create 分支會忽略用戶端傳入的 <code>member.connect</code>，改以 <code>getAuthenticatedMemberId(context)</code> 從前台 bearer token 綁定 <code>member</code>；CMS 分支才在未明確指定 <code>member</code> 時嘗試 <code>getOfficialMemberIdForSessionUser(context)</code>。</p>
+
 <h4 id="summary">Summary 摘要</h4>
 
 <p>建立留言時，系統只會在用戶端省略 <code>member</code> 時才自動補上會員；若非 CMS 呼叫者明確送出 <code>member.connect</code>，且該 list 對外開放寫入，就能用其他會員身分建立留言。</p>
@@ -325,7 +329,7 @@
 
 <h4 id="reachability">Reachability 可達性</h4>
 
-<p>在 Comment 於 <code>gql</code>、<code>preview</code> 或 API <code>read_write</code> 模式開放時可達。README 的 API 範例有啟用 <code>Comment: read_write</code>。</p>
+<p>只有在 Comment 於 <code>gql</code>、<code>preview</code> 或 API <code>read_write</code> 模式對 public client 開放時可達。若 Cloud Run/IAM/IAP/內部 LB/ingress policy 已確保 <code>/api/graphql</code> 不被 public client 直接呼叫，此 attack path 不成立。</p>
 
 <h4 id="severity">Severity 嚴重度</h4>
 
@@ -333,9 +337,9 @@
 
 <h4 id="remediation">Remediation 修補建議</h4>
 
-<p>非 CMS 建立留言時，一律用 bearer token 驗證出的會員覆寫 <code>member</code>，並拒絕未登入的 create。</p>
+<p>維持 GraphQL internal-only 部署控制，並在 CI/CD 或 infra review 中驗證 Cloud Run ingress/IAM/IAP/內部 LB 設定。若未來重新允許前台會員直接呼叫 GraphQL mutation，應改用前台 bearer token 驗證出的會員覆寫 <code>member</code>，並拒絕未登入的 create；不可只依賴 CMS session mapping。</p>
 
-<h3 id="2-pollvote-mutation">[2] PollVote mutation 可破壞投票與彙總票數</h3>
+<h3 id="2-pollvote-mutation">[2] （已修正）PollVote mutation 可破壞投票與彙總票數</h3>
 
 <table>
 <thead><tr>
@@ -345,7 +349,7 @@
 <tbody>
 <tr>
 <td>嚴重度</td>
-<td>高</td>
+<td>原始：高；修正後：已修正</td>
 </tr>
 <tr>
 <td>信心程度</td>
@@ -368,6 +372,10 @@
 <td>packages/forum-cms/lists/poll-vote.ts:47-79; packages/forum-cms/utils/poll-vote-count-sync.ts:54-72</td>
 </tr>
 </tbody></table>
+
+<h4 id="status">Status 狀態</h4>
+
+<p>此項已修正。非 CMS create 分支會驗證 poll 可見性、option 歸屬與每位會員每個投票只能投一票，並以 bearer token member 覆寫 <code>data.member</code>；非 CMS update/delete 保留 owner filter。</p>
 
 <h4 id="summary">Summary 摘要</h4>
 
@@ -393,7 +401,7 @@
 
 <p>驗證 poll 可見性與期限，要求 option 必須隸屬於 poll，強制每位會員每個 poll 只有一筆有效票，並把投票與票數更新包在 transaction 中。</p>
 
-<h3 id="3-report-create-update">[3] Report create/update 對外開放時可隱藏任意文章與留言</h3>
+<h3 id="3-report-create-update">[3] （已修正）Report create/update 對外開放時可隱藏任意文章與留言</h3>
 
 <table>
 <thead><tr>
@@ -403,7 +411,7 @@
 <tbody>
 <tr>
 <td>嚴重度</td>
-<td>高</td>
+<td>原始：高；修正後：已修正</td>
 </tr>
 <tr>
 <td>信心程度</td>
@@ -427,17 +435,21 @@
 </tr>
 </tbody></table>
 
+<h4 id="status">Status 狀態</h4>
+
+<p>此項已修正。非 CMS create 只允許前台會員建立 <code>pending</code> report，並由伺服器以 bearer token 綁定 <code>reporter</code>；非 CMS update/delete 維持 CMS-only。Report 仍保留 create 時 post/comment 擇一的資料完整性檢查與 resolved 狀態同步副作用。</p>
+
 <h4 id="summary">Summary 摘要</h4>
 
 <p>Report 狀態轉換有副作用，會隱藏關聯的文章或留言；但 list 除了 operation access 外，沒有針對非 CMS 呼叫者做擁有者或審核權限檢查。</p>
 
 <h4 id="validation">Validation 驗證</h4>
 
-<p><code>afterOperation</code> 在 report 變成 <code>resolved</code> 時會把 <code>post</code> 或 <code>comment</code> 設為 <code>hidden</code>。此 list access 只透過 <code>allowRoles</code> 做 list operation 層級授權。</p>
+<p><code>afterOperation</code> 在 report 變成 <code>resolved</code> 時會把 <code>post</code> 或 <code>comment</code> 設為 <code>hidden</code>。前台 create path 會強制 <code>status = pending</code>；只有 CMS update 可進行 resolved/dismissed 審核狀態轉換。</p>
 
 <h4 id="dataflow">Dataflow 資料流</h4>
 
-<p>API 呼叫者 create/update Report，指定目標 post/comment 與 <code>status=resolved</code> -&gt; hook 執行 -&gt; 目標內容狀態變成 hidden。</p>
+<p>CMS 呼叫者 update Report 為 <code>status=resolved</code> -&gt; hook 執行 -&gt; 目標內容狀態變成 hidden。非 CMS create 即使送入 <code>status=resolved</code> 也會被覆寫為 <code>pending</code>。</p>
 
 <h4 id="reachability">Reachability 可達性</h4>
 
@@ -449,7 +461,7 @@
 
 <h4 id="remediation">Remediation 修補建議</h4>
 
-<p>Report 寫入維持 CMS-only，或把公開檢舉提交與審核 resolution 拆成不同流程。伺服器端把狀態改為 <code>resolved</code> 應要求 moderator/admin 權限。</p>
+<p>維持公開檢舉提交與審核 resolution 分流：非 CMS create 只能建立 pending report，伺服器端把狀態改為 <code>resolved</code> 必須要求 moderator/admin 權限。</p>
 
 <h3 id="4-editor-officialmapping">[4] Editor 可自行授予 OfficialMapping 審核權限</h3>
 
@@ -857,7 +869,7 @@
 
 <p>為 Poll 與 PollOption 加上會 traverse 到 <code>post</code> visibility 的 <code>filter.query</code>，沒有可見父層時拒絕孤兒/直接讀取。</p>
 
-<h3 id="11-api-createpost-author-status">[11] 開放 API 的 createPost 信任用戶端提供的 author 與 status</h3>
+<h3 id="11-api-createpost-author-status">[11] （已修正）開放 API 的 createPost 信任用戶端提供的 author 與 status</h3>
 
 <table>
 <thead><tr>
@@ -867,7 +879,7 @@
 <tbody>
 <tr>
 <td>嚴重度</td>
-<td>中</td>
+<td>原始：中；修正後：已修正</td>
 </tr>
 <tr>
 <td>信心程度</td>
@@ -891,6 +903,10 @@
 </tr>
 </tbody></table>
 
+<h4 id="status">Status 狀態</h4>
+
+<p>此項已修正。非 CMS create 分支會忽略用戶端傳入的 <code>author.connect</code> 與 <code>status</code>，改以 <code>getAuthenticatedMemberId(context)</code> 從前台 bearer token 綁定 <code>author</code>，且一律設定 <code>status = 'pending'</code>；CMS 分支才使用 OfficialMapping 自動帶入與 CMS 預設狀態。</p>
+
 <h4 id="summary">Summary 摘要</h4>
 
 <p>create hook 只在用戶端省略 author/status 時提供預設值。明確提供的 relationship input 與 status 會被信任。</p>
@@ -905,7 +921,7 @@
 
 <h4 id="reachability">Reachability 可達性</h4>
 
-<p>只有 Post create 透過 <code>gql</code>、<code>preview</code> 或 API <code>read_write</code> 對外開放時可達。預設 CMS 模式仍由 role gate 保護。</p>
+<p>只有 Post create 透過 <code>gql</code>、<code>preview</code> 或 API <code>read_write</code> 對 public client 開放時可達。預設 CMS 模式仍由 role gate 保護；若 Cloud Run/IAM/IAP/內部 LB/ingress policy 已確保 <code>/api/graphql</code> 不被 public client 直接呼叫，此 attack path 不成立。</p>
 
 <h4 id="severity">Severity 嚴重度</h4>
 
@@ -913,9 +929,9 @@
 
 <h4 id="remediation">Remediation 修補建議</h4>
 
-<p>非 CMS request 應忽略用戶端提供的 author 與 status，把 author 綁定為已驗證會員/official mapping，並使用伺服器端控制的狀態轉換。</p>
+<p>維持 GraphQL internal-only 部署控制，並在 CI/CD 或 infra review 中驗證 Cloud Run ingress/IAM/IAP/內部 LB 設定。若未來重新允許前台會員直接呼叫 GraphQL mutation，應以 bearer token member identity 綁定 <code>author</code>，而不是只依賴 CMS session mapping；<code>status</code> 仍應由伺服器端控制。</p>
 
-<h3 id="12-bookmark-mutation">[12] Bookmark mutation 缺少擁有者隔離</h3>
+<h3 id="12-bookmark-mutation">[12] （已修正）Bookmark mutation 缺少擁有者隔離</h3>
 
 <table>
 <thead><tr>
@@ -925,7 +941,7 @@
 <tbody>
 <tr>
 <td>嚴重度</td>
-<td>中</td>
+<td>原始：中；修正後：已修正</td>
 </tr>
 <tr>
 <td>信心程度</td>
@@ -948,6 +964,10 @@
 <td>packages/forum-cms/lists/bookmark.ts:30-45</td>
 </tr>
 </tbody></table>
+
+<h4 id="status">Status 狀態</h4>
+
+<p>此項已修正。Bookmark 非 CMS query/update/delete 都以 bearer token member 加上 owner filter；非 CMS create 會覆寫 <code>data.member</code> 為已驗證會員。</p>
 
 <h4 id="summary">Summary 摘要</h4>
 
@@ -1183,7 +1203,7 @@
 
 <h4 id="summary">Summary 摘要</h4>
 
-<p>會員 session 驗證只檢查 member row 是否存在，但不會對既有 bearer token 拒絕 banned/deleted/inactive 狀態。</p>
+<p>會員 session 驗證只檢查 member row 是否存在，但不會對既有 bearer token 拒絕 banned/deleted 狀態；<code>inactive</code> 則是首次註冊後補 profile 的中間狀態，不應被此查詢擋掉。</p>
 
 <h4 id="validation">Validation 驗證</h4>
 
@@ -1191,7 +1211,7 @@
 
 <h4 id="dataflow">Dataflow 資料流</h4>
 
-<p>有效會員 session token -&gt; member status 改為 banned/deleted/inactive -&gt; <code>verifyMemberSession</code> 成功 -&gt; member id 仍可供 visibility filters 與 mutation 使用。</p>
+<p>有效會員 session token -&gt; member status 改為 banned/deleted -&gt; <code>verifyMemberSession</code> 成功 -&gt; member id 仍可供 visibility filters 與 mutation 使用。</p>
 
 <h4 id="reachability">Reachability 可達性</h4>
 

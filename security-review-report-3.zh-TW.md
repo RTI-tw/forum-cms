@@ -15,6 +15,8 @@
 
 本次為第三次審查，前兩次審查共識別 26 個原始 findings 及 3 個再審發現（NEW-001～003），加上一次 Cloud Build 相容性問題（DEP-001 regression）。本次目的為驗證所有問題已完整修正，並全面掃描是否有新問題。
 
+2026-06-09 修正校準：GraphQL internal-only／ingress-only 是部署邊界；非 CMS write path 仍保留 bearer token member identity 綁定，CMS path 才使用 OfficialMapping。
+
 ---
 
 ## Threat Model 威脅模型

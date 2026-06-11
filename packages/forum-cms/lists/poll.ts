@@ -43,7 +43,7 @@ const listConfigurations = list({
       many: false,
       label: '關聯文章',
       ui: {
-        description: '此投票所依附的文章（一對一）。',
+        description: '此投票所依附的文章；同一篇文章可關聯多個投票活動。',
       },
     }),
     expiresAt: timestamp({

@@ -119,6 +119,11 @@ const listConfigurations = list({
       ref: 'Poll.member',
       many: true,
     }),
+    eventRegistrations: relationship({
+      label: '活動報名',
+      ref: 'EventRegistration.member',
+      many: true,
+    }),
     reactions: relationship({
       label: '反應',
       ref: 'Reaction.member',

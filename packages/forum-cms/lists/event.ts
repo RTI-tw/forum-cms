@@ -1,0 +1,128 @@
+import { utils } from '@mirrormedia/lilith-core'
+import { allowRoles, admin, moderator, editor } from '../utils/access-control'
+import { list } from '@keystone-6/core'
+import { integer, relationship, text, timestamp } from '@keystone-6/core/fields'
+import { isSafeLinkUrl } from '../utils/url-safety'
+
+type ToOneRelationInput = {
+  connect?: { id?: string | number | null } | null
+  create?: unknown
+  disconnect?: boolean
+}
+
+function hasRelatedPost(value: unknown) {
+  const relation = value as ToOneRelationInput | undefined
+  return Boolean(relation?.connect?.id != null || relation?.create)
+}
+
+const listConfigurations = list({
+  fields: {
+    slug: text({
+      label: '活動網址名稱',
+      validation: { isRequired: true },
+      isIndexed: 'unique',
+      ui: {
+        description: '供前台活動頁與 API 查詢使用，建議使用英數與連字號。',
+      },
+    }),
+    post: relationship({
+      ref: 'Post.events',
+      many: false,
+      label: '文章',
+      ui: {
+        hideCreate: true,
+        description:
+          '活動內容、圖片、發布狀態、互動功能由關聯文章管理；此處只保留活動特定設定。',
+      },
+    }),
+    externalLink: text({
+      label: '活動連結',
+      ui: {
+        description: '選填；可放活動外部頁面、直播、地圖或其他相關連結。',
+      },
+    }),
+    startAt: timestamp({
+      label: '活動開始時間',
+      db: { isNullable: true },
+    }),
+    endAt: timestamp({
+      label: '活動結束時間',
+      db: { isNullable: true },
+    }),
+    registrationStartAt: timestamp({
+      label: '報名開始時間',
+      db: { isNullable: true },
+    }),
+    registrationEndAt: timestamp({
+      label: '報名結束時間',
+      db: { isNullable: true },
+    }),
+    checkInStartAt: timestamp({
+      label: '報到開始時間',
+      db: { isNullable: true },
+    }),
+    checkInEndAt: timestamp({
+      label: '報到結束時間',
+      db: { isNullable: true },
+    }),
+    capacity: integer({
+      label: '報名名額',
+      db: { isNullable: true },
+      validation: { min: 0 },
+      ui: {
+        description: '未填表示不限制名額。',
+      },
+    }),
+    registrations: relationship({
+      ref: 'EventRegistration.event',
+      many: true,
+      label: '報名紀錄',
+    }),
+  },
+  ui: {
+    label: '活動',
+    labelField: 'slug',
+    listView: {
+      initialColumns: [
+        'slug',
+        'post',
+        'externalLink',
+        'startAt',
+        'endAt',
+        'registrationStartAt',
+        'registrationEndAt',
+        'checkInStartAt',
+        'checkInEndAt',
+      ],
+      initialSort: { field: 'startAt', direction: 'DESC' },
+    },
+  },
+  access: {
+    operation: {
+      query: allowRoles(admin, moderator, editor),
+      update: allowRoles(admin, moderator, editor),
+      create: allowRoles(admin, moderator, editor),
+      delete: allowRoles(admin, editor),
+    },
+  },
+  hooks: {
+    validateInput: ({ resolvedData, operation, addValidationError }) => {
+      if (operation !== 'create' && operation !== 'update') return
+      const postRelation = resolvedData.post as ToOneRelationInput | undefined
+      if (operation === 'create' && !hasRelatedPost(postRelation)) {
+        addValidationError('活動必須關聯一篇文章。')
+      }
+      if (operation === 'update' && postRelation?.disconnect === true) {
+        addValidationError('活動必須保留關聯文章，不能解除關聯。')
+      }
+      const externalLink = resolvedData.externalLink
+      if (typeof externalLink === 'string' && !isSafeLinkUrl(externalLink)) {
+        addValidationError(
+          '活動連結僅允許 http/https 絕對網址或以 / 開頭的站內路徑。'
+        )
+      }
+    },
+  },
+})
+
+export default utils.addTrackingFields(listConfigurations)

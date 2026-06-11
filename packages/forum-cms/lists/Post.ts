@@ -224,6 +224,52 @@ const listConfigurations = list({
                 listView: { fieldMode: 'hidden' },
             },
         }),
+        events: relationship({
+            ref: 'Event.post',
+            many: true,
+            label: '活動',
+            ui: {
+                description:
+                    '此文章關聯的活動。活動頁的內容、圖片、發布狀態、投票、留言與反應功能皆由此文章管理。',
+                displayMode: 'cards',
+                cardFields: [
+                    'slug',
+                    'externalLink',
+                    'startAt',
+                    'endAt',
+                    'registrationStartAt',
+                    'registrationEndAt',
+                ],
+                linkToItem: true,
+                inlineCreate: {
+                    fields: [
+                        'slug',
+                        'externalLink',
+                        'startAt',
+                        'endAt',
+                        'registrationStartAt',
+                        'registrationEndAt',
+                        'checkInStartAt',
+                        'checkInEndAt',
+                        'capacity',
+                    ],
+                },
+                inlineEdit: {
+                    fields: [
+                        'slug',
+                        'externalLink',
+                        'startAt',
+                        'endAt',
+                        'registrationStartAt',
+                        'registrationEndAt',
+                        'checkInStartAt',
+                        'checkInEndAt',
+                        'capacity',
+                    ],
+                },
+                removeMode: 'none',
+            },
+        }),
         topics: relationship({
             ref: 'Topic.posts',
             many: false,
@@ -272,8 +318,11 @@ const listConfigurations = list({
         }),
         poll: relationship({
             ref: 'Poll.post',
-            many: false,
+            many: true,
             label: '投票',
+            ui: {
+                description: '可關聯多個投票活動。',
+            },
         }),
         comments: relationship({
             ref: 'Comment.post',
@@ -400,21 +449,18 @@ const listConfigurations = list({
         }) => {
             const data = { ...resolvedData }
             if (operation === 'create') {
-                const isTrustedCronService = isCronServiceRequest(context)
-                if (!isCmsRequest(context) && !isTrustedCronService) {
-                    // [AC-005] 非 CMS 建立文章時，強制忽略用戶端傳入的 author 與 status，
-                    // 防止冒用他人身分或直接設定發布狀態。
-                    const memberId = await getOfficialMemberIdForSessionUser(context)
+                if (!isCmsRequest(context)) {
+                    // [AC-005] 非 CMS 建立文章時，以前台 bearer token 綁定 author 並固定進審核佇列。
+                    const memberId = getAuthenticatedMemberId(context)
                     if (memberId == null) {
                         throw new Error('建立文章需要有效的會員登入狀態')
                     }
                     data.author = { connect: { id: memberId } }
-                    data.status = 'pending' // 非 CMS 發文一律進審核佇列
+                    data.status = 'pending'
                     if (!normText(data.ip as string | undefined)) {
                         data.ip = getClientIpFromKeystoneContext(context)
                     }
                 } else {
-                    // CMS 呼叫：保留原有邏輯
                     if (data.status === undefined) {
                         data.status =
                             envVar.accessControlStrategy === 'cms'
@@ -437,7 +483,6 @@ const listConfigurations = list({
                             '作者為必填：請選擇作者，或確認已以央廣後台帳號登入且已完成 OfficialMapping。'
                         )
                     }
-                    // CMS 建立文章時由請求帶入發文 IP（表單未送或空白則補上）
                     if (!normText(data.ip as string | undefined)) {
                         data.ip = getClientIpFromKeystoneContext(context)
                     }

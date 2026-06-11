@@ -19,7 +19,7 @@ import {
   FieldLabel,
 } from '@keystone-ui/fields'
 import { Button } from '@keystone-ui/button'
-import { FieldProps } from '../../../../types'
+import { FieldProps } from '@keystone-6/core/types'
 import { ImageValue } from './index'
 
 const SUPPORTED_IMAGE_EXTENSIONS = ['jpg', 'png', 'webp', 'gif']

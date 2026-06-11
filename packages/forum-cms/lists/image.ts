@@ -236,6 +236,7 @@ const listConfigurations = list({
         'urlOriginal',
         'postsAsHeroImages',
         'staticContents',
+        'events',
       ],
       initialSort: { field: 'name', direction: 'ASC' },
       pageSize: 50,

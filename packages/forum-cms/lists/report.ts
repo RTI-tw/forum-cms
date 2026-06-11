@@ -2,7 +2,24 @@ import { utils } from '@mirrormedia/lilith-core'
 import { allowRoles, admin, moderator, editor } from '../utils/access-control'
 import { list } from '@keystone-6/core'
 import { text, relationship, select, timestamp } from '@keystone-6/core/fields'
-import { isCmsRequest } from '../utils/post-visibility'
+import { getClientIpFromKeystoneContext } from '../utils/client-ip'
+import {
+  getAuthenticatedMemberId,
+  isCmsRequest,
+} from '../utils/post-visibility'
+
+function hasRelationConnect(value: unknown): boolean {
+  return Boolean(
+    value &&
+      typeof value === 'object' &&
+      'connect' in value &&
+      (value as { connect?: unknown }).connect
+  )
+}
+
+function normText(value: unknown): string {
+  return String(value ?? '').trim()
+}
 
 /**
  * 檢舉規格（欄位對應）：
@@ -95,28 +112,26 @@ const listConfigurations = list({
       create: allowRoles(admin, moderator, editor),
       delete: allowRoles(admin, editor),
     },
+    filter: {
+      update: ({ context }) => isCmsRequest(context),
+      delete: ({ context }) => isCmsRequest(context),
+    },
   },
   hooks: {
     validateInput: ({ resolvedData, addValidationError, operation, context }) => {
-      // [AC-009] Report 寫入（含 status=resolved 會觸發隱藏內容的副作用）只允許 CMS 呼叫。
-      // 防止對外開放 API 時，任何人可藉此隱藏任意文章或留言。
-      if (!isCmsRequest(context)) {
+      const cmsRequest = isCmsRequest(context)
+      // [AC-009] Report update/delete（含 status=resolved 會觸發隱藏內容的副作用）只允許 CMS 呼叫。
+      if (!cmsRequest && operation !== 'create') {
         addValidationError('Report 操作僅限 CMS 管理者')
         return
       }
       if (operation !== 'create') return
-      const hasPost = Boolean(
-        resolvedData.post &&
-          typeof resolvedData.post === 'object' &&
-          'connect' in resolvedData.post &&
-          resolvedData.post.connect
-      )
-      const hasComment = Boolean(
-        resolvedData.comment &&
-          typeof resolvedData.comment === 'object' &&
-          'connect' in resolvedData.comment &&
-          resolvedData.comment.connect
-      )
+      if (!cmsRequest && !getAuthenticatedMemberId(context)) {
+        addValidationError('建立檢舉需要有效的會員登入狀態')
+        return
+      }
+      const hasPost = hasRelationConnect(resolvedData.post)
+      const hasComment = hasRelationConnect(resolvedData.comment)
       if (!hasPost && !hasComment) {
         addValidationError(
           '請指定「檢舉文章」或「檢舉留言」其中一項。'
@@ -127,6 +142,21 @@ const listConfigurations = list({
           '請只指定「檢舉文章」或「檢舉留言」其中一項，勿同時填寫。'
         )
       }
+    },
+    resolveInput: ({ resolvedData, operation, context }) => {
+      if (isCmsRequest(context) || operation !== 'create') return resolvedData
+      const memberId = getAuthenticatedMemberId(context)
+      if (!memberId) {
+        throw new Error('建立檢舉需要有效的會員登入狀態')
+      }
+      const data = { ...resolvedData }
+      data.reporter = { connect: { id: memberId } }
+      data.status = 'pending'
+      data.adminNotes = ''
+      if (!normText(data.ip)) {
+        data.ip = getClientIpFromKeystoneContext(context)
+      }
+      return data
     },
     afterOperation: async ({ operation, item, originalItem, context }) => {
       if (operation === 'delete') return

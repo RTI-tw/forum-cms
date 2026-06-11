@@ -4,6 +4,17 @@ import { list } from '@keystone-6/core'
 import { integer, relationship, select } from '@keystone-6/core/fields'
 import { editorChoiceStateFromPostStatus } from '../utils/sync-editor-choice-state'
 
+type ToOneRelationInput = {
+  connect?: { id?: string | number | null }
+  disconnect?: boolean
+}
+
+type EditorChoiceItem = {
+  id?: number
+  postId?: number | null
+  sortOrder?: number | null
+}
+
 function getResolvedSortOrder(
   resolvedData: Record<string, unknown>,
   operation: 'create' | 'update' | 'delete',
@@ -21,6 +32,21 @@ function getResolvedSortOrder(
     )
   }
   return 0
+}
+
+function toFiniteId(value: unknown): number | undefined {
+  const id = typeof value === 'number' ? value : Number(value)
+  return Number.isFinite(id) ? id : undefined
+}
+
+function getResolvedRelationId(
+  relationInput: ToOneRelationInput | undefined,
+  currentId: number | null | undefined
+): number | undefined {
+  if (relationInput?.disconnect === true) return undefined
+  const connectedId = toFiniteId(relationInput?.connect?.id)
+  if (connectedId !== undefined) return connectedId
+  return currentId ?? undefined
 }
 
 const listConfigurations = list({
@@ -55,7 +81,7 @@ const listConfigurations = list({
       },
       ui: {
         description:
-          '依關聯文章是否為「已發布」自動更新；文章改為草稿等狀態時會變為失效。無法手動修改。',
+          '依關聯文章是否為「已發布」自動更新；改為草稿等狀態時會變為失效。無法手動修改。',
         createView: { fieldMode: 'hidden' },
         itemView: { fieldMode: 'read' },
         listView: { fieldMode: 'read' },
@@ -80,30 +106,22 @@ const listConfigurations = list({
     resolveInput: async ({ resolvedData, operation, item, context }) => {
       const data = { ...resolvedData } as Record<string, unknown>
       const postRel = data.post as
-        | { connect?: { id: string }; disconnect?: boolean }
+        | ToOneRelationInput
         | undefined
+      const current =
+        operation === 'update' && item ? (item as EditorChoiceItem) : undefined
+      const postId = getResolvedRelationId(postRel, current?.postId)
 
-      if (postRel?.disconnect === true) {
+      if (postId === undefined) {
         data.state = 'inactive'
         return data
       }
 
-      let postId: number | undefined
-      if (postRel?.connect?.id != null) {
-        postId = Number(postRel.connect.id)
-      } else if (operation === 'update' && item) {
-        postId = (item as { postId?: number | null }).postId ?? undefined
-      }
-
-      if (postId != null && Number.isFinite(postId)) {
-        const post = await context.prisma.post.findUnique({
-          where: { id: postId },
-          select: { status: true },
-        })
-        data.state = editorChoiceStateFromPostStatus(post?.status ?? undefined)
-      } else {
-        data.state = 'inactive'
-      }
+      const post = await context.prisma.post.findUnique({
+        where: { id: postId },
+        select: { status: true },
+      })
+      data.state = editorChoiceStateFromPostStatus(post?.status ?? undefined)
       return data
     },
     validateInput: async ({
@@ -141,12 +159,20 @@ const listConfigurations = list({
         return
       }
 
-      const rel = resolvedData.post as
-        | { connect?: { id: string } }
+      const current =
+        operation === 'update' && item ? (item as EditorChoiceItem) : undefined
+      const postRel = resolvedData.post as
+        | ToOneRelationInput
         | undefined
-      const id =
-        rel?.connect?.id != null ? Number(rel.connect.id) : undefined
-      if (id == null || !Number.isFinite(id)) return
+      const postId = getResolvedRelationId(postRel, current?.postId)
+
+      if (postId === undefined) {
+        addValidationError('請選擇文章。')
+        return
+      }
+
+      const id = toFiniteId(postRel?.connect?.id)
+      if (id === undefined) return
       const post = await context.prisma.post.findUnique({
         where: { id },
         select: { isEditorChoice: true },

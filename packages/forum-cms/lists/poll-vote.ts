@@ -65,7 +65,7 @@ const listConfigurations = list({
     },
   },
   hooks: {
-    // [AC-008] 建立票前先驗證 poll 可見性、option 歸屬、重複投票
+    // [AC-008] 建立票前先驗證 poll 可見性、option 歸屬、重複投票。
     validateInput: async ({ resolvedData, operation, addValidationError, context }) => {
       if (isCmsRequest(context) || operation !== 'create') return
 
@@ -81,7 +81,6 @@ const listConfigurations = list({
       const optionId = optionConnect.id
       const memberId = getAuthenticatedMemberId(context)
 
-      // 1. 驗證 poll 存在且父層文章可見
       const poll = await context.prisma.poll.findFirst({
         where: {
           id: pollId,
@@ -94,7 +93,6 @@ const listConfigurations = list({
         return
       }
 
-      // 2. 驗證 option 確實屬於此 poll
       const option = await context.prisma.pollOption.findFirst({
         where: { id: optionId, pollId },
         select: { id: true },
@@ -104,7 +102,6 @@ const listConfigurations = list({
         return
       }
 
-      // 3. 每人每 poll 限一票
       if (memberId) {
         const existing = await context.prisma.pollVote.findFirst({
           where: { pollId, memberId },

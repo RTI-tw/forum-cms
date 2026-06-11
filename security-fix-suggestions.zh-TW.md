@@ -3,6 +3,8 @@
 依據 `security-review-report.zh-TW.md` 與 `security-review-validation-summary.zh-TW.md`，
 針對各 finding 提出具體程式碼修正方式，按嚴重度排列。
 
+2026-06-09 修正校準：GraphQL internal-only／ingress-only 是部署邊界；非 CMS write path 仍應使用 bearer token member identity，CMS path 才可使用 Keystone CMS User -> Official Member mapping。
+
 ---
 
 ## 高嚴重度
@@ -82,7 +84,7 @@ memberSession: {
 **問題**：`hasExplicitMemberRelationInput` 為 true 時，hook 完全信任用戶端傳入的 `member.connect`，
 可讓任何已登入用戶以其他會員身分建立留言。
 
-**修正方式**：非 CMS 呼叫時，一律強制覆寫為已驗證的 official member id，並拒絕未登入建立。
+**修正方式**：若 GraphQL 重新對 public/member client 開放，非 CMS 呼叫時應一律強制覆寫為已驗證的 member id，並拒絕未登入建立。現行 `getOfficialMemberIdForSessionUser(context)` 是 Keystone CMS User -> Official Member mapping；它適合 CMS/internal flow，不是前台 bearer token 驗證。
 
 ```typescript
 // packages/forum-cms/lists/comment.ts（resolveInput hook）
@@ -92,8 +94,8 @@ resolveInput: async ({ resolvedData, operation, context, inputData, item }) => {
 
   if (operation === 'create') {
     if (!isCmsRequest(context)) {
-      // 無論用戶端是否傳入 member，一律從 session 取得並覆寫
-      const memberId = await getOfficialMemberIdForSessionUser(context)
+      // 無論用戶端是否傳入 member，一律從 bearer token 取得並覆寫
+      const memberId = getAuthenticatedMemberId(context)
       if (memberId == null) {
         throw new Error('建立留言需要有效的會員登入狀態')
       }
@@ -115,7 +117,7 @@ resolveInput: async ({ resolvedData, operation, context, inputData, item }) => {
 **問題**：Report list 只有 role-based operation access，非 CMS 呼叫者可直接 create/update
 並把 status 設為 `resolved`，觸發 afterOperation hook 隱藏任意內容。
 
-**修正方式**：在 access filter 層阻擋非 CMS 的 mutation，讓 `resolved` 狀態只能由具權限的 CMS 使用者設定。
+**修正方式**：把公開檢舉提交與 CMS 審核分流。非 CMS create 只允許建立 `pending` report，並以 bearer token 綁定 `reporter`；update/delete 與 `resolved` 狀態轉換只能由 CMS 執行。
 
 ```typescript
 // packages/forum-cms/lists/report.ts
@@ -127,22 +129,29 @@ access: {
     create:  allowRoles(admin, moderator, editor),
     delete:  allowRoles(admin, editor),
   },
-  // 新增：非 CMS 來源一律拒絕 mutation
+  // 非 CMS update/delete 一律拒絕，前台只允許 create pending report
   filter: {
-    query: ({ context }) => {
-      if (isCmsRequest(context)) return true
-      return false  // 非 CMS 無法查詢 Report
-    },
+    update: ({ context }) => isCmsRequest(context),
+    delete: ({ context }) => isCmsRequest(context),
   },
 },
 hooks: {
   validateInput: ({ resolvedData, addValidationError, context, operation }) => {
-    // 非 CMS 呼叫時直接拒絕（雙重防護）
-    if (!isCmsRequest(context)) {
+    if (!isCmsRequest(context) && operation !== 'create') {
       addValidationError('Report 操作僅限 CMS 管理者')
       return
     }
     // ... 原有 validateInput 邏輯
+  },
+  resolveInput: ({ resolvedData, operation, context }) => {
+    if (isCmsRequest(context) || operation !== 'create') return resolvedData
+    const memberId = getAuthenticatedMemberId(context)
+    if (!memberId) throw new Error('建立檢舉需要有效的會員登入狀態')
+    return {
+      ...resolvedData,
+      reporter: { connect: { id: memberId } },
+      status: 'pending',
+    }
   },
   // ... afterOperation 不變
 },
@@ -440,7 +449,7 @@ filter: {
 **受影響檔案**
 - `packages/forum-cms/lists/Post.ts:216-227`
 
-**修正方式**：非 CMS request 一律忽略用戶端傳入的 author/status，強制由 session 決定。
+**修正方式**：若 GraphQL 重新對 public/member client 開放，非 CMS request 一律忽略用戶端傳入的 author/status，強制由 bearer token member identity 決定 author，status 由 server-side workflow 決定。現行 `getOfficialMemberIdForSessionUser(context)` 是 Keystone CMS User -> Official Member mapping，只適合 CMS/internal flow。
 
 ```typescript
 resolveInput: async ({ resolvedData, operation, context }) => {
@@ -448,7 +457,7 @@ resolveInput: async ({ resolvedData, operation, context }) => {
 
   if (operation === 'create' && !isCmsRequest(context)) {
     // 強制覆寫 author，忽略用戶端傳入
-    const memberId = await getOfficialMemberIdForSessionUser(context)
+    const memberId = getAuthenticatedMemberId(context)
     if (memberId == null) throw new Error('發文需要有效的會員登入狀態')
     data.author = { connect: { id: memberId } }
 
@@ -910,7 +919,7 @@ if (envVar.recaptcha.enabled) {
 | 優先 | Finding | 原因 |
 |------|---------|------|
 | P0 | AUTH-001 | 硬編碼 secret 可直接偽造 session，修改簡單且影響高 |
-| P0 | AC-006 | API 開放時可冒用任意會員身分留言 |
+| P0 | AC-006 | createComment 身分冒用風險高；非 CMS path 應以 bearer token member 綁定 |
 | P0 | AUTH-002 | Reset token 已進 log，需立即確認歷史 log 並輪替 token |
 | P1 | AC-010 | Editor 可自行提升權限，一行改動即可修復 |
 | P1 | SC-001 | Build pipeline 供應鏈風險，影響所有產出 image |

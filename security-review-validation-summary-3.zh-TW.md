@@ -5,6 +5,8 @@
 
 **新 findings：0**
 
+2026-06-09 修正校準：GraphQL internal-only／ingress-only 是部署邊界；非 CMS write path 仍保留 bearer token member identity 綁定，CMS path 才使用 OfficialMapping。
+
 ---
 
 ## 原始 26 findings — 全部已修正 ✅
