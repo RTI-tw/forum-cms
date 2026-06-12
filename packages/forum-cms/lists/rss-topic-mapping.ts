@@ -18,7 +18,6 @@ const listConfigurations = list({
       ref: 'Topic.rssTopicMappings',
       many: false,
       label: '平台主題',
-      validation: { isRequired: true },
       ui: {
         description: '多個央廣 RSS 主題可對應至同一個平台主題。',
       },

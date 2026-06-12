@@ -12,64 +12,6 @@ generator client {
 }
 
 model User {
-  id                              Int                @id @default(autoincrement())
-  name                            String             @default("")
-  email                           String             @unique @default("")
-  password                        String
-  role                            String
-  officialAccounts                OfficialMapping[]  @relation("OfficialMapping_cmsUser")
-  isProtected                     Boolean            @default(false)
-  passwordUpdatedAt               DateTime?          @default(now())
-  mustChangePassword              Boolean            @default(false)
-  loginFailedAttempts             Int?               @default(0)
-  accountLockedUntil              DateTime?
-  lastFailedLoginAt               DateTime?
-  passwordHistory                 Json?
-  passwordResetToken              String?
-  passwordResetIssuedAt           DateTime?
-  passwordResetRedeemedAt         DateTime?
-  from_Member_createdBy           Member[]           @relation("Member_createdBy")
-  from_Member_updatedBy           Member[]           @relation("Member_updatedBy")
-  from_OfficialMapping_createdBy  OfficialMapping[]  @relation("OfficialMapping_createdBy")
-  from_OfficialMapping_updatedBy  OfficialMapping[]  @relation("OfficialMapping_updatedBy")
-  from_Post_createdBy             Post[]             @relation("Post_createdBy")
-  from_Post_updatedBy             Post[]             @relation("Post_updatedBy")
-  from_Topic_createdBy            Topic[]            @relation("Topic_createdBy")
-  from_Topic_updatedBy            Topic[]            @relation("Topic_updatedBy")
-  from_EditorChoice_createdBy     EditorChoice[]     @relation("EditorChoice_createdBy")
-  from_EditorChoice_updatedBy     EditorChoice[]     @relation("EditorChoice_updatedBy")
-  from_Comment_createdBy          Comment[]          @relation("Comment_createdBy")
-  from_Comment_updatedBy          Comment[]          @relation("Comment_updatedBy")
-  from_Reaction_createdBy         Reaction[]         @relation("Reaction_createdBy")
-  from_Reaction_updatedBy         Reaction[]         @relation("Reaction_updatedBy")
-  from_Bookmark_createdBy         Bookmark[]         @relation("Bookmark_createdBy")
-  from_Bookmark_updatedBy         Bookmark[]         @relation("Bookmark_updatedBy")
-  from_Poll_createdBy             Poll[]             @relation("Poll_createdBy")
-  from_Poll_updatedBy             Poll[]             @relation("Poll_updatedBy")
-  from_PollOption_createdBy       PollOption[]       @relation("PollOption_createdBy")
-  from_PollOption_updatedBy       PollOption[]       @relation("PollOption_updatedBy")
-  from_PollVote_createdBy         PollVote[]         @relation("PollVote_createdBy")
-  from_PollVote_updatedBy         PollVote[]         @relation("PollVote_updatedBy")
-  from_Content_createdBy          Content[]          @relation("Content_createdBy")
-  from_Content_updatedBy          Content[]          @relation("Content_updatedBy")
-  from_Report_createdBy           Report[]           @relation("Report_createdBy")
-  from_Report_updatedBy           Report[]           @relation("Report_updatedBy")
-  from_ForbiddenKeyword_createdBy ForbiddenKeyword[] @relation("ForbiddenKeyword_createdBy")
-  from_ForbiddenKeyword_updatedBy ForbiddenKeyword[] @relation("ForbiddenKeyword_updatedBy")
-  from_Video_createdBy            Video[]            @relation("Video_createdBy")
-  from_Video_updatedBy            Video[]            @relation("Video_updatedBy")
-  from_Photo_createdBy            Photo[]            @relation("Photo_createdBy")
-  from_Photo_updatedBy            Photo[]            @relation("Photo_updatedBy")
-  from_Ad_createdBy               Ad[]               @relation("Ad_createdBy")
-  from_Ad_updatedBy               Ad[]               @relation("Ad_updatedBy")
-  from_AdSlide_createdBy          AdSlide[]          @relation("AdSlide_createdBy")
-  from_AdSlide_updatedBy          AdSlide[]          @relation("AdSlide_updatedBy")
-  from_HomepageImage_createdBy    HomepageImage[]    @relation("HomepageImage_createdBy")
-  from_HomepageImage_updatedBy    HomepageImage[]    @relation("HomepageImage_updatedBy")
-  from_RssKeyword_createdBy       RssKeyword[]       @relation("RssKeyword_createdBy")
-  from_RssKeyword_updatedBy       RssKeyword[]       @relation("RssKeyword_updatedBy")
-  from_RssTopicMapping_createdBy  RssTopicMapping[]  @relation("RssTopicMapping_createdBy")
-  from_RssTopicMapping_updatedBy  RssTopicMapping[]  @relation("RssTopicMapping_updatedBy")
   id                                 Int                 @id @default(autoincrement())
   name                               String              @default("")
   email                              String              @unique @default("")
@@ -124,6 +66,10 @@ model User {
   from_AdSlide_updatedBy             AdSlide[]           @relation("AdSlide_updatedBy")
   from_HomepageImage_createdBy       HomepageImage[]     @relation("HomepageImage_createdBy")
   from_HomepageImage_updatedBy       HomepageImage[]     @relation("HomepageImage_updatedBy")
+  from_RssKeyword_createdBy          RssKeyword[]        @relation("RssKeyword_createdBy")
+  from_RssKeyword_updatedBy          RssKeyword[]        @relation("RssKeyword_updatedBy")
+  from_RssTopicMapping_createdBy     RssTopicMapping[]   @relation("RssTopicMapping_createdBy")
+  from_RssTopicMapping_updatedBy     RssTopicMapping[]   @relation("RssTopicMapping_updatedBy")
   from_Event_createdBy               Event[]             @relation("Event_createdBy")
   from_Event_updatedBy               Event[]             @relation("Event_updatedBy")
   from_EventRegistration_checkedInBy EventRegistration[] @relation("EventRegistration_checkedInBy")
@@ -660,9 +606,34 @@ model RssKeyword {
   updatedBy   User?                  @relation("RssKeyword_updatedBy", fields: [updatedById], references: [id])
   updatedById Int?                   @map("updatedBy")
 
+  @@index([createdById])
+  @@index([updatedById])
+}
+
+model RssTopicMapping {
+  id          Int       @id @default(autoincrement())
+  rssTopic    String    @unique @default("")
+  topic       Topic?    @relation("RssTopicMapping_topic", fields: [topicId], references: [id])
+  topicId     Int?      @map("topic")
+  isEnabled   Boolean   @default(true)
+  note        String    @default("")
+  createdAt   DateTime?
+  updatedAt   DateTime?
+  createdBy   User?     @relation("RssTopicMapping_createdBy", fields: [createdById], references: [id])
+  createdById Int?      @map("createdBy")
+  updatedBy   User?     @relation("RssTopicMapping_updatedBy", fields: [updatedById], references: [id])
+  updatedById Int?      @map("updatedBy")
+
+  @@index([topicId])
+  @@index([createdById])
+  @@index([updatedById])
+}
+
 model Event {
   id                  Int                 @id @default(autoincrement())
   slug                String              @unique @default("")
+  label               EventLabelType      @default(more)
+  notice              String              @default("")
   post                Post?               @relation("Event_post", fields: [postId], references: [id])
   postId              Int?                @map("post")
   externalLink        String              @default("")
@@ -686,23 +657,6 @@ model Event {
   @@index([updatedById])
 }
 
-model RssTopicMapping {
-  id          Int       @id @default(autoincrement())
-  rssTopic    String    @unique @default("")
-  topic       Topic?    @relation("RssTopicMapping_topic", fields: [topicId], references: [id])
-  topicId     Int?      @map("topic")
-  isEnabled   Boolean   @default(true)
-  note        String    @default("")
-  createdAt   DateTime?
-  updatedAt   DateTime?
-  createdBy   User?     @relation("RssTopicMapping_createdBy", fields: [createdById], references: [id])
-  createdById Int?      @map("createdBy")
-  updatedBy   User?     @relation("RssTopicMapping_updatedBy", fields: [updatedById], references: [id])
-  updatedById Int?      @map("updatedBy")
-
-  @@index([topicId])
-  @@index([createdById])
-  @@index([updatedById])
 model EventRegistration {
   id                  Int                                @id @default(autoincrement())
   event               Event?                             @relation("EventRegistration_event", fields: [eventId], references: [id])
@@ -1127,6 +1081,14 @@ enum RssKeywordLanguageType {
   vi
   id
   th
+}
+
+enum EventLabelType {
+  hot
+  more
+  past
+}
+
 enum EventRegistrationStatusType {
   registered
   checkedIn

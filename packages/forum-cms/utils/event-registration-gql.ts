@@ -27,6 +27,8 @@ type EventRegistrationRecord = {
   event?: {
     id: number
     slug?: string | null
+    label?: EventLabel | string | null
+    notice?: string | null
     externalLink?: string | null
     startAt?: Date | string | null
     endAt?: Date | string | null
@@ -86,10 +88,16 @@ type RegistrationWindow = {
   registrationEndAt?: Date | string | null
 }
 
+type EventLabel = 'hot' | 'more' | 'past'
+
+type EventPreviewAvailabilityStatus = 'open' | 'notStarted' | 'full' | 'closed'
+
 type PublicEvent = {
   id: string
   title?: string | null
   slug?: string | null
+  label?: string | null
+  notice?: string | null
   content?: string | null
   externalLink?: string | null
   status?: string | null
@@ -105,6 +113,14 @@ type PublicEvent = {
   remainingCapacity?: number | null
   isRegistrationOpen: boolean
 }
+
+type EventPreviewItem = PublicEvent & {
+  firstImage?: PublicEventImage | null
+  availabilityStatus: EventPreviewAvailabilityStatus
+  isRegistered: boolean
+}
+
+type EventPreviewSections = Record<EventLabel, EventPreviewItem[]>
 
 type PublicEventImage = {
   id: string
@@ -143,6 +159,9 @@ type NormalizedEventRegistrationForm = {
   phoneHash: string
 }
 
+const EVENT_LABELS: EventLabel[] = ['hot', 'more', 'past']
+const ACTIVE_REGISTRATION_STATUSES = ['registered', 'checkedIn'] as const
+
 function getBearerToken(context: KeystoneContext) {
   const authHeader = context.req?.headers?.authorization
   if (typeof authHeader !== 'string') {
@@ -172,6 +191,25 @@ async function requireActiveMember(context: KeystoneContext) {
   }
 
   return member
+}
+
+async function getActiveMemberIdIfAvailable(context: KeystoneContext) {
+  const token = getBearerToken(context)
+  if (!token) {
+    return null
+  }
+
+  try {
+    const payload = verifyMemberSession(token)
+    const member = await context.prisma.member.findUnique({
+      where: { id: Number(payload.memberId) },
+      select: { id: true, status: true },
+    })
+
+    return member?.status === 'active' ? member.id : null
+  } catch {
+    return null
+  }
 }
 
 function requireCmsUserId(context: KeystoneContext) {
@@ -277,6 +315,38 @@ export function isRegistrationOpen(event: RegistrationWindow, now = new Date()) 
   return true
 }
 
+function isKnownEventLabel(value?: string | null): value is EventLabel {
+  return EVENT_LABELS.includes(value as EventLabel)
+}
+
+export function getEventPreviewAvailabilityStatus(
+  event: {
+    endAt?: Date | string | null
+    registrationStartAt?: Date | string | null
+    registrationEndAt?: Date | string | null
+    capacity?: number | null
+  },
+  registrationCount = 0,
+  now = new Date()
+): EventPreviewAvailabilityStatus {
+  if (isAfter(event.endAt, now) || isAfter(event.registrationEndAt, now)) {
+    return 'closed'
+  }
+
+  if (isBefore(event.registrationStartAt, now)) {
+    return 'notStarted'
+  }
+
+  if (
+    typeof event.capacity === 'number' &&
+    registrationCount >= event.capacity
+  ) {
+    return 'full'
+  }
+
+  return 'open'
+}
+
 function buildPublicEvent(
   event: NonNullable<EventRegistrationRecord['event']>,
   registrationCount = 0,
@@ -291,6 +361,8 @@ function buildPublicEvent(
     id: String(event.id),
     title: post?.title ?? null,
     slug: event.slug ?? null,
+    label: event.label ?? null,
+    notice: event.notice ?? null,
     content: post?.content ?? null,
     externalLink: event.externalLink ?? null,
     status: post?.status ?? null,
@@ -316,6 +388,26 @@ function buildPublicEvent(
   }
 }
 
+export function buildEventPreviewItem(
+  event: NonNullable<EventRegistrationRecord['event']>,
+  registrationCount = 0,
+  isRegistered = false,
+  now = new Date()
+): EventPreviewItem {
+  const publicEvent = buildPublicEvent(event, registrationCount, now)
+
+  return {
+    ...publicEvent,
+    firstImage: publicEvent.images[0] ?? null,
+    availabilityStatus: getEventPreviewAvailabilityStatus(
+      event,
+      registrationCount,
+      now
+    ),
+    isRegistered,
+  }
+}
+
 async function countActiveRegistrations(
   context: KeystoneContext,
   eventId: number
@@ -323,7 +415,7 @@ async function countActiveRegistrations(
   return context.prisma.eventRegistration.count({
     where: {
       eventId,
-      status: { in: ['registered', 'checkedIn'] },
+      status: { in: [...ACTIVE_REGISTRATION_STATUSES] },
     },
   })
 }
@@ -521,12 +613,19 @@ const EventRegistrationEventImageResult = graphql.object<PublicEventImage>()({
   },
 })
 
+const EventPreviewAvailabilityStatusType = graphql.enum({
+  name: 'EventPreviewAvailabilityStatus',
+  values: graphql.enumValues(['open', 'notStarted', 'full', 'closed']),
+})
+
 const EventRegistrationEventResult = graphql.object<PublicEvent>()({
   name: 'EventRegistrationEventResult',
   fields: {
     id: graphql.field({ type: graphql.nonNull(graphql.ID) }),
     title: graphql.field({ type: graphql.String }),
     slug: graphql.field({ type: graphql.String }),
+    label: graphql.field({ type: graphql.String }),
+    notice: graphql.field({ type: graphql.String }),
     content: graphql.field({ type: graphql.String }),
     externalLink: graphql.field({ type: graphql.String }),
     status: graphql.field({ type: graphql.String }),
@@ -546,6 +645,68 @@ const EventRegistrationEventResult = graphql.object<PublicEvent>()({
     remainingCapacity: graphql.field({ type: graphql.Int }),
     isRegistrationOpen: graphql.field({
       type: graphql.nonNull(graphql.Boolean),
+    }),
+  },
+})
+
+const EventPreviewImageResult = graphql.object<PublicEventImage>()({
+  name: 'EventPreviewImageResult',
+  fields: {
+    id: graphql.field({ type: graphql.nonNull(graphql.ID) }),
+    name: graphql.field({ type: graphql.String }),
+    urlOriginal: graphql.field({ type: graphql.String }),
+    altText: graphql.field({ type: graphql.String }),
+    caption: graphql.field({ type: graphql.String }),
+    sortOrder: graphql.field({ type: graphql.Int }),
+  },
+})
+
+const EventPreviewItemResult = graphql.object<EventPreviewItem>()({
+  name: 'EventPreviewItemResult',
+  fields: {
+    id: graphql.field({ type: graphql.nonNull(graphql.ID) }),
+    title: graphql.field({ type: graphql.String }),
+    slug: graphql.field({ type: graphql.String }),
+    label: graphql.field({ type: graphql.String }),
+    notice: graphql.field({ type: graphql.String }),
+    externalLink: graphql.field({ type: graphql.String }),
+    startAt: graphql.field({ type: graphql.String }),
+    endAt: graphql.field({ type: graphql.String }),
+    registrationStartAt: graphql.field({ type: graphql.String }),
+    registrationEndAt: graphql.field({ type: graphql.String }),
+    capacity: graphql.field({ type: graphql.Int }),
+    firstImage: graphql.field({ type: EventPreviewImageResult }),
+    images: graphql.field({
+      type: graphql.nonNull(
+        graphql.list(graphql.nonNull(EventPreviewImageResult))
+      ),
+    }),
+    registrationCount: graphql.field({ type: graphql.nonNull(graphql.Int) }),
+    remainingCapacity: graphql.field({ type: graphql.Int }),
+    availabilityStatus: graphql.field({
+      type: graphql.nonNull(EventPreviewAvailabilityStatusType),
+    }),
+    isRegistered: graphql.field({ type: graphql.nonNull(graphql.Boolean) }),
+  },
+})
+
+const EventPreviewSectionsResult = graphql.object<EventPreviewSections>()({
+  name: 'EventPreviewSectionsResult',
+  fields: {
+    hot: graphql.field({
+      type: graphql.nonNull(
+        graphql.list(graphql.nonNull(EventPreviewItemResult))
+      ),
+    }),
+    more: graphql.field({
+      type: graphql.nonNull(
+        graphql.list(graphql.nonNull(EventPreviewItemResult))
+      ),
+    }),
+    past: graphql.field({
+      type: graphql.nonNull(
+        graphql.list(graphql.nonNull(EventPreviewItemResult))
+      ),
     }),
   },
 })
@@ -577,6 +738,74 @@ const RegisterForEventInputType = graphql.inputObject({
 
 export const eventRegistrationSchemaExtension = graphql.extend(() => ({
   query: {
+    eventPreviews: graphql.field({
+      type: graphql.nonNull(EventPreviewSectionsResult),
+      async resolve(
+        _root: unknown,
+        _args: Record<string, unknown>,
+        context: KeystoneContext
+      ) {
+        const events = (await context.prisma.event.findMany({
+          where: { post: { is: { status: 'published' } } },
+          include: {
+            post: {
+              include: {
+                heroImages: { orderBy: { sortOrder: 'asc' } },
+              },
+            },
+          },
+          orderBy: [{ startAt: 'desc' }, { id: 'desc' }],
+        })) as NonNullable<EventRegistrationRecord['event']>[]
+
+        const memberId = await getActiveMemberIdIfAvailable(context)
+        const memberRegistrations: Array<{ eventId: number | null }> = memberId
+          ? ((await context.prisma.eventRegistration.findMany({
+              where: {
+                memberId,
+                eventId: { in: events.map((event) => event.id) },
+                status: { in: [...ACTIVE_REGISTRATION_STATUSES] },
+              },
+              select: { eventId: true },
+            })) as Array<{ eventId: number | null }>)
+          : []
+        const registeredEventIds = new Set(
+          memberRegistrations
+            .map((registration) => registration.eventId)
+            .filter((eventId): eventId is number => typeof eventId === 'number')
+        )
+
+        const registrationCounts = new Map<number, number>()
+        await Promise.all(
+          events.map(async (event) => {
+            registrationCounts.set(
+              event.id,
+              await countActiveRegistrations(context, event.id)
+            )
+          })
+        )
+
+        const sections: EventPreviewSections = {
+          hot: [],
+          more: [],
+          past: [],
+        }
+        const now = new Date()
+
+        for (const event of events) {
+          const label = isKnownEventLabel(event.label) ? event.label : 'more'
+          sections[label].push(
+            buildEventPreviewItem(
+              event,
+              registrationCounts.get(event.id) ?? 0,
+              registeredEventIds.has(event.id),
+              now
+            )
+          )
+        }
+
+        return sections
+      },
+    }),
     eventBySlug: graphql.field({
       type: EventRegistrationEventResult,
       args: {

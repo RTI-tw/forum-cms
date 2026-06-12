@@ -27,6 +27,8 @@ test('event keeps activity fields and relates content through post', () => {
   const eventFields = (Event as any).fields
   const photoFields = (Photo as any).fields
 
+  assert.ok(eventFields.label, 'Event should expose label')
+  assert.ok(eventFields.notice, 'Event should expose notice')
   assert.ok(eventFields.post, 'Event should expose related Post')
   assert.ok(eventFields.externalLink, 'Event should expose externalLink')
   assert.ok(eventFields.startAt, 'Event should expose startAt')
@@ -68,14 +70,21 @@ test('event prisma model stores event metadata and references post content', () 
   )
   const postModel = schema.match(/model Post \{[\s\S]+?\n\}/)?.[0]
   const eventModel = schema.match(/model Event \{[\s\S]+?\n\}/)?.[0]
+  const eventLabelEnum = schema.match(/enum EventLabelType \{[\s\S]+?\n\}/)?.[0]
   const photoModel = schema.match(/model Photo \{[\s\S]+?\n\}/)?.[0]
 
   assert.ok(postModel)
   assert.ok(eventModel)
+  assert.ok(eventLabelEnum)
   assert.ok(photoModel)
+  assert.match(eventLabelEnum, /\bhot\b/)
+  assert.match(eventLabelEnum, /\bmore\b/)
+  assert.match(eventLabelEnum, /\bpast\b/)
   assert.match(postModel, /events\s+Event\[\]\s+@relation\("Event_post"\)/)
   assert.match(eventModel, /post\s+Post\?\s+@relation\("Event_post"/)
   assert.match(eventModel, /postId\s+Int\?\s+@map\("post"\)/)
+  assert.match(eventModel, /label\s+EventLabelType\s+@default\(more\)/)
+  assert.match(eventModel, /notice\s+String\s+@default\(""\)/)
   assert.match(eventModel, /externalLink\s+String\s+@default\(""\)/)
   assert.doesNotMatch(eventModel, /\btitle\b/)
   assert.doesNotMatch(eventModel, /\bcontent\b/)
@@ -98,6 +107,7 @@ test('event check-in custom GraphQL operations are registered', () => {
   assert.match(schema, /previewEventCheckInToken\(/)
   assert.match(schema, /confirmEventCheckIn\(/)
   assert.match(schema, /eventBySlug\(/)
+  assert.match(schema, /eventPreviews/)
   assert.match(schema, /myEventRegistrations/)
   assert.match(schema, /registerForEvent\(/)
   const tokenResult = schema.match(/type EventCheckInQrTokenResult \{[^}]+\}/)?.[0]
@@ -106,10 +116,26 @@ test('event check-in custom GraphQL operations are registered', () => {
 
   const eventResult = schema.match(/type EventRegistrationEventResult \{[^}]+\}/)?.[0]
   assert.ok(eventResult)
+  assert.match(eventResult, /label: String/)
+  assert.match(eventResult, /notice: String/)
   assert.match(eventResult, /content: String/)
   assert.match(eventResult, /externalLink: String/)
   assert.match(eventResult, /images: \[EventRegistrationEventImageResult!\]!/)
   assert.doesNotMatch(eventResult, /description/)
+
+  const previewSections = schema.match(/type EventPreviewSectionsResult \{[^}]+\}/)?.[0]
+  assert.ok(previewSections)
+  assert.match(previewSections, /hot: \[EventPreviewItemResult!\]!/)
+  assert.match(previewSections, /more: \[EventPreviewItemResult!\]!/)
+  assert.match(previewSections, /past: \[EventPreviewItemResult!\]!/)
+
+  const previewItem = schema.match(/type EventPreviewItemResult \{[^}]+\}/)?.[0]
+  assert.ok(previewItem)
+  assert.match(previewItem, /label: String/)
+  assert.match(previewItem, /notice: String/)
+  assert.match(previewItem, /availabilityStatus: EventPreviewAvailabilityStatus!/)
+  assert.match(previewItem, /isRegistered: Boolean!/)
+  assert.match(previewItem, /registrationCount: Int!/)
 
   const imageResult = schema.match(/type EventRegistrationEventImageResult \{[^}]+\}/)?.[0]
   assert.ok(imageResult)
