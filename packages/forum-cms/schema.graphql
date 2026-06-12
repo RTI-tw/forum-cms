@@ -2939,6 +2939,8 @@ input HomepageImageCreateInput {
 type Event {
   id: ID!
   slug: String
+  label: EventLabelType
+  notice: String
   post: Post
   externalLink: String
   startAt: DateTime
@@ -2967,6 +2969,8 @@ input EventWhereInput {
   NOT: [EventWhereInput!]
   id: IDFilter
   slug: StringFilter
+  label: EventLabelTypeNullableFilter
+  notice: StringFilter
   post: PostWhereInput
   externalLink: StringFilter
   startAt: DateTimeNullableFilter
@@ -2986,6 +2990,8 @@ input EventWhereInput {
 input EventOrderByInput {
   id: OrderDirection
   slug: OrderDirection
+  label: OrderDirection
+  notice: OrderDirection
   externalLink: OrderDirection
   startAt: OrderDirection
   endAt: OrderDirection
@@ -3000,6 +3006,8 @@ input EventOrderByInput {
 
 input EventUpdateInput {
   slug: String
+  label: EventLabelType
+  notice: String
   post: PostRelateToOneForUpdateInput
   externalLink: String
   startAt: DateTime
@@ -3023,6 +3031,8 @@ input EventUpdateArgs {
 
 input EventCreateInput {
   slug: String
+  label: EventLabelType
+  notice: String
   post: PostRelateToOneForCreateInput
   externalLink: String
   startAt: DateTime
@@ -3037,6 +3047,19 @@ input EventCreateInput {
   updatedAt: DateTime
   createdBy: UserRelateToOneForCreateInput
   updatedBy: UserRelateToOneForCreateInput
+}
+
+enum EventLabelType {
+  hot
+  more
+  past
+}
+
+input EventLabelTypeNullableFilter {
+  equals: EventLabelType
+  in: [EventLabelType!]
+  notIn: [EventLabelType!]
+  not: EventLabelTypeNullableFilter
 }
 
 type EventRegistration {
@@ -3358,6 +3381,8 @@ type EventRegistrationEventResult {
   id: ID!
   title: String
   slug: String
+  label: String
+  notice: String
   content: String
   externalLink: String
   status: String
@@ -3381,6 +3406,48 @@ type EventRegistrationEventImageResult {
   altText: String
   caption: String
   sortOrder: Int
+}
+
+enum EventPreviewAvailabilityStatus {
+  open
+  notStarted
+  full
+  closed
+}
+
+type EventPreviewImageResult {
+  id: ID!
+  name: String
+  urlOriginal: String
+  altText: String
+  caption: String
+  sortOrder: Int
+}
+
+type EventPreviewItemResult {
+  id: ID!
+  title: String
+  slug: String
+  label: String
+  notice: String
+  externalLink: String
+  startAt: String
+  endAt: String
+  registrationStartAt: String
+  registrationEndAt: String
+  capacity: Int
+  firstImage: EventPreviewImageResult
+  images: [EventPreviewImageResult!]!
+  registrationCount: Int!
+  remainingCapacity: Int
+  availabilityStatus: EventPreviewAvailabilityStatus!
+  isRegistered: Boolean!
+}
+
+type EventPreviewSectionsResult {
+  hot: [EventPreviewItemResult!]!
+  more: [EventPreviewItemResult!]!
+  past: [EventPreviewItemResult!]!
 }
 
 input RegisterForEventInput {
@@ -3547,6 +3614,7 @@ type Query {
   authenticatedItem: AuthenticatedItem
   validateUserPasswordResetToken(email: String!, token: String!): ValidateUserPasswordResetTokenResult
   authenticatedMember: MemberSessionMember
+  eventPreviews: EventPreviewSectionsResult!
   eventBySlug(slug: String!): EventRegistrationEventResult
   myEventRegistrations: [MemberEventRegistrationResult!]!
   previewEventCheckInToken(token: String!): EventCheckInPreviewResult!

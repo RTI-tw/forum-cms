@@ -588,6 +588,8 @@ model HomepageImage {
 model Event {
   id                  Int                 @id @default(autoincrement())
   slug                String              @unique @default("")
+  label               EventLabelType      @default(more)
+  notice              String              @default("")
   post                Post?               @relation("Event_post", fields: [postId], references: [id])
   postId              Int?                @map("post")
   externalLink        String              @default("")
@@ -1027,6 +1029,12 @@ enum HomepageImageStatusType {
   draft
   active
   inactive
+}
+
+enum EventLabelType {
+  hot
+  more
+  past
 }
 
 enum EventRegistrationStatusType {
