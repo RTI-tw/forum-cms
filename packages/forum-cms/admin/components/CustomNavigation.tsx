@@ -107,6 +107,7 @@ export function CustomNavigation({ lists }: NavigationProps) {
   return (
     <NavigationContainer>
       <NavItem href="/">Dashboard</NavItem>
+      <NavItem href="/event-checkin">活動報到</NavItem>
 
       {hasReportList ? (
         <>

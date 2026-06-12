@@ -59,6 +59,8 @@ const passwordResetTokenTtl = Number(PASSWORD_RESET_TOKEN_TTL_MINUTES)
 const memberSessionMaxAge = Number(MEMBER_SESSION_MAX_AGE)
 const messageServicesHookTimeoutMs = Number(MESSAGE_SERVICES_HOOK_TIMEOUT_MS)
 
+// [AUTH-001] 驗證邏輯移至 keystone.ts extendExpressApp，僅在 server 啟動時執行，
+// 避免 `keystone build` / `keystone postinstall` 在 build container 裡找不到 secret 而中止。
 export default {
   isUIDisabled: IS_UI_DISABLED === 'true',
   memoryCacheTtl: Number.isNaN(Number(MEMORY_CACHE_TTL))
@@ -77,9 +79,9 @@ export default {
     url: DATABASE_URL || 'postgres://username:password@localhost:5432/forum-cms',
   },
   session: {
-    secret:
-      SESSION_SECRET ||
-      'default_session_secret_and_it_should_be_more_than_32_characters',
+    // [AUTH-001] build 時 Cloud Run secret 尚未注入，給夠長的 placeholder 讓 Keystone 不報錯；
+    // 真正的 server 啟動時會在 extendExpressApp 驗證環境變數是否已正確設定。
+    secret: SESSION_SECRET || 'BUILD_TIME_PLACEHOLDER_MUST_SET_SESSION_SECRET_ENV_VAR_32C',
     maxAge: (SESSION_MAX_AGE && parseInt(SESSION_MAX_AGE)) || 60 * 60 * 24 * 1, // 1 days
   },
   gcs: {
@@ -138,7 +140,8 @@ export default {
     serviceAccountBase64: FIREBASE_SERVICE_ACCOUNT_BASE64 || '',
   },
   memberSession: {
-    secret: MEMBER_SESSION_SECRET || '',
+    // [AUTH-001] 同上，build 時 placeholder；runtime 驗證在 extendExpressApp。
+    secret: MEMBER_SESSION_SECRET || 'BUILD_TIME_PLACEHOLDER_MUST_SET_MEMBER_SESSION_SECRET_32C',
     maxAgeSeconds: Number.isNaN(memberSessionMaxAge)
       ? 60 * 60 * 24 * 7
       : memberSessionMaxAge,

@@ -25,10 +25,12 @@ const listConfigurations = list({
   },
   access: {
     operation: {
-      query: allowRoles(admin, editor),
-      update: allowRoles(admin, editor),
-      create: allowRoles(admin, editor),
-      delete: allowRoles(admin, editor),
+      // [AC-010] query 保留 editor 查閱；mutation 限制為 admin only，
+      // 防止 editor 自行建立 mapping 以提升審核權限。
+      query:   allowRoles(admin, editor),
+      update:  allowRoles(admin),
+      create:  allowRoles(admin),
+      delete:  allowRoles(admin),
     },
   },
 })

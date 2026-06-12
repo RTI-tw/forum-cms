@@ -9,7 +9,7 @@ import {
   CellComponent,
   FieldController,
   FieldControllerConfig,
-} from '../../../../types'
+} from '@keystone-6/core/types'
 import { validateImage, ImageWrapper } from './Field'
 
 export { Field } from './Field'
@@ -57,6 +57,7 @@ type ImageData = {
   filesize: number
   extension: string
   id: string
+  ref?: string
 }
 
 export type ImageValue =

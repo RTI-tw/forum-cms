@@ -349,7 +349,7 @@ type ManyRelationshipValue = {
   initialValue: { label: string; id: string }[]
   value: { label: string; id: string }[]
 }
-type CardsRelationshipValue = {
+export type CardsRelationshipValue = {
   kind: 'cards-view'
   id: null | string
   itemsBeingEdited: ReadonlySet<string>
@@ -388,6 +388,10 @@ type RelationshipController = FieldController<
   hideCreate: boolean
   many: boolean
 }
+
+export type RelationshipFieldChangeHandler = FieldProps<
+  typeof controller
+>['onChange']
 
 export const controller = (
   config: FieldControllerConfig<

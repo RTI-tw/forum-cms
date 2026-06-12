@@ -19,6 +19,7 @@ import {
 import { getClientIpFromKeystoneContext } from '../utils/client-ip'
 import { syncEditorChoiceStateForPostId } from '../utils/sync-editor-choice-state'
 import { applyPostUpdateCmsRules } from '../utils/cms-content-moderation'
+import { isCronServiceRequest } from '../utils/cron-service-auth'
 import {
     buildPostVisibilityWhere,
     getAuthenticatedMemberId,
@@ -42,7 +43,7 @@ function toFiniteNumber(value: unknown): number | null {
 /**
  * 欄位對應需求：標題原文（必填、≤80 字）、五語標題、貼文原文（必填）、五語內容、
  * 原始語言（必填）、作者（央廣後台預設 OfficialMapping 會員）、發文時間、已編輯、IP、SPAM、
- * 編輯精選／生活須知／置頂 boost（checkbox 旗標）、主題（選填，僅能單選）、狀態、主圖（多張 Photo）、關聯影片、
+ * 編輯精選／生活須知／央廣精選／置頂 boost（checkbox 旗標）、主題（選填，僅能單選）、狀態、主圖（多張 Photo）、關聯影片、
  * 投票、留言、留言數、反應、反應數、檢舉。留言數／反應數由 Comment／Reaction 的 hook 同步。
  */
 const listConfigurations = list({
@@ -81,6 +82,17 @@ const listConfigurations = list({
             validation: { isRequired: true },
             label: '貼文原文',
             ui: { displayMode: 'textarea' },
+        }),
+        rssSourceUrl: text({
+            label: 'RSS 來源網址',
+            isIndexed: true,
+            ui: {
+                description:
+                    '由 cron 匯入央廣 RSS 時寫入，用於再次抓取同一篇新聞時覆蓋更新。',
+                createView: { fieldMode: 'hidden' },
+                itemView: { fieldMode: 'read' },
+                listView: { fieldMode: 'read' },
+            },
         }),
         language: select({
             label: '原始語言（使用者設定語言）',
@@ -187,6 +199,13 @@ const listConfigurations = list({
                 description: '生活須知相關旗標（僅標記於文章，供前台或 API 使用）。',
             },
         }),
+        isRtiChoice: checkbox({
+            label: '央廣精選',
+            defaultValue: false,
+            ui: {
+                description: '央廣精選相關旗標，供前台集中展示央廣 RSS 匯入文章。',
+            },
+        }),
         isBoost: checkbox({
             label: '置頂（boost）',
             defaultValue: false,
@@ -203,6 +222,52 @@ const listConfigurations = list({
                 createView: { fieldMode: 'hidden' },
                 itemView: { fieldMode: 'hidden' },
                 listView: { fieldMode: 'hidden' },
+            },
+        }),
+        events: relationship({
+            ref: 'Event.post',
+            many: true,
+            label: '活動',
+            ui: {
+                description:
+                    '此文章關聯的活動。活動頁的內容、圖片、發布狀態、投票、留言與反應功能皆由此文章管理。',
+                displayMode: 'cards',
+                cardFields: [
+                    'slug',
+                    'externalLink',
+                    'startAt',
+                    'endAt',
+                    'registrationStartAt',
+                    'registrationEndAt',
+                ],
+                linkToItem: true,
+                inlineCreate: {
+                    fields: [
+                        'slug',
+                        'externalLink',
+                        'startAt',
+                        'endAt',
+                        'registrationStartAt',
+                        'registrationEndAt',
+                        'checkInStartAt',
+                        'checkInEndAt',
+                        'capacity',
+                    ],
+                },
+                inlineEdit: {
+                    fields: [
+                        'slug',
+                        'externalLink',
+                        'startAt',
+                        'endAt',
+                        'registrationStartAt',
+                        'registrationEndAt',
+                        'checkInStartAt',
+                        'checkInEndAt',
+                        'capacity',
+                    ],
+                },
+                removeMode: 'none',
             },
         }),
         topics: relationship({
@@ -253,8 +318,11 @@ const listConfigurations = list({
         }),
         poll: relationship({
             ref: 'Poll.post',
-            many: false,
+            many: true,
             label: '投票',
+            ui: {
+                description: '可關聯多個投票活動。',
+            },
         }),
         comments: relationship({
             ref: 'Comment.post',
@@ -308,6 +376,7 @@ const listConfigurations = list({
                 'author',
                 'status',
                 'spamScore',
+                'isRtiChoice',
                 'isBoost',
                 'heroImages',
                 'commentCount',
@@ -318,9 +387,15 @@ const listConfigurations = list({
     },
     access: {
         operation: {
-            query: allowRoles(admin, moderator, editor),
-            update: allowRoles(admin, moderator, editor),
-            create: allowRoles(admin, moderator, editor),
+            query: async (auth) =>
+                isCronServiceRequest(auth.context) ||
+                allowRoles(admin, moderator, editor)(auth),
+            update: async (auth) =>
+                isCronServiceRequest(auth.context) ||
+                allowRoles(admin, moderator, editor)(auth),
+            create: async (auth) =>
+                isCronServiceRequest(auth.context) ||
+                allowRoles(admin, moderator, editor)(auth),
             delete: allowRoles(admin, editor),
         },
         /**
@@ -329,6 +404,9 @@ const listConfigurations = list({
          */
         filter: {
             query: ({ context }) => {
+                if (isCronServiceRequest(context)) {
+                    return true
+                }
                 // CMS logged-in users should be able to query all post statuses.
                 if (isCmsRequest(context)) {
                     return true
@@ -371,31 +449,43 @@ const listConfigurations = list({
         }) => {
             const data = { ...resolvedData }
             if (operation === 'create') {
-                if (data.status === undefined) {
-                    data.status =
-                        envVar.accessControlStrategy === 'cms'
-                            ? 'draft'
-                            : 'pending'
-                }
-                const explicit = hasExplicitMemberRelationInput(
-                    inputData as Record<string, unknown>,
-                    'author',
-                )
-                if (!explicit) {
-                    const memberId =
-                        await getOfficialMemberIdForSessionUser(context)
-                    if (memberId != null) {
-                        data.author = { connect: { id: memberId } }
+                if (!isCmsRequest(context)) {
+                    // [AC-005] 非 CMS 建立文章時，以前台 bearer token 綁定 author 並固定進審核佇列。
+                    const memberId = getAuthenticatedMemberId(context)
+                    if (memberId == null) {
+                        throw new Error('建立文章需要有效的會員登入狀態')
                     }
-                }
-                if (!data.author?.connect) {
-                    throw new Error(
-                        '作者為必填：請選擇作者，或確認已以央廣後台帳號登入且已完成 OfficialMapping。'
+                    data.author = { connect: { id: memberId } }
+                    data.status = 'pending'
+                    if (!normText(data.ip as string | undefined)) {
+                        data.ip = getClientIpFromKeystoneContext(context)
+                    }
+                } else {
+                    if (data.status === undefined) {
+                        data.status =
+                            envVar.accessControlStrategy === 'cms'
+                                ? 'draft'
+                                : 'pending'
+                    }
+                    const explicit = hasExplicitMemberRelationInput(
+                        inputData as Record<string, unknown>,
+                        'author',
                     )
-                }
-                // CMS 建立文章時由請求帶入發文 IP（表單未送或空白則補上）
-                if (!normText(data.ip)) {
-                    data.ip = getClientIpFromKeystoneContext(context)
+                    if (!explicit) {
+                        const memberId =
+                            await getOfficialMemberIdForSessionUser(context)
+                        if (memberId != null) {
+                            data.author = { connect: { id: memberId } }
+                        }
+                    }
+                    if (!data.author?.connect) {
+                        throw new Error(
+                            '作者為必填：請選擇作者，或確認已以央廣後台帳號登入且已完成 OfficialMapping。'
+                        )
+                    }
+                    if (!normText(data.ip as string | undefined)) {
+                        data.ip = getClientIpFromKeystoneContext(context)
+                    }
                 }
             }
             if (operation === 'update' && item) {
@@ -417,6 +507,9 @@ const listConfigurations = list({
                 }
             }
             if (operation === 'update') {
+                if (isCronServiceRequest(context)) {
+                    return data
+                }
                 const moderated = await applyPostUpdateCmsRules(
                     context,
                     operation,

@@ -12,3 +12,4 @@
 // Users can call this via GraphQL Playground or any GraphQL client
 // After successful mutation, they can log in again and access Admin UI
 
+export {}

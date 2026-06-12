@@ -2,9 +2,13 @@ import fs from 'fs'
 import zlib from 'zlib'
 // import getAudioDurationInSeconds from 'get-audio-duration'
 import { Storage } from '@google-cloud/storage'
-import config from '../config'
+import envVar from '../environment-variables'
 
-const { bucket, gcpUrlBase, webUrlBase } = config.storage
+const bucket = envVar.gcs.bucket
+const gcpUrlBase = envVar.gcs.publicBaseUrl
+  ? `${envVar.gcs.publicBaseUrl}/`
+  : `https://storage.googleapis.com/${bucket}/`
+const uploadFilenameMode = process.env.GCS_FILE_NAME_MODE
 
 // gcs上傳相關
 const gcskeyfilePath = './configs/gcskeyfile.json'
@@ -101,9 +105,10 @@ export class GcsFileAdapter {
     // 拆分filenameStoredInLocal,提取裡頭的id以及ext（副檔名）
     // 格式範例：picture-FQMmNZSxjmAoeGFeWNW.png
     const filenameArray = filenameStoredInLocal.split('.')
-    const fileExt = filenameArray.pop()
-    const filenameNameOnlyArray = filenameArray[0].split('-')
-    const fileId = filenameNameOnlyArray[filenameNameOnlyArray.length - 1]
+    const fileExt = filenameArray.pop() ?? ''
+    const filenameNameOnly = filenameArray[0] ?? ''
+    const filenameNameOnlyArray = filenameNameOnly.split('-')
+    const fileId = filenameNameOnlyArray[filenameNameOnlyArray.length - 1] ?? ''
 
     // 將檔案所有資訊丟到this中供他處使用
     this.#filenameStoredInLocal = filenameStoredInLocal
@@ -114,11 +119,11 @@ export class GcsFileAdapter {
     this.#encoding = encoding
 
     // 檔案上傳至GCP的名稱規定為：id.ext
-	if (config.storage.filename == 'original') {
-    	this.#filenameForUploading = `${this.#filename}`
-	} else {
-    	this.#filenameForUploading = `${this.#fileId}.${this.#fileExt}`
-	}
+    if (uploadFilenameMode === 'original') {
+      this.#filenameForUploading = `${this.#filename}`
+    } else {
+      this.#filenameForUploading = `${this.#fileId}.${this.#fileExt}`
+    }
   }
 
   // 上傳細部流程
@@ -154,7 +159,7 @@ export class GcsFileAdapter {
 
   // 上傳檔案至GCS
   #startUpload() {
-    return new Promise((resolve, reject) => {
+    return new Promise<void>((resolve, reject) => {
       this.#fileReadStream = this.#createFileReadStream()
 
       const write = this.#getGcsUploadPipeProcess(
@@ -167,7 +172,11 @@ export class GcsFileAdapter {
     })
   }
 
-  #getGcsUploadPipeProcess(filenameInGcs: string, resolve, reject) {
+  #getGcsUploadPipeProcess(
+    filenameInGcs: string,
+    resolve: () => void,
+    reject: (reason?: unknown) => void
+  ) {
     const fileGcsUrl = `${getFileUrlBase(this.fileType)}${filenameInGcs}`
 
     const file = gcsBucket.file(fileGcsUrl)
@@ -181,7 +190,7 @@ export class GcsFileAdapter {
       // TODO: better error logging
       console.log('error happend')
       console.log(error)
-      reject()
+      reject(error)
     })
     return write
   }
@@ -221,7 +230,7 @@ export class GcsFileAdapter {
     }
   }
 
-  #feedUrlToResolvedData(resolvedData) {
+  #feedUrlToResolvedData(resolvedData: Record<string, any>) {
     switch (this.fileType) {
       case 'image':
         resolvedData.urlOriginal = this.meta.fileUrl
@@ -234,7 +243,7 @@ export class GcsFileAdapter {
   }
 
   // unuse
-  #saveToLocal(filename) {
+  #saveToLocal(filename: string) {
     const savePath = `./public/files/${filename}`
     return fs.createWriteStream(savePath)
   }
@@ -244,7 +253,7 @@ export class GcsFileAdapter {
   }
 }
 
-function getFileUrlBase(fileType) {
+function getFileUrlBase(fileType: string) {
   switch (fileType) {
     case 'audio':
       return 'audios/'

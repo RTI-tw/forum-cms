@@ -83,7 +83,8 @@ export function useFilter(
       list.fields.id.controller as any
     ).idFieldKind
     const trimmedSearch = search.trim()
-    const isValidId = idValidators[idFieldKind](trimmedSearch)
+    const idValidator = idValidators[idFieldKind as keyof typeof idValidators]
+    const isValidId = idValidator?.(trimmedSearch) ?? false
 
     const conditions: Record<string, any>[] = []
     if (isValidId) {
@@ -404,12 +405,15 @@ export const RelationshipSelect = ({
         // This parameter controls the appearance of element in drop-down list component, make it display image if needed.
         // See [Pull Request](https://github.com/mirror-media/Lilith/pull/698) to get more details.
         formatOptionLabel={(option) => {
+          const optionData = (option as {
+            data?: { imageFile?: { url?: string } }
+          }).data
           return (
             <div style={{ display: 'flex', flexDirection: 'row' }}>
               <span>{option.label}</span>
               {list.label === 'Photos' && (
                 <img
-                  src={option?.data?.imageFile?.url}
+                  src={optionData?.imageFile?.url}
                   width={50}
                   height={50}
                   style={{ objectFit: 'cover', marginLeft: 'auto' }}

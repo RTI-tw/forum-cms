@@ -16,6 +16,12 @@ import ForbiddenKeyword from './forbidden-keyword'
 import Video from './video'
 import Image from './image'
 import Ad from './ad'
+import AdSlide from './ad-slide'
+import HomepageImage from './homepage-image'
+import RssKeyword from './rss-keyword'
+import RssTopicMapping from './rss-topic-mapping'
+import Event from './event'
+import EventRegistration from './event-registration'
 
 export const listDefinition = {
   User,
@@ -36,4 +42,10 @@ export const listDefinition = {
   Video,
   Photo: Image,
   Ad,
+  AdSlide,
+  HomepageImage,
+  RssKeyword,
+  RssTopicMapping,
+  Event,
+  EventRegistration,
 }

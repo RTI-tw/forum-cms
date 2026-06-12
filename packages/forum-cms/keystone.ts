@@ -1,9 +1,11 @@
 import "dotenv/config";
 import { config, graphql } from "@keystone-6/core";
+import path from "path";
 import { listDefinition as lists } from "./lists";
 import envVar from "./environment-variables";
 import { computeIsCompleteProfile } from "./utils/member-profile";
 import express from "express";
+import helmet from "helmet";
 import { createAuth } from "@keystone-6/auth";
 import { statelessSessions } from "@keystone-6/core/session";
 import { createPreviewMiniApp } from "./express-mini-apps/preview/app";
@@ -36,6 +38,7 @@ import {
     signMemberSession,
     verifyMemberSession,
 } from "./utils/member-session";
+import { eventRegistrationSchemaExtension } from "./utils/event-registration-gql";
 
 // 获取 createLoginLoggingPlugin 函数（兼容新旧版本）
 // const createLoginLoggingPlugin =
@@ -272,6 +275,30 @@ const AuthenticateMemberWithFirebaseInput = graphql.inputObject({
     },
 });
 
+type MemberStatus = "active" | "inactive" | "banned" | "deleted";
+
+type MemberSessionMemberValue = {
+    id: string;
+    firebaseId: string;
+    customId: string;
+    name: string;
+    nickname: string;
+    isCompleteProfile: boolean;
+    status: MemberStatus;
+    email?: string | null;
+};
+
+type MemberRecord = {
+    id: string | number;
+    firebaseId?: string | null;
+    customId?: string | null;
+    name?: string | null;
+    nickname?: string | null;
+    isCompleteProfile?: boolean | null;
+    status?: MemberStatus | string | null;
+    email?: string | null;
+};
+
 const MemberSessionMember = graphql.object<{
     id: string;
     firebaseId: string;
@@ -317,6 +344,15 @@ const AuthenticateMemberWithFirebaseResult = graphql.object<{
     },
 });
 
+function normalizeMemberStatus(status?: string | null): MemberStatus {
+    return status === "active" ||
+        status === "inactive" ||
+        status === "banned" ||
+        status === "deleted"
+        ? status
+        : "inactive";
+}
+
 function normalizeMemberMemberField(value?: string | null) {
     const normalized = typeof value === "string" ? value.trim() : "";
     return normalized.length > 0 ? normalized : undefined;
@@ -345,15 +381,15 @@ function resolveMemberDisplayName(options: {
     return { name, nickname };
 }
 
-function mapMemberSessionMember(member: any) {
+function mapMemberSessionMember(member: MemberRecord): MemberSessionMemberValue {
     return {
         id: String(member.id),
-        firebaseId: member.firebaseId,
-        customId: member.customId,
-        name: member.name,
-        nickname: member.nickname,
+        firebaseId: member.firebaseId ?? "",
+        customId: member.customId ?? "",
+        name: member.name ?? "",
+        nickname: member.nickname ?? "",
         isCompleteProfile: Boolean(member.isCompleteProfile),
-        status: member.status,
+        status: normalizeMemberStatus(member.status),
         email: member.email ?? null,
     };
 }
@@ -392,11 +428,17 @@ const memberAuthSchemaExtension = graphql.extend(() => ({
 
                 try {
                     const payload = verifyMemberSession(token);
-                    const member = await context.sudo().db.Member.findOne({
+                    const member = (await context.sudo().db.Member.findOne({
                         where: { id: payload.memberId },
-                    });
+                    })) as MemberRecord | null;
 
                     if (!member) {
+                        return null;
+                    }
+
+                    // [AUTH-005] 即使 JWT 簽章有效，仍需封鎖已停權/刪帳會員。
+                    // inactive 是首次註冊後補 profile 的中間狀態，仍需回傳給前端完成流程。
+                    if (isMemberRegistrationBlocked(member.status)) {
                         return null;
                     }
 
@@ -455,47 +497,48 @@ const memberAuthSchemaExtension = graphql.extend(() => ({
                 });
 
                 if (customIdInput) {
-                    const existingByCustomId = await context
+                    const existingByCustomId = (await context
                         .sudo()
                         .db.Member.findOne({
                             where: { customId: customIdInput },
-                        });
+                        })) as MemberRecord | null;
                     if (
                         existingByCustomId &&
                         existingByCustomId.firebaseId !== firebaseId
                     ) {
-                        throw new Error("Custom ID already exists");
+                        // [AUTH-007] 統一回傳通用訊息，避免洩漏帳號列舉資訊
+                        console.log(JSON.stringify({ severity: "INFO", type: "REGISTRATION_FAILED", reason: "duplicate_custom_id", timestamp: new Date().toISOString() }))
+                        throw new Error("Registration failed, please check your input and try again");
                     }
                 }
 
                 if (firebaseEmail) {
-                    const existingByEmail = await context
+                    const existingByEmail = (await context
                         .sudo()
                         .db.Member.findOne({
                             where: { email: firebaseEmail },
-                        });
+                        })) as MemberRecord | null;
                     if (
                         existingByEmail &&
                         existingByEmail.firebaseId !== firebaseId
                     ) {
-                        if (isMemberRegistrationBlocked(existingByEmail.status)) {
-                            throw new Error(
-                                "This email cannot be used to register",
-                            );
-                        }
-                        throw new Error("Email already exists");
+                        // [AUTH-007] 統一回傳通用訊息，避免揭露 email 是否存在或帳號是否被封鎖
+                        console.log(JSON.stringify({ severity: "INFO", type: "REGISTRATION_FAILED", reason: isMemberRegistrationBlocked(existingByEmail.status) ? "blocked_email" : "duplicate_email", timestamp: new Date().toISOString() }))
+                        throw new Error("Registration failed, please check your input and try again");
                     }
                 }
 
-                const existingMember = await context.sudo().db.Member.findOne({
+                const existingMember = (await context.sudo().db.Member.findOne({
                     where: { firebaseId },
-                });
+                })) as MemberRecord | null;
 
-                let member;
+                let member: MemberRecord | null;
 
                 if (existingMember) {
                     if (isMemberRegistrationBlocked(existingMember.status)) {
-                        throw new Error("This member account is not available");
+                        // [AUTH-007] 統一回傳通用訊息
+                        console.log(JSON.stringify({ severity: "INFO", type: "REGISTRATION_FAILED", reason: "blocked_member", timestamp: new Date().toISOString() }))
+                        throw new Error("Registration failed, please check your input and try again");
                     }
                     const updateData: Record<string, any> = {};
                     if (nameInput) {
@@ -524,13 +567,13 @@ const memberAuthSchemaExtension = graphql.extend(() => ({
                     });
 
                     member = Object.keys(updateData).length
-                        ? await context.sudo().db.Member.updateOne({
+                        ? ((await context.sudo().db.Member.updateOne({
                               where: { id: String(existingMember.id) },
                               data: updateData,
-                          })
+                          })) as MemberRecord | null)
                         : existingMember;
                 } else {
-                    member = await context.sudo().db.Member.createOne({
+                    member = (await context.sudo().db.Member.createOne({
                         data: {
                             firebaseId,
                             customId: customIdInput || firebaseId,
@@ -541,7 +584,7 @@ const memberAuthSchemaExtension = graphql.extend(() => ({
                             status: "inactive",
                             verified: Boolean(decoded.email_verified),
                         },
-                    });
+                    })) as MemberRecord | null;
                 }
 
                 if (!member) {
@@ -1043,7 +1086,7 @@ declare global {
 }
 
 const RECAPTCHA_ENABLED = ${RECAPTCHA_ENABLED};
-const RECAPTCHA_SITE_KEY = '${RECAPTCHA_SITE_KEY}';
+const RECAPTCHA_SITE_KEY = ${JSON.stringify(RECAPTCHA_SITE_KEY)}; // [XSS-003] JSON.stringify 防止特殊字元造成 script injection
 
 const REQUEST_PASSWORD_RESET_MUTATION = ${JS_BACKTICK}
   mutation SendUserPasswordResetLink($email: String!) {
@@ -1625,7 +1668,7 @@ declare global {
 }
 
 const RECAPTCHA_ENABLED = ${RECAPTCHA_ENABLED};
-const RECAPTCHA_SITE_KEY = '${RECAPTCHA_SITE_KEY}';
+const RECAPTCHA_SITE_KEY = ${JSON.stringify(RECAPTCHA_SITE_KEY)}; // [XSS-003] JSON.stringify 防止特殊字元造成 script injection
 
 const AUTHENTICATE_MUTATION = ${JS_BACKTICK}
   mutation AuthenticateUserWithPassword($identity: String!, $password: String!) {
@@ -2044,6 +2087,11 @@ export default function SigninPage() {
 
 const customAdminAdditionalFiles = async () => [
   {
+    mode: 'copy' as const,
+    inputPath: path.join(process.cwd(), 'admin/pages/event-checkin.tsx'),
+    outputPath: 'pages/event-checkin.tsx',
+  },
+  {
     mode: 'write' as const,
     outputPath: 'pages/change-password.tsx',
     src: changePasswordPageTemplate,
@@ -2383,6 +2431,7 @@ const graphqlConfig = {
     extendGraphqlSchema: (schema: any) => {
         schema = passwordSchemaExtension(schema);
         schema = memberAuthSchemaExtension(schema);
+        schema = eventRegistrationSchemaExtension(schema);
         return schema;
     },
 };
@@ -2476,9 +2525,147 @@ const baseKeystoneConfig = config({
         },
     },
     server: {
-        maxFileSize: 2000 * 1024 * 1024,
+        // [FILE-002] 從 2000MB 降至 20MB，避免大量 multipart body buffering 造成 DoS。
+        // 需調整時請同步修改 image.ts 的 maxFileSize 與 reverse proxy 設定。
+        maxFileSize: 20 * 1024 * 1024,
         extendExpressApp: (app, context) => {
-            app.use(express.json({ limit: "500mb" }));
+            // [AUTH-001] Server 啟動時驗證必要 secret，缺少或強度不足則中止。
+            // 此處執行而非 module import 時執行，是為了讓 `keystone build` /
+            // `keystone postinstall` 在 build container（無 Cloud Run secret）時能正常完成。
+            ;(function assertRequiredSecrets() {
+                const errors: string[] = []
+                const sessionSecret = process.env.SESSION_SECRET ?? ''
+                const memberSessionSecret = process.env.MEMBER_SESSION_SECRET ?? ''
+                if (!sessionSecret || sessionSecret.length < 32) {
+                    errors.push(
+                        'SESSION_SECRET 必須設定且長度至少 32 字元（目前：' +
+                            (sessionSecret ? `${sessionSecret.length} 字元` : '未設定') +
+                            '）',
+                    )
+                }
+                if (!memberSessionSecret || memberSessionSecret.length < 32) {
+                    errors.push(
+                        'MEMBER_SESSION_SECRET 必須設定且長度至少 32 字元（目前：' +
+                            (memberSessionSecret ? `${memberSessionSecret.length} 字元` : '未設定') +
+                            '）',
+                    )
+                }
+                if (errors.length > 0) {
+                    throw new Error(
+                        '[啟動失敗] 缺少必要 secret 設定，請檢查環境變數：\n' +
+                            errors.join('\n'),
+                    )
+                }
+            })()
+
+            const isProduction = process.env.NODE_ENV === 'production'
+
+            // [CONFIG-001] Security headers：CSP / HSTS / clickjacking / nosniff
+            app.use(
+                helmet({
+                    contentSecurityPolicy: {
+                        directives: {
+                            defaultSrc: ["'self'"],
+                            // [NEW-001] 補上 reCAPTCHA 所需的 Google domains；
+                            // Admin UI 目前仍需 unsafe-inline，待收集 nonce 後收緊。
+                            scriptSrc: [
+                                "'self'",
+                                "'unsafe-inline'",
+                                ...(isProduction ? [] : ["'unsafe-eval'"]),
+                                "https://www.google.com",   // reCAPTCHA api.js
+                                "https://www.gstatic.com",  // reCAPTCHA widget assets
+                            ],
+                            styleSrc: ["'self'", "'unsafe-inline'"],
+                            imgSrc: [
+                                "'self'",
+                                "data:",
+                                "blob:",
+                                "https://storage.googleapis.com",
+                                "https://www.gstatic.com",  // reCAPTCHA images
+                            ],
+                            connectSrc: [
+                                "'self'",
+                                "https://www.google.com",   // reCAPTCHA verification XHR
+                                "https://www.gstatic.com",
+                            ],
+                            frameSrc: [
+                                "https://www.google.com",   // reCAPTCHA v2 iframe challenge
+                            ],
+                            fontSrc: ["'self'", "data:"],
+                            objectSrc: ["'none'"],
+                            frameAncestors: ["'none'"],
+                            ...(isProduction
+                                ? { upgradeInsecureRequests: [] }
+                                : {}),
+                        },
+                    },
+                    hsts: {
+                        maxAge: 31536000,          // 1 year
+                        includeSubDomains: true,
+                        preload: true,
+                    },
+                    frameguard: { action: "deny" },
+                    noSniff: true,
+                    referrerPolicy: { policy: "strict-origin-when-cross-origin" },
+                })
+            );
+
+            app.use(express.json({ limit: "10mb" }));
+
+            // [AUTH-004] Server-side 強制：mustChangePassword 的 session 只允許改密碼相關操作。
+            // 純靠 client-side redirect 會讓攻擊者繞過政策直接打 GraphQL API。
+            app.use("/api/graphql", async (req, res, next) => {
+                try {
+                    const keystoneCtx = await context.withRequest(req, res)
+                    const sess = keystoneCtx.session as any
+                    if (sess?.data) {
+                        const needsChange =
+                            sess.data.mustChangePassword ||
+                            (sess.data.passwordUpdatedAt &&
+                                isPasswordExpired({
+                                    passwordUpdatedAt: sess.data.passwordUpdatedAt,
+                                }))
+                        if (needsChange) {
+                            const query =
+                                typeof (req.body as any)?.query === "string"
+                                    ? (req.body as any).query as string
+                                    : ""
+                            const allowed = [
+                                "updateUser",
+                                "endSession",
+                                "authenticateUserWithPassword",
+                                "sendUserPasswordResetLink",
+                                "redeemUserPasswordResetToken",
+                            ]
+                            // [NEW-002] 改用 word-boundary regex，防止 fragment/comment 中
+                            // 包含允許關鍵字作為子字串而誤判通過。
+                            const isAllowed = allowed.some((op) =>
+                                new RegExp(`\\b${op}\\b`).test(query)
+                            )
+                            if (!isAllowed) {
+                                return res.status(403).json({
+                                    errors: [
+                                        {
+                                            message:
+                                                "請先完成密碼變更才能繼續操作",
+                                            extensions: { code: "PASSWORD_CHANGE_REQUIRED" },
+                                        },
+                                    ],
+                                })
+                            }
+                        }
+                    }
+                } catch {
+                    // session 解析失敗不阻擋請求（未登入狀態）
+                }
+                next()
+            });
+
+            // [FILE-001] 阻擋 keywords.json 公開存取：forbidden keyword 屬於審核敏感資料，
+            // 不應透過 public /files 路徑洩漏，否則攻擊者可得知過濾規則並規避審核。
+            app.get("/files/keywords.json", (_req, res) => {
+                res.status(404).json({ message: "Not found" });
+            });
 
             app.get("/health_check", (_req, res) => {
                 res.status(200).json({ status: "healthy" });

@@ -225,6 +225,8 @@ type Member {
   postsCount(where: PostWhereInput! = {}): Int
   memberPolls(where: PollWhereInput! = {}, orderBy: [PollOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: PollWhereUniqueInput): [Poll!]
   memberPollsCount(where: PollWhereInput! = {}): Int
+  eventRegistrations(where: EventRegistrationWhereInput! = {}, orderBy: [EventRegistrationOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: EventRegistrationWhereUniqueInput): [EventRegistration!]
+  eventRegistrationsCount(where: EventRegistrationWhereInput! = {}): Int
   reactions(where: ReactionWhereInput! = {}, orderBy: [ReactionOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: ReactionWhereUniqueInput): [Reaction!]
   reactionsCount(where: ReactionWhereInput! = {}): Int
   isOfficial: Boolean
@@ -530,6 +532,7 @@ input MemberWhereInput {
   comment: CommentManyRelationFilter
   posts: PostManyRelationFilter
   memberPolls: PollManyRelationFilter
+  eventRegistrations: EventRegistrationManyRelationFilter
   reactions: ReactionManyRelationFilter
   isOfficial: BooleanFilter
   joinDate: DateTimeNullableFilter
@@ -564,6 +567,12 @@ input PollManyRelationFilter {
   every: PollWhereInput
   some: PollWhereInput
   none: PollWhereInput
+}
+
+input EventRegistrationManyRelationFilter {
+  every: EventRegistrationWhereInput
+  some: EventRegistrationWhereInput
+  none: EventRegistrationWhereInput
 }
 
 input ReactionManyRelationFilter {
@@ -619,6 +628,7 @@ input MemberUpdateInput {
   comment: CommentRelateToManyForUpdateInput
   posts: PostRelateToManyForUpdateInput
   memberPolls: PollRelateToManyForUpdateInput
+  eventRegistrations: EventRegistrationRelateToManyForUpdateInput
   reactions: ReactionRelateToManyForUpdateInput
   isOfficial: Boolean
   joinDate: DateTime
@@ -657,6 +667,13 @@ input PollRelateToManyForUpdateInput {
   connect: [PollWhereUniqueInput!]
 }
 
+input EventRegistrationRelateToManyForUpdateInput {
+  disconnect: [EventRegistrationWhereUniqueInput!]
+  set: [EventRegistrationWhereUniqueInput!]
+  create: [EventRegistrationCreateInput!]
+  connect: [EventRegistrationWhereUniqueInput!]
+}
+
 input ReactionRelateToManyForUpdateInput {
   disconnect: [ReactionWhereUniqueInput!]
   set: [ReactionWhereUniqueInput!]
@@ -689,6 +706,7 @@ input MemberCreateInput {
   comment: CommentRelateToManyForCreateInput
   posts: PostRelateToManyForCreateInput
   memberPolls: PollRelateToManyForCreateInput
+  eventRegistrations: EventRegistrationRelateToManyForCreateInput
   reactions: ReactionRelateToManyForCreateInput
   isOfficial: Boolean
   joinDate: DateTime
@@ -718,6 +736,11 @@ input PostRelateToManyForCreateInput {
 input PollRelateToManyForCreateInput {
   create: [PollCreateInput!]
   connect: [PollWhereUniqueInput!]
+}
+
+input EventRegistrationRelateToManyForCreateInput {
+  create: [EventRegistrationCreateInput!]
+  connect: [EventRegistrationWhereUniqueInput!]
 }
 
 input ReactionRelateToManyForCreateInput {
@@ -811,6 +834,7 @@ type Post {
   title_id: String
   title_th: String
   content: String
+  rssSourceUrl: String
   language: PostLanguageType
   content_zh: String
   content_en: String
@@ -825,16 +849,20 @@ type Post {
   displayPendingWarning: Boolean
   isEditorChoice: Boolean
   isLifeGuide: Boolean
+  isRtiChoice: Boolean
   isBoost: Boolean
   editorChoices(where: EditorChoiceWhereInput! = {}, orderBy: [EditorChoiceOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: EditorChoiceWhereUniqueInput): [EditorChoice!]
   editorChoicesCount(where: EditorChoiceWhereInput! = {}): Int
+  events(where: EventWhereInput! = {}, orderBy: [EventOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: EventWhereUniqueInput): [Event!]
+  eventsCount(where: EventWhereInput! = {}): Int
   topics: Topic
   status: PostStatusType
   heroImages(where: PhotoWhereInput! = {}, orderBy: [PhotoOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: PhotoWhereUniqueInput): [Photo!]
   heroImagesCount(where: PhotoWhereInput! = {}): Int
   videos(where: VideoWhereInput! = {}, orderBy: [VideoOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: VideoWhereUniqueInput): [Video!]
   videosCount(where: VideoWhereInput! = {}): Int
-  poll: Poll
+  poll(where: PollWhereInput! = {}, orderBy: [PollOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: PollWhereUniqueInput): [Poll!]
+  pollCount(where: PollWhereInput! = {}): Int
   comments(where: CommentWhereInput! = {}, orderBy: [CommentOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: CommentWhereUniqueInput): [Comment!]
   commentsCount(where: CommentWhereInput! = {}): Int
   commentCount: Int
@@ -868,7 +896,6 @@ enum PostStatusType {
 
 input PostWhereUniqueInput {
   id: ID
-  poll: PollWhereUniqueInput
 }
 
 input PostWhereInput {
@@ -883,6 +910,7 @@ input PostWhereInput {
   title_id: StringFilter
   title_th: StringFilter
   content: StringFilter
+  rssSourceUrl: StringFilter
   language: PostLanguageTypeNullableFilter
   content_zh: StringFilter
   content_en: StringFilter
@@ -896,13 +924,15 @@ input PostWhereInput {
   spamScore: FloatNullableFilter
   isEditorChoice: BooleanFilter
   isLifeGuide: BooleanFilter
+  isRtiChoice: BooleanFilter
   isBoost: BooleanFilter
   editorChoices: EditorChoiceManyRelationFilter
+  events: EventManyRelationFilter
   topics: TopicWhereInput
   status: PostStatusTypeNullableFilter
   heroImages: PhotoManyRelationFilter
   videos: VideoManyRelationFilter
-  poll: PollWhereInput
+  poll: PollManyRelationFilter
   comments: CommentManyRelationFilter
   commentCount: IntNullableFilter
   reactions: ReactionManyRelationFilter
@@ -936,6 +966,12 @@ input EditorChoiceManyRelationFilter {
   every: EditorChoiceWhereInput
   some: EditorChoiceWhereInput
   none: EditorChoiceWhereInput
+}
+
+input EventManyRelationFilter {
+  every: EventWhereInput
+  some: EventWhereInput
+  none: EventWhereInput
 }
 
 input PostStatusTypeNullableFilter {
@@ -972,6 +1008,7 @@ input PostOrderByInput {
   title_id: OrderDirection
   title_th: OrderDirection
   content: OrderDirection
+  rssSourceUrl: OrderDirection
   language: OrderDirection
   content_zh: OrderDirection
   content_en: OrderDirection
@@ -984,6 +1021,7 @@ input PostOrderByInput {
   spamScore: OrderDirection
   isEditorChoice: OrderDirection
   isLifeGuide: OrderDirection
+  isRtiChoice: OrderDirection
   isBoost: OrderDirection
   status: OrderDirection
   commentCount: OrderDirection
@@ -1000,6 +1038,7 @@ input PostUpdateInput {
   title_id: String
   title_th: String
   content: String
+  rssSourceUrl: String
   language: PostLanguageType
   content_zh: String
   content_en: String
@@ -1013,13 +1052,15 @@ input PostUpdateInput {
   spamScore: Float
   isEditorChoice: Boolean
   isLifeGuide: Boolean
+  isRtiChoice: Boolean
   isBoost: Boolean
   editorChoices: EditorChoiceRelateToManyForUpdateInput
+  events: EventRelateToManyForUpdateInput
   topics: TopicRelateToOneForUpdateInput
   status: PostStatusType
   heroImages: PhotoRelateToManyForUpdateInput
   videos: VideoRelateToManyForUpdateInput
-  poll: PollRelateToOneForUpdateInput
+  poll: PollRelateToManyForUpdateInput
   comments: CommentRelateToManyForUpdateInput
   commentCount: Int
   reactions: ReactionRelateToManyForUpdateInput
@@ -1036,6 +1077,13 @@ input EditorChoiceRelateToManyForUpdateInput {
   set: [EditorChoiceWhereUniqueInput!]
   create: [EditorChoiceCreateInput!]
   connect: [EditorChoiceWhereUniqueInput!]
+}
+
+input EventRelateToManyForUpdateInput {
+  disconnect: [EventWhereUniqueInput!]
+  set: [EventWhereUniqueInput!]
+  create: [EventCreateInput!]
+  connect: [EventWhereUniqueInput!]
 }
 
 input TopicRelateToOneForUpdateInput {
@@ -1058,12 +1106,6 @@ input VideoRelateToManyForUpdateInput {
   connect: [VideoWhereUniqueInput!]
 }
 
-input PollRelateToOneForUpdateInput {
-  create: PollCreateInput
-  connect: PollWhereUniqueInput
-  disconnect: Boolean
-}
-
 input ReportRelateToManyForUpdateInput {
   disconnect: [ReportWhereUniqueInput!]
   set: [ReportWhereUniqueInput!]
@@ -1084,6 +1126,7 @@ input PostCreateInput {
   title_id: String
   title_th: String
   content: String
+  rssSourceUrl: String
   language: PostLanguageType
   content_zh: String
   content_en: String
@@ -1097,13 +1140,15 @@ input PostCreateInput {
   spamScore: Float
   isEditorChoice: Boolean
   isLifeGuide: Boolean
+  isRtiChoice: Boolean
   isBoost: Boolean
   editorChoices: EditorChoiceRelateToManyForCreateInput
+  events: EventRelateToManyForCreateInput
   topics: TopicRelateToOneForCreateInput
   status: PostStatusType
   heroImages: PhotoRelateToManyForCreateInput
   videos: VideoRelateToManyForCreateInput
-  poll: PollRelateToOneForCreateInput
+  poll: PollRelateToManyForCreateInput
   comments: CommentRelateToManyForCreateInput
   commentCount: Int
   reactions: ReactionRelateToManyForCreateInput
@@ -1120,6 +1165,11 @@ input EditorChoiceRelateToManyForCreateInput {
   connect: [EditorChoiceWhereUniqueInput!]
 }
 
+input EventRelateToManyForCreateInput {
+  create: [EventCreateInput!]
+  connect: [EventWhereUniqueInput!]
+}
+
 input TopicRelateToOneForCreateInput {
   create: TopicCreateInput
   connect: TopicWhereUniqueInput
@@ -1133,11 +1183,6 @@ input PhotoRelateToManyForCreateInput {
 input VideoRelateToManyForCreateInput {
   create: [VideoCreateInput!]
   connect: [VideoWhereUniqueInput!]
-}
-
-input PollRelateToOneForCreateInput {
-  create: PollCreateInput
-  connect: PollWhereUniqueInput
 }
 
 input ReportRelateToManyForCreateInput {
@@ -1160,6 +1205,8 @@ type Topic {
   description: String
   posts(where: PostWhereInput! = {}, orderBy: [PostOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: PostWhereUniqueInput): [Post!]
   postsCount(where: PostWhereInput! = {}): Int
+  rssTopicMappings(where: RssTopicMappingWhereInput! = {}, orderBy: [RssTopicMappingOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: RssTopicMappingWhereUniqueInput): [RssTopicMapping!]
+  rssTopicMappingsCount(where: RssTopicMappingWhereInput! = {}): Int
   todayPostsCount: Int
   createdAt: DateTime
   updatedAt: DateTime
@@ -1202,6 +1249,7 @@ input TopicWhereInput {
   state: TopicStateTypeNullableFilter
   description: StringFilter
   posts: PostManyRelationFilter
+  rssTopicMappings: RssTopicMappingManyRelationFilter
   createdAt: DateTimeNullableFilter
   updatedAt: DateTimeNullableFilter
   createdBy: UserWhereInput
@@ -1220,6 +1268,12 @@ input TopicStateTypeNullableFilter {
   in: [TopicStateType!]
   notIn: [TopicStateType!]
   not: TopicStateTypeNullableFilter
+}
+
+input RssTopicMappingManyRelationFilter {
+  every: RssTopicMappingWhereInput
+  some: RssTopicMappingWhereInput
+  none: RssTopicMappingWhereInput
 }
 
 input TopicOrderByInput {
@@ -1252,10 +1306,18 @@ input TopicUpdateInput {
   state: TopicStateType
   description: String
   posts: PostRelateToManyForUpdateInput
+  rssTopicMappings: RssTopicMappingRelateToManyForUpdateInput
   createdAt: DateTime
   updatedAt: DateTime
   createdBy: UserRelateToOneForUpdateInput
   updatedBy: UserRelateToOneForUpdateInput
+}
+
+input RssTopicMappingRelateToManyForUpdateInput {
+  disconnect: [RssTopicMappingWhereUniqueInput!]
+  set: [RssTopicMappingWhereUniqueInput!]
+  create: [RssTopicMappingCreateInput!]
+  connect: [RssTopicMappingWhereUniqueInput!]
 }
 
 input TopicUpdateArgs {
@@ -1276,10 +1338,16 @@ input TopicCreateInput {
   state: TopicStateType
   description: String
   posts: PostRelateToManyForCreateInput
+  rssTopicMappings: RssTopicMappingRelateToManyForCreateInput
   createdAt: DateTime
   updatedAt: DateTime
   createdBy: UserRelateToOneForCreateInput
   updatedBy: UserRelateToOneForCreateInput
+}
+
+input RssTopicMappingRelateToManyForCreateInput {
+  create: [RssTopicMappingCreateInput!]
+  connect: [RssTopicMappingWhereUniqueInput!]
 }
 
 type EditorChoice {
@@ -1706,7 +1774,6 @@ type Poll {
 
 input PollWhereUniqueInput {
   id: ID
-  post: PostWhereUniqueInput
 }
 
 input PollWhereInput {
@@ -1871,6 +1938,12 @@ input PollOptionUpdateInput {
   updatedBy: UserRelateToOneForUpdateInput
 }
 
+input PollRelateToOneForUpdateInput {
+  create: PollCreateInput
+  connect: PollWhereUniqueInput
+  disconnect: Boolean
+}
+
 input PollOptionUpdateArgs {
   where: PollOptionWhereUniqueInput!
   data: PollOptionUpdateInput!
@@ -1889,6 +1962,11 @@ input PollOptionCreateInput {
   updatedAt: DateTime
   createdBy: UserRelateToOneForCreateInput
   updatedBy: UserRelateToOneForCreateInput
+}
+
+input PollRelateToOneForCreateInput {
+  create: PollCreateInput
+  connect: PollWhereUniqueInput
 }
 
 type PollVote {
@@ -2577,11 +2655,16 @@ input PhotoCreateInput {
 type Ad {
   id: ID!
   title: String
+  format: AdFormatType
   startAt: DateTime
   endAt: DateTime
   status: AdStatusType
   image: Photo
+  slides(where: AdSlideWhereInput! = {}, orderBy: [AdSlideOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: AdSlideWhereUniqueInput): [AdSlide!]
+  slidesCount(where: AdSlideWhereInput! = {}): Int
   videoUrl: String
+  videoFile: FileFieldOutput
+  adCode: String
   linkUrl: String
   createdAt: DateTime
   updatedAt: DateTime
@@ -2589,10 +2672,23 @@ type Ad {
   updatedBy: User
 }
 
+enum AdFormatType {
+  single_image
+  carousel
+  video
+  third_party
+}
+
 enum AdStatusType {
   draft
   active
   finished
+}
+
+type FileFieldOutput {
+  filename: String!
+  filesize: Int!
+  url: String!
 }
 
 input AdWhereUniqueInput {
@@ -2605,16 +2701,26 @@ input AdWhereInput {
   NOT: [AdWhereInput!]
   id: IDFilter
   title: StringFilter
+  format: AdFormatTypeNullableFilter
   startAt: DateTimeNullableFilter
   endAt: DateTimeNullableFilter
   status: AdStatusTypeNullableFilter
   image: PhotoWhereInput
+  slides: AdSlideManyRelationFilter
   videoUrl: StringFilter
+  adCode: StringFilter
   linkUrl: StringFilter
   createdAt: DateTimeNullableFilter
   updatedAt: DateTimeNullableFilter
   createdBy: UserWhereInput
   updatedBy: UserWhereInput
+}
+
+input AdFormatTypeNullableFilter {
+  equals: AdFormatType
+  in: [AdFormatType!]
+  notIn: [AdFormatType!]
+  not: AdFormatTypeNullableFilter
 }
 
 input AdStatusTypeNullableFilter {
@@ -2624,13 +2730,21 @@ input AdStatusTypeNullableFilter {
   not: AdStatusTypeNullableFilter
 }
 
+input AdSlideManyRelationFilter {
+  every: AdSlideWhereInput
+  some: AdSlideWhereInput
+  none: AdSlideWhereInput
+}
+
 input AdOrderByInput {
   id: OrderDirection
   title: OrderDirection
+  format: OrderDirection
   startAt: OrderDirection
   endAt: OrderDirection
   status: OrderDirection
   videoUrl: OrderDirection
+  adCode: OrderDirection
   linkUrl: OrderDirection
   createdAt: OrderDirection
   updatedAt: OrderDirection
@@ -2638,16 +2752,31 @@ input AdOrderByInput {
 
 input AdUpdateInput {
   title: String
+  format: AdFormatType
   startAt: DateTime
   endAt: DateTime
   status: AdStatusType
   image: PhotoRelateToOneForUpdateInput
+  slides: AdSlideRelateToManyForUpdateInput
   videoUrl: String
+  videoFile: FileFieldInput
+  adCode: String
   linkUrl: String
   createdAt: DateTime
   updatedAt: DateTime
   createdBy: UserRelateToOneForUpdateInput
   updatedBy: UserRelateToOneForUpdateInput
+}
+
+input AdSlideRelateToManyForUpdateInput {
+  disconnect: [AdSlideWhereUniqueInput!]
+  set: [AdSlideWhereUniqueInput!]
+  create: [AdSlideCreateInput!]
+  connect: [AdSlideWhereUniqueInput!]
+}
+
+input FileFieldInput {
+  upload: Upload!
 }
 
 input AdUpdateArgs {
@@ -2657,16 +2786,542 @@ input AdUpdateArgs {
 
 input AdCreateInput {
   title: String
+  format: AdFormatType
   startAt: DateTime
   endAt: DateTime
   status: AdStatusType
   image: PhotoRelateToOneForCreateInput
+  slides: AdSlideRelateToManyForCreateInput
   videoUrl: String
+  videoFile: FileFieldInput
+  adCode: String
   linkUrl: String
   createdAt: DateTime
   updatedAt: DateTime
   createdBy: UserRelateToOneForCreateInput
   updatedBy: UserRelateToOneForCreateInput
+}
+
+input AdSlideRelateToManyForCreateInput {
+  create: [AdSlideCreateInput!]
+  connect: [AdSlideWhereUniqueInput!]
+}
+
+type AdSlide {
+  id: ID!
+  ad: Ad
+  image: Photo
+  linkUrl: String
+  sortOrder: Int
+  createdAt: DateTime
+  updatedAt: DateTime
+  createdBy: User
+  updatedBy: User
+}
+
+input AdSlideWhereUniqueInput {
+  id: ID
+}
+
+input AdSlideWhereInput {
+  AND: [AdSlideWhereInput!]
+  OR: [AdSlideWhereInput!]
+  NOT: [AdSlideWhereInput!]
+  id: IDFilter
+  ad: AdWhereInput
+  image: PhotoWhereInput
+  linkUrl: StringFilter
+  sortOrder: IntNullableFilter
+  createdAt: DateTimeNullableFilter
+  updatedAt: DateTimeNullableFilter
+  createdBy: UserWhereInput
+  updatedBy: UserWhereInput
+}
+
+input AdSlideOrderByInput {
+  id: OrderDirection
+  linkUrl: OrderDirection
+  sortOrder: OrderDirection
+  createdAt: OrderDirection
+  updatedAt: OrderDirection
+}
+
+input AdSlideUpdateInput {
+  ad: AdRelateToOneForUpdateInput
+  image: PhotoRelateToOneForUpdateInput
+  linkUrl: String
+  sortOrder: Int
+  createdAt: DateTime
+  updatedAt: DateTime
+  createdBy: UserRelateToOneForUpdateInput
+  updatedBy: UserRelateToOneForUpdateInput
+}
+
+input AdRelateToOneForUpdateInput {
+  create: AdCreateInput
+  connect: AdWhereUniqueInput
+  disconnect: Boolean
+}
+
+input AdSlideUpdateArgs {
+  where: AdSlideWhereUniqueInput!
+  data: AdSlideUpdateInput!
+}
+
+input AdSlideCreateInput {
+  ad: AdRelateToOneForCreateInput
+  image: PhotoRelateToOneForCreateInput
+  linkUrl: String
+  sortOrder: Int
+  createdAt: DateTime
+  updatedAt: DateTime
+  createdBy: UserRelateToOneForCreateInput
+  updatedBy: UserRelateToOneForCreateInput
+}
+
+input AdRelateToOneForCreateInput {
+  create: AdCreateInput
+  connect: AdWhereUniqueInput
+}
+
+type HomepageImage {
+  id: ID!
+  title: String
+  image: Photo
+  linkUrl: String
+  sortOrder: Int
+  status: HomepageImageStatusType
+  createdAt: DateTime
+  updatedAt: DateTime
+  createdBy: User
+  updatedBy: User
+}
+
+enum HomepageImageStatusType {
+  draft
+  active
+  inactive
+}
+
+input HomepageImageWhereUniqueInput {
+  id: ID
+}
+
+input HomepageImageWhereInput {
+  AND: [HomepageImageWhereInput!]
+  OR: [HomepageImageWhereInput!]
+  NOT: [HomepageImageWhereInput!]
+  id: IDFilter
+  title: StringFilter
+  image: PhotoWhereInput
+  linkUrl: StringFilter
+  sortOrder: IntNullableFilter
+  status: HomepageImageStatusTypeNullableFilter
+  createdAt: DateTimeNullableFilter
+  updatedAt: DateTimeNullableFilter
+  createdBy: UserWhereInput
+  updatedBy: UserWhereInput
+}
+
+input HomepageImageStatusTypeNullableFilter {
+  equals: HomepageImageStatusType
+  in: [HomepageImageStatusType!]
+  notIn: [HomepageImageStatusType!]
+  not: HomepageImageStatusTypeNullableFilter
+}
+
+input HomepageImageOrderByInput {
+  id: OrderDirection
+  title: OrderDirection
+  linkUrl: OrderDirection
+  sortOrder: OrderDirection
+  status: OrderDirection
+  createdAt: OrderDirection
+  updatedAt: OrderDirection
+}
+
+input HomepageImageUpdateInput {
+  title: String
+  image: PhotoRelateToOneForUpdateInput
+  linkUrl: String
+  sortOrder: Int
+  status: HomepageImageStatusType
+  createdAt: DateTime
+  updatedAt: DateTime
+  createdBy: UserRelateToOneForUpdateInput
+  updatedBy: UserRelateToOneForUpdateInput
+}
+
+input HomepageImageUpdateArgs {
+  where: HomepageImageWhereUniqueInput!
+  data: HomepageImageUpdateInput!
+}
+
+input HomepageImageCreateInput {
+  title: String
+  image: PhotoRelateToOneForCreateInput
+  linkUrl: String
+  sortOrder: Int
+  status: HomepageImageStatusType
+  createdAt: DateTime
+  updatedAt: DateTime
+  createdBy: UserRelateToOneForCreateInput
+  updatedBy: UserRelateToOneForCreateInput
+}
+
+type RssKeyword {
+  id: ID!
+  keyword: String
+  language: RssKeywordLanguageType
+  note: String
+  isEnabled: Boolean
+type Event {
+  id: ID!
+  slug: String
+  post: Post
+  externalLink: String
+  startAt: DateTime
+  endAt: DateTime
+  registrationStartAt: DateTime
+  registrationEndAt: DateTime
+  checkInStartAt: DateTime
+  checkInEndAt: DateTime
+  capacity: Int
+  registrations(where: EventRegistrationWhereInput! = {}, orderBy: [EventRegistrationOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: EventRegistrationWhereUniqueInput): [EventRegistration!]
+  registrationsCount(where: EventRegistrationWhereInput! = {}): Int
+  createdAt: DateTime
+  updatedAt: DateTime
+  createdBy: User
+  updatedBy: User
+}
+
+enum RssKeywordLanguageType {
+  zh
+  en
+  vi
+  id
+  th
+}
+
+input RssKeywordWhereUniqueInput {
+  id: ID
+  keyword: String
+}
+
+input RssKeywordWhereInput {
+  AND: [RssKeywordWhereInput!]
+  OR: [RssKeywordWhereInput!]
+  NOT: [RssKeywordWhereInput!]
+  id: IDFilter
+  keyword: StringFilter
+  language: RssKeywordLanguageTypeNullableFilter
+  note: StringFilter
+  isEnabled: BooleanFilter
+input EventWhereUniqueInput {
+  id: ID
+  slug: String
+}
+
+input EventWhereInput {
+  AND: [EventWhereInput!]
+  OR: [EventWhereInput!]
+  NOT: [EventWhereInput!]
+  id: IDFilter
+  slug: StringFilter
+  post: PostWhereInput
+  externalLink: StringFilter
+  startAt: DateTimeNullableFilter
+  endAt: DateTimeNullableFilter
+  registrationStartAt: DateTimeNullableFilter
+  registrationEndAt: DateTimeNullableFilter
+  checkInStartAt: DateTimeNullableFilter
+  checkInEndAt: DateTimeNullableFilter
+  capacity: IntNullableFilter
+  registrations: EventRegistrationManyRelationFilter
+  createdAt: DateTimeNullableFilter
+  updatedAt: DateTimeNullableFilter
+  createdBy: UserWhereInput
+  updatedBy: UserWhereInput
+}
+
+input RssKeywordLanguageTypeNullableFilter {
+  equals: RssKeywordLanguageType
+  in: [RssKeywordLanguageType!]
+  notIn: [RssKeywordLanguageType!]
+  not: RssKeywordLanguageTypeNullableFilter
+}
+
+input RssKeywordOrderByInput {
+  id: OrderDirection
+  keyword: OrderDirection
+  language: OrderDirection
+  note: OrderDirection
+  isEnabled: OrderDirection
+input EventOrderByInput {
+  id: OrderDirection
+  slug: OrderDirection
+  externalLink: OrderDirection
+  startAt: OrderDirection
+  endAt: OrderDirection
+  registrationStartAt: OrderDirection
+  registrationEndAt: OrderDirection
+  checkInStartAt: OrderDirection
+  checkInEndAt: OrderDirection
+  capacity: OrderDirection
+  createdAt: OrderDirection
+  updatedAt: OrderDirection
+}
+
+input RssKeywordUpdateInput {
+  keyword: String
+  language: RssKeywordLanguageType
+  note: String
+  isEnabled: Boolean
+input EventUpdateInput {
+  slug: String
+  post: PostRelateToOneForUpdateInput
+  externalLink: String
+  startAt: DateTime
+  endAt: DateTime
+  registrationStartAt: DateTime
+  registrationEndAt: DateTime
+  checkInStartAt: DateTime
+  checkInEndAt: DateTime
+  capacity: Int
+  registrations: EventRegistrationRelateToManyForUpdateInput
+  createdAt: DateTime
+  updatedAt: DateTime
+  createdBy: UserRelateToOneForUpdateInput
+  updatedBy: UserRelateToOneForUpdateInput
+}
+
+input RssKeywordUpdateArgs {
+  where: RssKeywordWhereUniqueInput!
+  data: RssKeywordUpdateInput!
+}
+
+input RssKeywordCreateInput {
+  keyword: String
+  language: RssKeywordLanguageType
+  note: String
+  isEnabled: Boolean
+input EventUpdateArgs {
+  where: EventWhereUniqueInput!
+  data: EventUpdateInput!
+}
+
+input EventCreateInput {
+  slug: String
+  post: PostRelateToOneForCreateInput
+  externalLink: String
+  startAt: DateTime
+  endAt: DateTime
+  registrationStartAt: DateTime
+  registrationEndAt: DateTime
+  checkInStartAt: DateTime
+  checkInEndAt: DateTime
+  capacity: Int
+  registrations: EventRegistrationRelateToManyForCreateInput
+  createdAt: DateTime
+  updatedAt: DateTime
+  createdBy: UserRelateToOneForCreateInput
+  updatedBy: UserRelateToOneForCreateInput
+}
+
+type RssTopicMapping {
+  id: ID!
+  rssTopic: String
+  topic: Topic
+  isEnabled: Boolean
+  note: String
+type EventRegistration {
+  id: ID!
+  event: Event
+  member: Member
+  status: EventRegistrationStatusType
+  registeredAt: DateTime
+  checkedInAt: DateTime
+  checkedInBy: User
+  cancelledAt: DateTime
+  cancelledBy: User
+  identityType: EventRegistrationIdentityTypeType
+  identityMasked: String
+  phoneMasked: String
+  checkInNotes: String
+  createdAt: DateTime
+  updatedAt: DateTime
+  createdBy: User
+  updatedBy: User
+}
+
+input RssTopicMappingWhereUniqueInput {
+  id: ID
+  rssTopic: String
+}
+
+input RssTopicMappingWhereInput {
+  AND: [RssTopicMappingWhereInput!]
+  OR: [RssTopicMappingWhereInput!]
+  NOT: [RssTopicMappingWhereInput!]
+  id: IDFilter
+  rssTopic: StringFilter
+  topic: TopicWhereInput
+  isEnabled: BooleanFilter
+  note: StringFilter
+enum EventRegistrationStatusType {
+  registered
+  checkedIn
+  cancelled
+}
+
+enum EventRegistrationIdentityTypeType {
+  national_id
+  resident_certificate
+}
+
+input EventRegistrationWhereUniqueInput {
+  id: ID
+}
+
+input EventRegistrationWhereInput {
+  AND: [EventRegistrationWhereInput!]
+  OR: [EventRegistrationWhereInput!]
+  NOT: [EventRegistrationWhereInput!]
+  id: IDFilter
+  event: EventWhereInput
+  member: MemberWhereInput
+  status: EventRegistrationStatusTypeNullableFilter
+  registeredAt: DateTimeNullableFilter
+  checkedInAt: DateTimeNullableFilter
+  checkedInBy: UserWhereInput
+  cancelledAt: DateTimeNullableFilter
+  cancelledBy: UserWhereInput
+  identityType: EventRegistrationIdentityTypeTypeNullableFilter
+  identityMasked: StringNullableFilter
+  phoneMasked: StringNullableFilter
+  checkInNotes: StringFilter
+  createdAt: DateTimeNullableFilter
+  updatedAt: DateTimeNullableFilter
+  createdBy: UserWhereInput
+  updatedBy: UserWhereInput
+}
+
+input RssTopicMappingOrderByInput {
+  id: OrderDirection
+  rssTopic: OrderDirection
+  isEnabled: OrderDirection
+  note: OrderDirection
+input EventRegistrationStatusTypeNullableFilter {
+  equals: EventRegistrationStatusType
+  in: [EventRegistrationStatusType!]
+  notIn: [EventRegistrationStatusType!]
+  not: EventRegistrationStatusTypeNullableFilter
+}
+
+input EventRegistrationIdentityTypeTypeNullableFilter {
+  equals: EventRegistrationIdentityTypeType
+  in: [EventRegistrationIdentityTypeType!]
+  notIn: [EventRegistrationIdentityTypeType!]
+  not: EventRegistrationIdentityTypeTypeNullableFilter
+}
+
+input StringNullableFilter {
+  equals: String
+  in: [String!]
+  notIn: [String!]
+  lt: String
+  lte: String
+  gt: String
+  gte: String
+  contains: String
+  startsWith: String
+  endsWith: String
+  mode: QueryMode
+  not: StringNullableFilter
+}
+
+input EventRegistrationOrderByInput {
+  id: OrderDirection
+  status: OrderDirection
+  registeredAt: OrderDirection
+  checkedInAt: OrderDirection
+  cancelledAt: OrderDirection
+  identityType: OrderDirection
+  identityMasked: OrderDirection
+  phoneMasked: OrderDirection
+  checkInNotes: OrderDirection
+  createdAt: OrderDirection
+  updatedAt: OrderDirection
+}
+
+input RssTopicMappingUpdateInput {
+  rssTopic: String
+  topic: TopicRelateToOneForUpdateInput
+  isEnabled: Boolean
+  note: String
+input EventRegistrationUpdateInput {
+  event: EventRelateToOneForUpdateInput
+  member: MemberRelateToOneForUpdateInput
+  status: EventRegistrationStatusType
+  registeredAt: DateTime
+  checkedInAt: DateTime
+  checkedInBy: UserRelateToOneForUpdateInput
+  cancelledAt: DateTime
+  cancelledBy: UserRelateToOneForUpdateInput
+  identityType: EventRegistrationIdentityTypeType
+  identityMasked: String
+  phoneMasked: String
+  checkInNotes: String
+  createdAt: DateTime
+  updatedAt: DateTime
+  createdBy: UserRelateToOneForUpdateInput
+  updatedBy: UserRelateToOneForUpdateInput
+}
+
+input RssTopicMappingUpdateArgs {
+  where: RssTopicMappingWhereUniqueInput!
+  data: RssTopicMappingUpdateInput!
+}
+
+input RssTopicMappingCreateInput {
+  rssTopic: String
+  topic: TopicRelateToOneForCreateInput
+  isEnabled: Boolean
+  note: String
+input EventRelateToOneForUpdateInput {
+  create: EventCreateInput
+  connect: EventWhereUniqueInput
+  disconnect: Boolean
+}
+
+input EventRegistrationUpdateArgs {
+  where: EventRegistrationWhereUniqueInput!
+  data: EventRegistrationUpdateInput!
+}
+
+input EventRegistrationCreateInput {
+  event: EventRelateToOneForCreateInput
+  member: MemberRelateToOneForCreateInput
+  status: EventRegistrationStatusType
+  registeredAt: DateTime
+  checkedInAt: DateTime
+  checkedInBy: UserRelateToOneForCreateInput
+  cancelledAt: DateTime
+  cancelledBy: UserRelateToOneForCreateInput
+  identityType: EventRegistrationIdentityTypeType
+  identityMasked: String
+  phoneMasked: String
+  checkInNotes: String
+  createdAt: DateTime
+  updatedAt: DateTime
+  createdBy: UserRelateToOneForCreateInput
+  updatedBy: UserRelateToOneForCreateInput
+}
+
+
+input EventRelateToOneForCreateInput {
+  create: EventCreateInput
+  connect: EventWhereUniqueInput
 }
 
 """
@@ -2783,6 +3438,42 @@ type Mutation {
   updateAds(data: [AdUpdateArgs!]!): [Ad]
   deleteAd(where: AdWhereUniqueInput!): Ad
   deleteAds(where: [AdWhereUniqueInput!]!): [Ad]
+  createAdSlide(data: AdSlideCreateInput!): AdSlide
+  createAdSlides(data: [AdSlideCreateInput!]!): [AdSlide]
+  updateAdSlide(where: AdSlideWhereUniqueInput!, data: AdSlideUpdateInput!): AdSlide
+  updateAdSlides(data: [AdSlideUpdateArgs!]!): [AdSlide]
+  deleteAdSlide(where: AdSlideWhereUniqueInput!): AdSlide
+  deleteAdSlides(where: [AdSlideWhereUniqueInput!]!): [AdSlide]
+  createHomepageImage(data: HomepageImageCreateInput!): HomepageImage
+  createHomepageImages(data: [HomepageImageCreateInput!]!): [HomepageImage]
+  updateHomepageImage(where: HomepageImageWhereUniqueInput!, data: HomepageImageUpdateInput!): HomepageImage
+  updateHomepageImages(data: [HomepageImageUpdateArgs!]!): [HomepageImage]
+  deleteHomepageImage(where: HomepageImageWhereUniqueInput!): HomepageImage
+  deleteHomepageImages(where: [HomepageImageWhereUniqueInput!]!): [HomepageImage]
+  createRssKeyword(data: RssKeywordCreateInput!): RssKeyword
+  createRssKeywords(data: [RssKeywordCreateInput!]!): [RssKeyword]
+  updateRssKeyword(where: RssKeywordWhereUniqueInput!, data: RssKeywordUpdateInput!): RssKeyword
+  updateRssKeywords(data: [RssKeywordUpdateArgs!]!): [RssKeyword]
+  deleteRssKeyword(where: RssKeywordWhereUniqueInput!): RssKeyword
+  deleteRssKeywords(where: [RssKeywordWhereUniqueInput!]!): [RssKeyword]
+  createRssTopicMapping(data: RssTopicMappingCreateInput!): RssTopicMapping
+  createRssTopicMappings(data: [RssTopicMappingCreateInput!]!): [RssTopicMapping]
+  updateRssTopicMapping(where: RssTopicMappingWhereUniqueInput!, data: RssTopicMappingUpdateInput!): RssTopicMapping
+  updateRssTopicMappings(data: [RssTopicMappingUpdateArgs!]!): [RssTopicMapping]
+  deleteRssTopicMapping(where: RssTopicMappingWhereUniqueInput!): RssTopicMapping
+  deleteRssTopicMappings(where: [RssTopicMappingWhereUniqueInput!]!): [RssTopicMapping]
+  createEvent(data: EventCreateInput!): Event
+  createEvents(data: [EventCreateInput!]!): [Event]
+  updateEvent(where: EventWhereUniqueInput!, data: EventUpdateInput!): Event
+  updateEvents(data: [EventUpdateArgs!]!): [Event]
+  deleteEvent(where: EventWhereUniqueInput!): Event
+  deleteEvents(where: [EventWhereUniqueInput!]!): [Event]
+  createEventRegistration(data: EventRegistrationCreateInput!): EventRegistration
+  createEventRegistrations(data: [EventRegistrationCreateInput!]!): [EventRegistration]
+  updateEventRegistration(where: EventRegistrationWhereUniqueInput!, data: EventRegistrationUpdateInput!): EventRegistration
+  updateEventRegistrations(data: [EventRegistrationUpdateArgs!]!): [EventRegistration]
+  deleteEventRegistration(where: EventRegistrationWhereUniqueInput!): EventRegistration
+  deleteEventRegistrations(where: [EventRegistrationWhereUniqueInput!]!): [EventRegistration]
   endSession: Boolean!
   authenticateUserWithPassword(email: String!, password: String!): UserAuthenticationWithPasswordResult
   createInitialUser(data: CreateInitialUserInput!): UserAuthenticationWithPasswordSuccess!
@@ -2790,6 +3481,78 @@ type Mutation {
   redeemUserPasswordResetToken(email: String!, token: String!, password: String!): RedeemUserPasswordResetTokenResult
   changeMyPassword(data: ChangeMyPasswordInput!): ChangeMyPasswordResult!
   authenticateMemberWithFirebase(data: AuthenticateMemberWithFirebaseInput!): AuthenticateMemberWithFirebaseResult!
+  registerForEvent(data: RegisterForEventInput!): MemberEventRegistrationResult!
+  issueEventCheckInQrToken(registrationId: ID!): EventCheckInQrTokenResult!
+  confirmEventCheckIn(token: String!): EventCheckInPreviewResult!
+}
+
+type MemberEventRegistrationResult {
+  id: ID!
+  status: String
+  registeredAt: String
+  checkedInAt: String
+  identityMasked: String
+  phoneMasked: String
+  event: EventRegistrationEventResult!
+}
+
+type EventRegistrationEventResult {
+  id: ID!
+  title: String
+  slug: String
+  content: String
+  externalLink: String
+  status: String
+  startAt: String
+  endAt: String
+  registrationStartAt: String
+  registrationEndAt: String
+  checkInStartAt: String
+  checkInEndAt: String
+  capacity: Int
+  images: [EventRegistrationEventImageResult!]!
+  registrationCount: Int!
+  remainingCapacity: Int
+  isRegistrationOpen: Boolean!
+}
+
+type EventRegistrationEventImageResult {
+  id: ID!
+  name: String
+  urlOriginal: String
+  altText: String
+  caption: String
+  sortOrder: Int
+}
+
+input RegisterForEventInput {
+  eventSlug: String!
+  identityType: String!
+  identityNumber: String!
+  phoneNumber: String!
+}
+
+type EventCheckInQrTokenResult {
+  token: String!
+  issuedAt: String!
+}
+
+type EventCheckInPreviewResult {
+  ok: Boolean!
+  canCheckIn: Boolean!
+  code: String!
+  message: String!
+  registrationId: ID
+  registrationStatus: String
+  eventId: ID
+  eventTitle: String
+  eventSlug: String
+  memberId: ID
+  memberName: String
+  memberNickname: String
+  memberEmail: String
+  registeredAt: String
+  checkedInAt: String
 }
 
 type AuthenticateMemberWithFirebaseResult {
@@ -2910,10 +3673,31 @@ type Query {
   ad(where: AdWhereUniqueInput!): Ad
   ads(where: AdWhereInput! = {}, orderBy: [AdOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: AdWhereUniqueInput): [Ad!]
   adsCount(where: AdWhereInput! = {}): Int
+  adSlide(where: AdSlideWhereUniqueInput!): AdSlide
+  adSlides(where: AdSlideWhereInput! = {}, orderBy: [AdSlideOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: AdSlideWhereUniqueInput): [AdSlide!]
+  adSlidesCount(where: AdSlideWhereInput! = {}): Int
+  homepageImage(where: HomepageImageWhereUniqueInput!): HomepageImage
+  homepageImages(where: HomepageImageWhereInput! = {}, orderBy: [HomepageImageOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: HomepageImageWhereUniqueInput): [HomepageImage!]
+  homepageImagesCount(where: HomepageImageWhereInput! = {}): Int
+  rssKeyword(where: RssKeywordWhereUniqueInput!): RssKeyword
+  rssKeywords(where: RssKeywordWhereInput! = {}, orderBy: [RssKeywordOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: RssKeywordWhereUniqueInput): [RssKeyword!]
+  rssKeywordsCount(where: RssKeywordWhereInput! = {}): Int
+  rssTopicMapping(where: RssTopicMappingWhereUniqueInput!): RssTopicMapping
+  rssTopicMappings(where: RssTopicMappingWhereInput! = {}, orderBy: [RssTopicMappingOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: RssTopicMappingWhereUniqueInput): [RssTopicMapping!]
+  rssTopicMappingsCount(where: RssTopicMappingWhereInput! = {}): Int
+  event(where: EventWhereUniqueInput!): Event
+  events(where: EventWhereInput! = {}, orderBy: [EventOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: EventWhereUniqueInput): [Event!]
+  eventsCount(where: EventWhereInput! = {}): Int
+  eventRegistration(where: EventRegistrationWhereUniqueInput!): EventRegistration
+  eventRegistrations(where: EventRegistrationWhereInput! = {}, orderBy: [EventRegistrationOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: EventRegistrationWhereUniqueInput): [EventRegistration!]
+  eventRegistrationsCount(where: EventRegistrationWhereInput! = {}): Int
   keystone: KeystoneMeta!
   authenticatedItem: AuthenticatedItem
   validateUserPasswordResetToken(email: String!, token: String!): ValidateUserPasswordResetTokenResult
   authenticatedMember: MemberSessionMember
+  eventBySlug(slug: String!): EventRegistrationEventResult
+  myEventRegistrations: [MemberEventRegistrationResult!]!
+  previewEventCheckInToken(token: String!): EventCheckInPreviewResult!
 }
 
 union AuthenticatedItem = User

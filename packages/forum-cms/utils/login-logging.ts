@@ -9,6 +9,35 @@ import { verifyRecaptchaToken } from './recaptcha'
 import { GraphQLError } from 'graphql'
 
 const LOGIN_IDENTITY_KEYS = ['identity', 'email', 'username']
+
+// [AUTH-006] 密碼重設 server-side rate limit（reCAPTCHA 停用時仍有效）。
+// 注意：多 replica 部署建議改為 Redis-backed 計數器以保持一致性。
+const RESET_WINDOW_MS = 15 * 60 * 1000   // 15 分鐘滑動視窗
+const RESET_MAX_ATTEMPTS = 5              // 同一 email+IP 最多 5 次
+
+interface RateLimitEntry { count: number; expiresAt: number }
+const passwordResetRateMap = new Map<string, RateLimitEntry>()
+
+function checkPasswordResetRateLimit(email: string, ip: string): boolean {
+  const key = `${email.toLowerCase().trim()}::${ip}`
+  const now = Date.now()
+  const entry = passwordResetRateMap.get(key)
+  if (!entry || entry.expiresAt < now) {
+    passwordResetRateMap.set(key, { count: 1, expiresAt: now + RESET_WINDOW_MS })
+    return true
+  }
+  if (entry.count >= RESET_MAX_ATTEMPTS) return false
+  entry.count++
+  return true
+}
+
+// [NEW-003] 每小時清除過期的 rate limit 項目，防止 Map 無限增長。
+setInterval(() => {
+  const now = Date.now()
+  for (const [key, entry] of passwordResetRateMap) {
+    if (entry.expiresAt < now) passwordResetRateMap.delete(key)
+  }
+}, 60 * 60 * 1000).unref() // .unref() 確保此 timer 不阻止 process 正常退出
 const USER_QUERY_FIELDS =
   'id email name loginFailedAttempts accountLockedUntil lastFailedLoginAt passwordUpdatedAt mustChangePassword'
 
@@ -69,6 +98,22 @@ function extractRecaptchaToken(requestContext: any): string | undefined {
   }
 
   return undefined
+}
+
+// [AUTH-003] lockout 更新只允許用精確 email 查詢，防止 name/email prefix 觸發其他帳號的 lockout。
+async function findUserByExactEmail(contextValue: any, email: string | undefined) {
+  if (!email || !contextValue) return null
+  const trimmed = email.trim().toLowerCase()
+  if (!trimmed || !trimmed.includes('@')) return null
+  try {
+    const user = await contextValue.sudo().query.User.findOne({
+      where: { email: trimmed },
+      query: USER_QUERY_FIELDS,
+    })
+    return user ?? null
+  } catch {
+    return null
+  }
 }
 
 async function findUserByIdentity(contextValue: any, identity: string | undefined) {
@@ -151,6 +196,28 @@ export const createLoginLoggingPlugin = () => {
       // This avoids throwing in requestDidStart which causes a 500 error
       let lockoutError: GraphQLError | null = null
       let recaptchaError: GraphQLError | null = null
+
+      // [AUTH-006] Server-side rate limit for password reset（reCAPTCHA 停用時仍有效）
+      if (isPasswordResetRequest) {
+        const resetEmail = requestContext.request?.variables?.email ?? ''
+        if (!checkPasswordResetRateLimit(String(resetEmail), String(clientIp))) {
+          // 超過限制：靜默回傳成功（不揭露 rate limit 狀態），只記 log
+          console.log(JSON.stringify({
+            severity: 'WARNING',
+            message: 'Password reset rate limit exceeded',
+            type: 'PASSWORD_RESET_RATE_LIMITED',
+            emailHash: resetEmail
+              ? require('crypto').createHash('sha256').update(String(resetEmail)).digest('hex').slice(0, 12)
+              : 'unknown',
+            ip: String(clientIp),
+            timestamp: new Date().toISOString(),
+          }))
+          // 以 recaptchaError 機制靜默丟棄（讓 caller 以為成功）
+          recaptchaError = new GraphQLError('請稍後再試', {
+            extensions: { code: 'RATE_LIMITED' },
+          })
+        }
+      }
 
       // Verify reCAPTCHA for password reset requests
       if (isPasswordResetRequest) {
@@ -320,10 +387,10 @@ export const createLoginLoggingPlugin = () => {
                   let userEmail = result.item?.email || extractIdentity(requestContext);
 
                   // Update lockout data based on authentication result
+                  // [AUTH-003] 使用精確 email 查詢，防止 name/prefix 觸發其他帳號的 lockout counter
                   if (contextValue && userEmail) {
                     try {
-                      // Find the user to update lockout data
-                      const user = await findUserByIdentity(contextValue, userEmail)
+                      const user = await findUserByExactEmail(contextValue, userEmail)
 
                       if (user) {
                         // Calculate lockout data update

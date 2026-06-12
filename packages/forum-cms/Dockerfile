@@ -1,6 +1,8 @@
 FROM node:20-slim
 
 ## Install system dependencies, `gcsfuse` in particular.
+## [SC-002] 改用 signed-by keyring 方式加入 Google apt key，取代已棄用的 apt-key add -，
+## 避免未 pin trust anchor 的供應鏈風險。
 RUN set -e; \
     apt-get update -y && apt-get install -y \
     curl \
@@ -10,10 +12,12 @@ RUN set -e; \
     openssl \
     lsb-release; \
     gcsFuseRepo=gcsfuse-`lsb_release -c -s`; \
-    echo "deb http://packages.cloud.google.com/apt $gcsFuseRepo main" | \
-    tee /etc/apt/sources.list.d/gcsfuse.list; \
-    curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | \
-    apt-key add -; \
+    curl -fsSL https://packages.cloud.google.com/apt/doc/apt-key.gpg \
+        | gpg --dearmor \
+        | tee /usr/share/keyrings/cloud-google-archive-keyring.gpg > /dev/null; \
+    echo "deb [signed-by=/usr/share/keyrings/cloud-google-archive-keyring.gpg] \
+        http://packages.cloud.google.com/apt $gcsFuseRepo main" \
+        | tee /etc/apt/sources.list.d/gcsfuse.list; \
     apt-get update; \
     apt-get install -y gcsfuse \
     && apt-get clean
