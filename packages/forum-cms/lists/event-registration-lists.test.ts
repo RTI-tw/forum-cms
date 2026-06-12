@@ -29,6 +29,10 @@ test('event keeps activity fields and relates content through post', () => {
 
   assert.ok(eventFields.label, 'Event should expose label')
   assert.ok(eventFields.notice, 'Event should expose notice')
+  assert.ok(
+    eventFields.availabilityStatus,
+    'Event should expose virtual availabilityStatus'
+  )
   assert.ok(eventFields.post, 'Event should expose related Post')
   assert.ok(eventFields.externalLink, 'Event should expose externalLink')
   assert.ok(eventFields.startAt, 'Event should expose startAt')
@@ -86,6 +90,11 @@ test('event prisma model stores event metadata and references post content', () 
   assert.match(eventModel, /label\s+EventLabelType\s+@default\(more\)/)
   assert.match(eventModel, /notice\s+String\s+@default\(""\)/)
   assert.match(eventModel, /externalLink\s+String\s+@default\(""\)/)
+  assert.doesNotMatch(
+    eventModel,
+    /\bavailabilityStatus\b/,
+    'Event availabilityStatus should be virtual and not stored in Prisma'
+  )
   assert.doesNotMatch(eventModel, /\btitle\b/)
   assert.doesNotMatch(eventModel, /\bcontent\b/)
   assert.doesNotMatch(eventModel, /\bimages\b/)
@@ -115,6 +124,9 @@ test('event check-in custom GraphQL operations are registered', () => {
   assert.doesNotMatch(tokenResult, /expiresAt/)
 
   const eventResult = schema.match(/type EventRegistrationEventResult \{[^}]+\}/)?.[0]
+  const eventType = schema.match(/type Event \{[\s\S]+?\n\}/)?.[0]
+  assert.ok(eventType)
+  assert.match(eventType, /\n  availabilityStatus: String\n/)
   assert.ok(eventResult)
   assert.match(eventResult, /label: String/)
   assert.match(eventResult, /notice: String/)

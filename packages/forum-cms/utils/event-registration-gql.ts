@@ -8,6 +8,12 @@ import {
   hashEventQrToken,
   normalizeEventQrTokenInput,
 } from './event-qr-token'
+import {
+  getEventPreviewAvailabilityStatus,
+  type EventPreviewAvailabilityStatus,
+} from './event-preview-status'
+
+export { getEventPreviewAvailabilityStatus } from './event-preview-status'
 
 const SUPPORTED_IDENTITY_TYPES = new Set([
   'national_id',
@@ -89,8 +95,6 @@ type RegistrationWindow = {
 }
 
 type EventLabel = 'hot' | 'more' | 'past'
-
-type EventPreviewAvailabilityStatus = 'open' | 'notStarted' | 'full' | 'closed'
 
 type PublicEvent = {
   id: string
@@ -317,34 +321,6 @@ export function isRegistrationOpen(event: RegistrationWindow, now = new Date()) 
 
 function isKnownEventLabel(value?: string | null): value is EventLabel {
   return EVENT_LABELS.includes(value as EventLabel)
-}
-
-export function getEventPreviewAvailabilityStatus(
-  event: {
-    endAt?: Date | string | null
-    registrationStartAt?: Date | string | null
-    registrationEndAt?: Date | string | null
-    capacity?: number | null
-  },
-  registrationCount = 0,
-  now = new Date()
-): EventPreviewAvailabilityStatus {
-  if (isAfter(event.endAt, now) || isAfter(event.registrationEndAt, now)) {
-    return 'closed'
-  }
-
-  if (isBefore(event.registrationStartAt, now)) {
-    return 'notStarted'
-  }
-
-  if (
-    typeof event.capacity === 'number' &&
-    registrationCount >= event.capacity
-  ) {
-    return 'full'
-  }
-
-  return 'open'
 }
 
 function buildPublicEvent(

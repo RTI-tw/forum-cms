@@ -3126,6 +3126,7 @@ type Event {
   slug: String
   label: EventLabelType
   notice: String
+  availabilityStatus: String
   post: Post
   externalLink: String
   startAt: DateTime
