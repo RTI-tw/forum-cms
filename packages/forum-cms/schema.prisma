@@ -688,13 +688,10 @@ model EventRegistration {
   updatedById         Int?                               @map("updatedBy")
 
   @@unique([eventId, memberId])
-  @@unique([eventId, identityHash])
   @@index([eventId])
   @@index([memberId])
   @@index([checkedInById])
   @@index([cancelledById])
-  @@index([identityHash])
-  @@index([phoneHash])
   @@index([lastQrTokenHash])
   @@index([createdById])
   @@index([updatedById])

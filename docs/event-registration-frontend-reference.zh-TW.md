@@ -99,8 +99,6 @@ mutation RegisterForEvent($data: RegisterForEventInput!) {
     status
     registeredAt
     checkedInAt
-    identityMasked
-    phoneMasked
     event {
       id
       title
@@ -133,26 +131,16 @@ Variables:
 ```json
 {
   "data": {
-    "eventSlug": "example-event",
-    "identityType": "national_id",
-    "identityNumber": "A123456789",
-    "phoneNumber": "0912345678"
+    "eventSlug": "example-event"
   }
 }
 ```
 
-`identityType` 目前支援：
-
-- `national_id`
-- `resident_certificate`
-
-後端會正規化、遮罩並 hash 證件號碼與手機號碼。前端不需要自行 hash。
+活動報名不再收手機號碼、身分證或居留證欄位。
 
 重複報名規則：
 
 - 同一活動同一會員只能報名一次。
-- 同一活動同一證件號碼只能報名一次。
-- 手機號碼目前會儲存 hash 與遮罩，但不作為唯一限制。
 
 ## 我的活動報名
 
@@ -165,8 +153,6 @@ query MyEventRegistrations {
     status
     registeredAt
     checkedInAt
-    identityMasked
-    phoneMasked
     event {
       id
       title
@@ -345,4 +331,3 @@ message = 報到成功
 - 前 1000 名抽獎資格不在 DB model 處理，之後以人工 dump 報名與報到成功紀錄處理。
 - 目前沒有前台取消報名 API。
 - 目前沒有報到 undo API。
-- 目前沒有用手機號碼作唯一限制。

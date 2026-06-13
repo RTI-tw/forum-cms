@@ -56,15 +56,42 @@ test('event external link uses shared safe URL validation', () => {
   assert.match(source, /resolvedData\.externalLink/)
 })
 
-test('event registration prisma model enforces duplicate prevention constraints', () => {
+test('event registration prisma model only enforces member duplicate prevention', () => {
   const schema = fs.readFileSync(
     path.join(__dirname, '../schema.prisma'),
     'utf8'
   )
   assert.match(schema, /@@unique\(\[eventId, memberId\]\)/)
-  assert.match(schema, /@@unique\(\[eventId, identityHash\]\)/)
+  assert.doesNotMatch(schema, /@@unique\(\[eventId, identityHash\]\)/)
+  assert.doesNotMatch(schema, /@@index\(\[identityHash\]\)/)
+  assert.doesNotMatch(schema, /@@index\(\[phoneHash\]\)/)
   assert.match(schema, /@@index\(\[eventId, status\]\)/)
   assert.doesNotMatch(schema, /lastQrTokenExpiresAt/)
+})
+
+test('event registration personal identifier fields stay hidden in CMS configuration', () => {
+  const source = fs.readFileSync(
+    path.join(__dirname, 'event-registration.ts'),
+    'utf8'
+  )
+
+  for (const fieldName of [
+    'identityType',
+    'identityMasked',
+    'identityHash',
+    'phoneMasked',
+    'phoneHash',
+  ]) {
+    const fieldConfig = source.match(
+      new RegExp(`${fieldName}:\\s+(?:select|text)\\(\\{[\\s\\S]+?\\n    \\}\\),`)
+    )?.[0]
+    assert.ok(fieldConfig, `${fieldName} should exist`)
+    assert.match(
+      fieldConfig,
+      /hiddenFromCmsUiAndGraphql/,
+      `${fieldName} should be hidden from the CMS UI and GraphQL`
+    )
+  }
 })
 
 test('event prisma model stores event metadata and references post content', () => {
@@ -123,6 +150,18 @@ test('event check-in custom GraphQL operations are registered', () => {
   assert.ok(tokenResult)
   assert.doesNotMatch(tokenResult, /expiresAt/)
 
+  const memberRegistrationResult = schema.match(/type MemberEventRegistrationResult \{[^}]+\}/)?.[0]
+  assert.ok(memberRegistrationResult)
+  assert.doesNotMatch(memberRegistrationResult, /identityMasked/)
+  assert.doesNotMatch(memberRegistrationResult, /phoneMasked/)
+
+  const registerInput = schema.match(/input RegisterForEventInput \{[^}]+\}/)?.[0]
+  assert.ok(registerInput)
+  assert.match(registerInput, /eventSlug: String!/)
+  assert.doesNotMatch(registerInput, /identityType/)
+  assert.doesNotMatch(registerInput, /identityNumber/)
+  assert.doesNotMatch(registerInput, /phoneNumber/)
+
   const eventResult = schema.match(/type EventRegistrationEventResult \{[^}]+\}/)?.[0]
   const eventType = schema.match(/type Event \{[\s\S]+?\n\}/)?.[0]
   assert.ok(eventType)
@@ -173,5 +212,15 @@ test('event check-in custom GraphQL operations are registered', () => {
     resolverSource,
     /event\.images/,
     'event public operations should not use removed Event.images'
+  )
+  assert.doesNotMatch(
+    resolverSource,
+    /identityHash:\s*form\.identityHash/,
+    'registration duplicate checks should no longer use personal identifiers'
+  )
+  assert.doesNotMatch(
+    resolverSource,
+    /phoneHash:\s*form\.phoneHash/,
+    'registration creation should no longer store phone hashes'
   )
 })
