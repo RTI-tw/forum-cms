@@ -2,6 +2,7 @@ import { graphql } from '@keystone-6/core'
 import type { KeystoneContext } from '@keystone-6/core/types'
 import crypto from 'crypto'
 import envVar from '../environment-variables'
+import { getImagePublicUrl } from './common'
 import { verifyMemberSession } from './member-session'
 import {
   generateEventQrToken,
@@ -69,6 +70,10 @@ type EventImageRecord = {
   altText?: string | null
   caption?: string | null
   sortOrder?: number | null
+  // Raw columns of the Image list's `file` (image) field, used to build a
+  // public URL when `urlOriginal` is empty (the usual case for uploads).
+  file_id?: string | null
+  file_extension?: string | null
 }
 
 type CheckInPreview = {
@@ -323,6 +328,25 @@ function isKnownEventLabel(value?: string | null): value is EventLabel {
   return EVENT_LABELS.includes(value as EventLabel)
 }
 
+// Public URL for an event hero image. Uploaded images leave `urlOriginal`
+// empty and store the file under `file_*`; mirror the Image list's `resized`
+// virtual field to build a usable (w480) URL so the frontend can show it.
+function resolveEventImageUrl(image: EventImageRecord): string | null {
+  if (image.urlOriginal && image.urlOriginal.trim()) {
+    return image.urlOriginal
+  }
+  if (!image.file_id) {
+    return null
+  }
+  const extension = image.file_extension ? `.${image.file_extension}` : ''
+  return getImagePublicUrl(
+    envVar.gcs.publicBaseUrl,
+    envVar.gcs.bucket,
+    envVar.images.baseUrl,
+    `${image.file_id}-w480${extension}`
+  )
+}
+
 function buildPublicEvent(
   event: NonNullable<EventRegistrationRecord['event']>,
   registrationCount = 0,
@@ -352,7 +376,7 @@ function buildPublicEvent(
     images: (post?.heroImages ?? []).map((image) => ({
       id: String(image.id),
       name: image.name ?? null,
-      urlOriginal: image.urlOriginal ?? null,
+      urlOriginal: resolveEventImageUrl(image),
       altText: image.altText ?? null,
       caption: image.caption ?? null,
       sortOrder: image.sortOrder ?? null,
