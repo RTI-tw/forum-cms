@@ -3258,9 +3258,6 @@ type EventRegistration {
   checkedInBy: User
   cancelledAt: DateTime
   cancelledBy: User
-  identityType: EventRegistrationIdentityTypeType
-  identityMasked: String
-  phoneMasked: String
   checkInNotes: String
   createdAt: DateTime
   updatedAt: DateTime
@@ -3272,11 +3269,6 @@ enum EventRegistrationStatusType {
   registered
   checkedIn
   cancelled
-}
-
-enum EventRegistrationIdentityTypeType {
-  national_id
-  resident_certificate
 }
 
 input EventRegistrationWhereUniqueInput {
@@ -3296,9 +3288,6 @@ input EventRegistrationWhereInput {
   checkedInBy: UserWhereInput
   cancelledAt: DateTimeNullableFilter
   cancelledBy: UserWhereInput
-  identityType: EventRegistrationIdentityTypeTypeNullableFilter
-  identityMasked: StringNullableFilter
-  phoneMasked: StringNullableFilter
   checkInNotes: StringFilter
   createdAt: DateTimeNullableFilter
   updatedAt: DateTimeNullableFilter
@@ -3311,13 +3300,6 @@ input EventRegistrationStatusTypeNullableFilter {
   in: [EventRegistrationStatusType!]
   notIn: [EventRegistrationStatusType!]
   not: EventRegistrationStatusTypeNullableFilter
-}
-
-input EventRegistrationIdentityTypeTypeNullableFilter {
-  equals: EventRegistrationIdentityTypeType
-  in: [EventRegistrationIdentityTypeType!]
-  notIn: [EventRegistrationIdentityTypeType!]
-  not: EventRegistrationIdentityTypeTypeNullableFilter
 }
 
 input StringNullableFilter {
@@ -3341,9 +3323,6 @@ input EventRegistrationOrderByInput {
   registeredAt: OrderDirection
   checkedInAt: OrderDirection
   cancelledAt: OrderDirection
-  identityType: OrderDirection
-  identityMasked: OrderDirection
-  phoneMasked: OrderDirection
   checkInNotes: OrderDirection
   createdAt: OrderDirection
   updatedAt: OrderDirection
@@ -3358,9 +3337,6 @@ input EventRegistrationUpdateInput {
   checkedInBy: UserRelateToOneForUpdateInput
   cancelledAt: DateTime
   cancelledBy: UserRelateToOneForUpdateInput
-  identityType: EventRegistrationIdentityTypeType
-  identityMasked: String
-  phoneMasked: String
   checkInNotes: String
   createdAt: DateTime
   updatedAt: DateTime
@@ -3388,9 +3364,6 @@ input EventRegistrationCreateInput {
   checkedInBy: UserRelateToOneForCreateInput
   cancelledAt: DateTime
   cancelledBy: UserRelateToOneForCreateInput
-  identityType: EventRegistrationIdentityTypeType
-  identityMasked: String
-  phoneMasked: String
   checkInNotes: String
   createdAt: DateTime
   updatedAt: DateTime
@@ -3570,8 +3543,6 @@ type MemberEventRegistrationResult {
   status: String
   registeredAt: String
   checkedInAt: String
-  identityMasked: String
-  phoneMasked: String
   event: EventRegistrationEventResult!
 }
 
@@ -3608,9 +3579,6 @@ type EventRegistrationEventImageResult {
 
 input RegisterForEventInput {
   eventSlug: String!
-  identityType: String!
-  identityNumber: String!
-  phoneNumber: String!
 }
 
 type EventCheckInQrTokenResult {

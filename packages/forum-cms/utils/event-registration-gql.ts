@@ -1,6 +1,5 @@
 import { graphql } from '@keystone-6/core'
 import type { KeystoneContext } from '@keystone-6/core/types'
-import crypto from 'crypto'
 import envVar from '../environment-variables'
 import { getImagePublicUrl } from './common'
 import { verifyMemberSession } from './member-session'
@@ -16,18 +15,11 @@ import {
 
 export { getEventPreviewAvailabilityStatus } from './event-preview-status'
 
-const SUPPORTED_IDENTITY_TYPES = new Set([
-  'national_id',
-  'resident_certificate',
-])
-
 type EventRegistrationRecord = {
   id: number
   status?: string | null
   registeredAt?: Date | string | null
   checkedInAt?: Date | string | null
-  identityMasked?: string | null
-  phoneMasked?: string | null
   lastQrTokenUsedAt?: Date | string | null
   eventId?: number | null
   memberId?: number | null
@@ -145,27 +137,11 @@ type MemberEventRegistration = {
   status?: string | null
   registeredAt?: string | null
   checkedInAt?: string | null
-  identityMasked?: string | null
-  phoneMasked?: string | null
   event: PublicEvent
 }
 
-type EventRegistrationFormInput = {
-  identityType: string
-  identityNumber: string
-  phoneNumber: string
-}
-
-type RegisterForEventInput = EventRegistrationFormInput & {
+type RegisterForEventInput = {
   eventSlug: string
-}
-
-type NormalizedEventRegistrationForm = {
-  identityType: string
-  identityMasked: string
-  identityHash: string
-  phoneMasked: string
-  phoneHash: string
 }
 
 const EVENT_LABELS: EventLabel[] = ['hot', 'more', 'past']
@@ -251,65 +227,6 @@ function isBefore(value: Date | string | null | undefined, now: Date) {
 
 function isAfter(value: Date | string | null | undefined, now: Date) {
   return Boolean(value && new Date(value).getTime() < now.getTime())
-}
-
-function normalizeIdentityNumber(value?: string | null) {
-  return (value ?? '').trim().replace(/[\s-]/g, '').toUpperCase()
-}
-
-function normalizePhoneNumber(value?: string | null) {
-  return (value ?? '').replace(/\D/g, '')
-}
-
-function maskIdentifier(value: string, visibleStart: number, visibleEnd: number) {
-  if (value.length <= visibleStart + visibleEnd) {
-    return `${value.slice(0, 1)}${'*'.repeat(Math.max(value.length - 2, 1))}${value.slice(-1)}`
-  }
-
-  return `${value.slice(0, visibleStart)}${'*'.repeat(
-    value.length - visibleStart - visibleEnd
-  )}${value.slice(-visibleEnd)}`
-}
-
-function hashRegistrationValue(kind: 'identity' | 'phone', value: string) {
-  return crypto
-    .createHash('sha256')
-    .update(kind)
-    .update(':')
-    .update(value)
-    .update(':')
-    .update(envVar.memberSession.secret)
-    .update(':event-registration')
-    .digest('hex')
-}
-
-export function normalizeEventRegistrationForm(
-  input: EventRegistrationFormInput
-): NormalizedEventRegistrationForm {
-  const identityType = typeof input.identityType === 'string'
-    ? input.identityType.trim()
-    : ''
-  if (!SUPPORTED_IDENTITY_TYPES.has(identityType)) {
-    throw new Error('不支援的證件類型')
-  }
-
-  const identityNumber = normalizeIdentityNumber(input.identityNumber)
-  if (!identityNumber) {
-    throw new Error('請輸入證件號碼')
-  }
-
-  const phoneNumber = normalizePhoneNumber(input.phoneNumber)
-  if (!phoneNumber) {
-    throw new Error('請輸入手機號碼')
-  }
-
-  return {
-    identityType,
-    identityMasked: maskIdentifier(identityNumber, 2, 2),
-    identityHash: hashRegistrationValue('identity', identityNumber),
-    phoneMasked: maskIdentifier(phoneNumber, 4, 3),
-    phoneHash: hashRegistrationValue('phone', phoneNumber),
-  }
 }
 
 export function isRegistrationOpen(event: RegistrationWindow, now = new Date()) {
@@ -438,8 +355,6 @@ async function buildMemberEventRegistration(
     status: registration.status ?? null,
     registeredAt: toIsoString(registration.registeredAt),
     checkedInAt: toIsoString(registration.checkedInAt),
-    identityMasked: registration.identityMasked ?? null,
-    phoneMasked: registration.phoneMasked ?? null,
     event: buildPublicEvent(registration.event, registrationCount),
   }
 }
@@ -718,8 +633,6 @@ const MemberEventRegistrationResult = graphql.object<MemberEventRegistration>()(
     status: graphql.field({ type: graphql.String }),
     registeredAt: graphql.field({ type: graphql.String }),
     checkedInAt: graphql.field({ type: graphql.String }),
-    identityMasked: graphql.field({ type: graphql.String }),
-    phoneMasked: graphql.field({ type: graphql.String }),
     event: graphql.field({
       type: graphql.nonNull(EventRegistrationEventResult),
     }),
@@ -730,9 +643,6 @@ const RegisterForEventInputType = graphql.inputObject({
   name: 'RegisterForEventInput',
   fields: {
     eventSlug: graphql.arg({ type: graphql.nonNull(graphql.String) }),
-    identityType: graphql.arg({ type: graphql.nonNull(graphql.String) }),
-    identityNumber: graphql.arg({ type: graphql.nonNull(graphql.String) }),
-    phoneNumber: graphql.arg({ type: graphql.nonNull(graphql.String) }),
   },
 })
 
@@ -913,7 +823,6 @@ export const eventRegistrationSchemaExtension = graphql.extend(() => ({
           throw new Error('找不到活動')
         }
 
-        const form = normalizeEventRegistrationForm(data)
         const event = (await context.prisma.event.findUnique({
           where: { slug: normalizedSlug },
           include: {
@@ -932,15 +841,12 @@ export const eventRegistrationSchemaExtension = graphql.extend(() => ({
         const duplicate = await context.prisma.eventRegistration.findFirst({
           where: {
             eventId: event.id,
-            OR: [
-              { memberId: member.id },
-              { identityHash: form.identityHash },
-            ],
+            memberId: member.id,
           },
         })
 
         if (duplicate) {
-          throw new Error('此會員或證件已報名過此活動')
+          throw new Error('此會員已報名過此活動')
         }
 
         const registrationCount = await countActiveRegistrations(
@@ -961,11 +867,6 @@ export const eventRegistrationSchemaExtension = graphql.extend(() => ({
               memberId: member.id,
               status: 'registered',
               registeredAt: new Date(),
-              identityType: form.identityType,
-              identityMasked: form.identityMasked,
-              identityHash: form.identityHash,
-              phoneMasked: form.phoneMasked,
-              phoneHash: form.phoneHash,
             },
             include: {
               event: {
@@ -987,7 +888,7 @@ export const eventRegistrationSchemaExtension = graphql.extend(() => ({
             error !== null &&
             (error as { code?: string }).code === 'P2002'
           ) {
-            throw new Error('此會員或證件已報名過此活動')
+            throw new Error('此會員已報名過此活動')
           }
           throw error
         }
