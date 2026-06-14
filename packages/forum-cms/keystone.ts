@@ -573,18 +573,37 @@ const memberAuthSchemaExtension = graphql.extend(() => ({
                           })) as MemberRecord | null)
                         : existingMember;
                 } else {
-                    member = (await context.sudo().db.Member.createOne({
-                        data: {
-                            firebaseId,
-                            customId: customIdInput || firebaseId,
-                            name: display.name,
-                            nickname: display.nickname,
-                            email: firebaseEmail ?? undefined,
-                            isCompleteProfile: false,
-                            status: "inactive",
-                            verified: Boolean(decoded.email_verified),
-                        },
-                    })) as MemberRecord | null;
+                    try {
+                        member = (await context.sudo().db.Member.createOne({
+                            data: {
+                                firebaseId,
+                                customId: customIdInput || firebaseId,
+                                name: display.name,
+                                nickname: display.nickname,
+                                email: firebaseEmail ?? undefined,
+                                isCompleteProfile: false,
+                                status: "inactive",
+                                verified: Boolean(decoded.email_verified),
+                            },
+                        })) as MemberRecord | null;
+                    } catch (createError) {
+                        // [AUTH-007] 並發 create 競態：社群登入會在同一次登入並發送出兩個
+                        // authenticate 請求（popup resolve + onAuthStateChanged），兩者同時走到
+                        // 這裡 createOne。第一個贏得 unique insert，第二個撞 firebaseId/customId/email
+                        // 的 unique 約束丟錯。此時改用 firebaseId 重查贏家剛建好的 member 冪等回傳，
+                        // 避免讓使用者看到假性「註冊失敗」。
+                        const racedMember = (await context
+                            .sudo()
+                            .db.Member.findOne({
+                                where: { firebaseId },
+                            })) as MemberRecord | null;
+                        if (!racedMember) {
+                            // 並非並發競態：unique 衝突來自真正重複的帳號
+                            // （email/customId 屬於另一個 firebaseId），維持原本錯誤行為。
+                            throw createError;
+                        }
+                        member = racedMember;
+                    }
                 }
 
                 if (!member) {
