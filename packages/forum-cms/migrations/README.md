@@ -25,6 +25,7 @@ yarn db-migrate
 | `20260610033000_editor_choice_event` | `EditorChoice` 新增 `event` 關聯欄位，可將活動排入編輯精選 |
 | `20260610034000_event_is_boost` | `Event` 新增 `isBoost`（置頂旗標，`BOOLEAN NOT NULL DEFAULT false`） |
 | `20260610040000_event_post_content_refactor` | `Event` 改為只保留活動 metadata 並關聯一篇 `Post`；舊 Event 內容、圖片、置頂與 editor choice 會搬到對應 Post |
+| `20260612120000_event_label_notice_preview` | `Event` 新增 `label`（熱門活動／更多活動／活動回顧）與 `notice`（活動須知）欄位 |
 
 ## 為何「自動翻譯 hook」沒有對應 migration？
 

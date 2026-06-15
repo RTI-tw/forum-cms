@@ -1,32 +1,33 @@
 import { graphql } from '@keystone-6/core'
 import type { KeystoneContext } from '@keystone-6/core/types'
-import crypto from 'crypto'
 import envVar from '../environment-variables'
+import { getImagePublicUrl } from './common'
 import { verifyMemberSession } from './member-session'
 import {
   generateEventQrToken,
   hashEventQrToken,
   normalizeEventQrTokenInput,
 } from './event-qr-token'
+import {
+  getEventPreviewAvailabilityStatus,
+  type EventPreviewAvailabilityStatus,
+} from './event-preview-status'
 
-const SUPPORTED_IDENTITY_TYPES = new Set([
-  'national_id',
-  'resident_certificate',
-])
+export { getEventPreviewAvailabilityStatus } from './event-preview-status'
 
 type EventRegistrationRecord = {
   id: number
   status?: string | null
   registeredAt?: Date | string | null
   checkedInAt?: Date | string | null
-  identityMasked?: string | null
-  phoneMasked?: string | null
   lastQrTokenUsedAt?: Date | string | null
   eventId?: number | null
   memberId?: number | null
   event?: {
     id: number
     slug?: string | null
+    label?: EventLabel | string | null
+    notice?: string | null
     externalLink?: string | null
     startAt?: Date | string | null
     endAt?: Date | string | null
@@ -61,6 +62,10 @@ type EventImageRecord = {
   altText?: string | null
   caption?: string | null
   sortOrder?: number | null
+  // Raw columns of the Image list's `file` (image) field, used to build a
+  // public URL when `urlOriginal` is empty (the usual case for uploads).
+  file_id?: string | null
+  file_extension?: string | null
 }
 
 type CheckInPreview = {
@@ -86,10 +91,14 @@ type RegistrationWindow = {
   registrationEndAt?: Date | string | null
 }
 
+type EventLabel = 'hot' | 'more' | 'past'
+
 type PublicEvent = {
   id: string
   title?: string | null
   slug?: string | null
+  label?: string | null
+  notice?: string | null
   content?: string | null
   externalLink?: string | null
   status?: string | null
@@ -106,6 +115,14 @@ type PublicEvent = {
   isRegistrationOpen: boolean
 }
 
+type EventPreviewItem = PublicEvent & {
+  firstImage?: PublicEventImage | null
+  availabilityStatus: EventPreviewAvailabilityStatus
+  isRegistered: boolean
+}
+
+type EventPreviewSections = Record<EventLabel, EventPreviewItem[]>
+
 type PublicEventImage = {
   id: string
   name?: string | null
@@ -120,28 +137,15 @@ type MemberEventRegistration = {
   status?: string | null
   registeredAt?: string | null
   checkedInAt?: string | null
-  identityMasked?: string | null
-  phoneMasked?: string | null
   event: PublicEvent
 }
 
-type EventRegistrationFormInput = {
-  identityType: string
-  identityNumber: string
-  phoneNumber: string
-}
-
-type RegisterForEventInput = EventRegistrationFormInput & {
+type RegisterForEventInput = {
   eventSlug: string
 }
 
-type NormalizedEventRegistrationForm = {
-  identityType: string
-  identityMasked: string
-  identityHash: string
-  phoneMasked: string
-  phoneHash: string
-}
+const EVENT_LABELS: EventLabel[] = ['hot', 'more', 'past']
+const ACTIVE_REGISTRATION_STATUSES = ['registered', 'checkedIn'] as const
 
 function getBearerToken(context: KeystoneContext) {
   const authHeader = context.req?.headers?.authorization
@@ -172,6 +176,25 @@ async function requireActiveMember(context: KeystoneContext) {
   }
 
   return member
+}
+
+async function getActiveMemberIdIfAvailable(context: KeystoneContext) {
+  const token = getBearerToken(context)
+  if (!token) {
+    return null
+  }
+
+  try {
+    const payload = verifyMemberSession(token)
+    const member = await context.prisma.member.findUnique({
+      where: { id: Number(payload.memberId) },
+      select: { id: true, status: true },
+    })
+
+    return member?.status === 'active' ? member.id : null
+  } catch {
+    return null
+  }
 }
 
 function requireCmsUserId(context: KeystoneContext) {
@@ -206,65 +229,6 @@ function isAfter(value: Date | string | null | undefined, now: Date) {
   return Boolean(value && new Date(value).getTime() < now.getTime())
 }
 
-function normalizeIdentityNumber(value?: string | null) {
-  return (value ?? '').trim().replace(/[\s-]/g, '').toUpperCase()
-}
-
-function normalizePhoneNumber(value?: string | null) {
-  return (value ?? '').replace(/\D/g, '')
-}
-
-function maskIdentifier(value: string, visibleStart: number, visibleEnd: number) {
-  if (value.length <= visibleStart + visibleEnd) {
-    return `${value.slice(0, 1)}${'*'.repeat(Math.max(value.length - 2, 1))}${value.slice(-1)}`
-  }
-
-  return `${value.slice(0, visibleStart)}${'*'.repeat(
-    value.length - visibleStart - visibleEnd
-  )}${value.slice(-visibleEnd)}`
-}
-
-function hashRegistrationValue(kind: 'identity' | 'phone', value: string) {
-  return crypto
-    .createHash('sha256')
-    .update(kind)
-    .update(':')
-    .update(value)
-    .update(':')
-    .update(envVar.memberSession.secret)
-    .update(':event-registration')
-    .digest('hex')
-}
-
-export function normalizeEventRegistrationForm(
-  input: EventRegistrationFormInput
-): NormalizedEventRegistrationForm {
-  const identityType = typeof input.identityType === 'string'
-    ? input.identityType.trim()
-    : ''
-  if (!SUPPORTED_IDENTITY_TYPES.has(identityType)) {
-    throw new Error('不支援的證件類型')
-  }
-
-  const identityNumber = normalizeIdentityNumber(input.identityNumber)
-  if (!identityNumber) {
-    throw new Error('請輸入證件號碼')
-  }
-
-  const phoneNumber = normalizePhoneNumber(input.phoneNumber)
-  if (!phoneNumber) {
-    throw new Error('請輸入手機號碼')
-  }
-
-  return {
-    identityType,
-    identityMasked: maskIdentifier(identityNumber, 2, 2),
-    identityHash: hashRegistrationValue('identity', identityNumber),
-    phoneMasked: maskIdentifier(phoneNumber, 4, 3),
-    phoneHash: hashRegistrationValue('phone', phoneNumber),
-  }
-}
-
 export function isRegistrationOpen(event: RegistrationWindow, now = new Date()) {
   if (isBefore(event.registrationStartAt, now)) {
     return false
@@ -275,6 +239,29 @@ export function isRegistrationOpen(event: RegistrationWindow, now = new Date()) 
   }
 
   return true
+}
+
+function isKnownEventLabel(value?: string | null): value is EventLabel {
+  return EVENT_LABELS.includes(value as EventLabel)
+}
+
+// Public URL for an event hero image. Uploaded images leave `urlOriginal`
+// empty and store the file under `file_*`; mirror the Image list's `resized`
+// virtual field to build a usable (w480) URL so the frontend can show it.
+function resolveEventImageUrl(image: EventImageRecord): string | null {
+  if (image.urlOriginal && image.urlOriginal.trim()) {
+    return image.urlOriginal
+  }
+  if (!image.file_id) {
+    return null
+  }
+  const extension = image.file_extension ? `.${image.file_extension}` : ''
+  return getImagePublicUrl(
+    envVar.gcs.publicBaseUrl,
+    envVar.gcs.bucket,
+    envVar.images.baseUrl,
+    `${image.file_id}-w480${extension}`
+  )
 }
 
 function buildPublicEvent(
@@ -291,6 +278,8 @@ function buildPublicEvent(
     id: String(event.id),
     title: post?.title ?? null,
     slug: event.slug ?? null,
+    label: event.label ?? null,
+    notice: event.notice ?? null,
     content: post?.content ?? null,
     externalLink: event.externalLink ?? null,
     status: post?.status ?? null,
@@ -304,7 +293,7 @@ function buildPublicEvent(
     images: (post?.heroImages ?? []).map((image) => ({
       id: String(image.id),
       name: image.name ?? null,
-      urlOriginal: image.urlOriginal ?? null,
+      urlOriginal: resolveEventImageUrl(image),
       altText: image.altText ?? null,
       caption: image.caption ?? null,
       sortOrder: image.sortOrder ?? null,
@@ -316,6 +305,26 @@ function buildPublicEvent(
   }
 }
 
+export function buildEventPreviewItem(
+  event: NonNullable<EventRegistrationRecord['event']>,
+  registrationCount = 0,
+  isRegistered = false,
+  now = new Date()
+): EventPreviewItem {
+  const publicEvent = buildPublicEvent(event, registrationCount, now)
+
+  return {
+    ...publicEvent,
+    firstImage: publicEvent.images[0] ?? null,
+    availabilityStatus: getEventPreviewAvailabilityStatus(
+      event,
+      registrationCount,
+      now
+    ),
+    isRegistered,
+  }
+}
+
 async function countActiveRegistrations(
   context: KeystoneContext,
   eventId: number
@@ -323,7 +332,7 @@ async function countActiveRegistrations(
   return context.prisma.eventRegistration.count({
     where: {
       eventId,
-      status: { in: ['registered', 'checkedIn'] },
+      status: { in: [...ACTIVE_REGISTRATION_STATUSES] },
     },
   })
 }
@@ -346,8 +355,6 @@ async function buildMemberEventRegistration(
     status: registration.status ?? null,
     registeredAt: toIsoString(registration.registeredAt),
     checkedInAt: toIsoString(registration.checkedInAt),
-    identityMasked: registration.identityMasked ?? null,
-    phoneMasked: registration.phoneMasked ?? null,
     event: buildPublicEvent(registration.event, registrationCount),
   }
 }
@@ -521,12 +528,19 @@ const EventRegistrationEventImageResult = graphql.object<PublicEventImage>()({
   },
 })
 
+const EventPreviewAvailabilityStatusType = graphql.enum({
+  name: 'EventPreviewAvailabilityStatus',
+  values: graphql.enumValues(['open', 'notStarted', 'full', 'closed']),
+})
+
 const EventRegistrationEventResult = graphql.object<PublicEvent>()({
   name: 'EventRegistrationEventResult',
   fields: {
     id: graphql.field({ type: graphql.nonNull(graphql.ID) }),
     title: graphql.field({ type: graphql.String }),
     slug: graphql.field({ type: graphql.String }),
+    label: graphql.field({ type: graphql.String }),
+    notice: graphql.field({ type: graphql.String }),
     content: graphql.field({ type: graphql.String }),
     externalLink: graphql.field({ type: graphql.String }),
     status: graphql.field({ type: graphql.String }),
@@ -550,6 +564,68 @@ const EventRegistrationEventResult = graphql.object<PublicEvent>()({
   },
 })
 
+const EventPreviewImageResult = graphql.object<PublicEventImage>()({
+  name: 'EventPreviewImageResult',
+  fields: {
+    id: graphql.field({ type: graphql.nonNull(graphql.ID) }),
+    name: graphql.field({ type: graphql.String }),
+    urlOriginal: graphql.field({ type: graphql.String }),
+    altText: graphql.field({ type: graphql.String }),
+    caption: graphql.field({ type: graphql.String }),
+    sortOrder: graphql.field({ type: graphql.Int }),
+  },
+})
+
+const EventPreviewItemResult = graphql.object<EventPreviewItem>()({
+  name: 'EventPreviewItemResult',
+  fields: {
+    id: graphql.field({ type: graphql.nonNull(graphql.ID) }),
+    title: graphql.field({ type: graphql.String }),
+    slug: graphql.field({ type: graphql.String }),
+    label: graphql.field({ type: graphql.String }),
+    notice: graphql.field({ type: graphql.String }),
+    externalLink: graphql.field({ type: graphql.String }),
+    startAt: graphql.field({ type: graphql.String }),
+    endAt: graphql.field({ type: graphql.String }),
+    registrationStartAt: graphql.field({ type: graphql.String }),
+    registrationEndAt: graphql.field({ type: graphql.String }),
+    capacity: graphql.field({ type: graphql.Int }),
+    firstImage: graphql.field({ type: EventPreviewImageResult }),
+    images: graphql.field({
+      type: graphql.nonNull(
+        graphql.list(graphql.nonNull(EventPreviewImageResult))
+      ),
+    }),
+    registrationCount: graphql.field({ type: graphql.nonNull(graphql.Int) }),
+    remainingCapacity: graphql.field({ type: graphql.Int }),
+    availabilityStatus: graphql.field({
+      type: graphql.nonNull(EventPreviewAvailabilityStatusType),
+    }),
+    isRegistered: graphql.field({ type: graphql.nonNull(graphql.Boolean) }),
+  },
+})
+
+const EventPreviewSectionsResult = graphql.object<EventPreviewSections>()({
+  name: 'EventPreviewSectionsResult',
+  fields: {
+    hot: graphql.field({
+      type: graphql.nonNull(
+        graphql.list(graphql.nonNull(EventPreviewItemResult))
+      ),
+    }),
+    more: graphql.field({
+      type: graphql.nonNull(
+        graphql.list(graphql.nonNull(EventPreviewItemResult))
+      ),
+    }),
+    past: graphql.field({
+      type: graphql.nonNull(
+        graphql.list(graphql.nonNull(EventPreviewItemResult))
+      ),
+    }),
+  },
+})
+
 const MemberEventRegistrationResult = graphql.object<MemberEventRegistration>()({
   name: 'MemberEventRegistrationResult',
   fields: {
@@ -557,8 +633,6 @@ const MemberEventRegistrationResult = graphql.object<MemberEventRegistration>()(
     status: graphql.field({ type: graphql.String }),
     registeredAt: graphql.field({ type: graphql.String }),
     checkedInAt: graphql.field({ type: graphql.String }),
-    identityMasked: graphql.field({ type: graphql.String }),
-    phoneMasked: graphql.field({ type: graphql.String }),
     event: graphql.field({
       type: graphql.nonNull(EventRegistrationEventResult),
     }),
@@ -569,14 +643,79 @@ const RegisterForEventInputType = graphql.inputObject({
   name: 'RegisterForEventInput',
   fields: {
     eventSlug: graphql.arg({ type: graphql.nonNull(graphql.String) }),
-    identityType: graphql.arg({ type: graphql.nonNull(graphql.String) }),
-    identityNumber: graphql.arg({ type: graphql.nonNull(graphql.String) }),
-    phoneNumber: graphql.arg({ type: graphql.nonNull(graphql.String) }),
   },
 })
 
 export const eventRegistrationSchemaExtension = graphql.extend(() => ({
   query: {
+    eventPreviews: graphql.field({
+      type: graphql.nonNull(EventPreviewSectionsResult),
+      async resolve(
+        _root: unknown,
+        _args: Record<string, unknown>,
+        context: KeystoneContext
+      ) {
+        const events = (await context.prisma.event.findMany({
+          where: { post: { is: { status: 'published' } } },
+          include: {
+            post: {
+              include: {
+                heroImages: { orderBy: { sortOrder: 'asc' } },
+              },
+            },
+          },
+          orderBy: [{ startAt: 'desc' }, { id: 'desc' }],
+        })) as NonNullable<EventRegistrationRecord['event']>[]
+
+        const memberId = await getActiveMemberIdIfAvailable(context)
+        const memberRegistrations: Array<{ eventId: number | null }> = memberId
+          ? ((await context.prisma.eventRegistration.findMany({
+              where: {
+                memberId,
+                eventId: { in: events.map((event) => event.id) },
+                status: { in: [...ACTIVE_REGISTRATION_STATUSES] },
+              },
+              select: { eventId: true },
+            })) as Array<{ eventId: number | null }>)
+          : []
+        const registeredEventIds = new Set(
+          memberRegistrations
+            .map((registration) => registration.eventId)
+            .filter((eventId): eventId is number => typeof eventId === 'number')
+        )
+
+        const registrationCounts = new Map<number, number>()
+        await Promise.all(
+          events.map(async (event) => {
+            registrationCounts.set(
+              event.id,
+              await countActiveRegistrations(context, event.id)
+            )
+          })
+        )
+
+        const sections: EventPreviewSections = {
+          hot: [],
+          more: [],
+          past: [],
+        }
+        const now = new Date()
+
+        for (const event of events) {
+          const label = isKnownEventLabel(event.label) ? event.label : 'more'
+          sections[label].push(
+            buildEventPreviewItem(
+              event,
+              registrationCounts.get(event.id) ?? 0,
+              registeredEventIds.has(event.id),
+              now
+            )
+          )
+        }
+
+        return sections
+      },
+    }),
     eventBySlug: graphql.field({
       type: EventRegistrationEventResult,
       args: {
@@ -684,7 +823,6 @@ export const eventRegistrationSchemaExtension = graphql.extend(() => ({
           throw new Error('找不到活動')
         }
 
-        const form = normalizeEventRegistrationForm(data)
         const event = (await context.prisma.event.findUnique({
           where: { slug: normalizedSlug },
           include: {
@@ -703,15 +841,12 @@ export const eventRegistrationSchemaExtension = graphql.extend(() => ({
         const duplicate = await context.prisma.eventRegistration.findFirst({
           where: {
             eventId: event.id,
-            OR: [
-              { memberId: member.id },
-              { identityHash: form.identityHash },
-            ],
+            memberId: member.id,
           },
         })
 
         if (duplicate) {
-          throw new Error('此會員或證件已報名過此活動')
+          throw new Error('此會員已報名過此活動')
         }
 
         const registrationCount = await countActiveRegistrations(
@@ -732,11 +867,6 @@ export const eventRegistrationSchemaExtension = graphql.extend(() => ({
               memberId: member.id,
               status: 'registered',
               registeredAt: new Date(),
-              identityType: form.identityType,
-              identityMasked: form.identityMasked,
-              identityHash: form.identityHash,
-              phoneMasked: form.phoneMasked,
-              phoneHash: form.phoneHash,
             },
             include: {
               event: {
@@ -758,7 +888,7 @@ export const eventRegistrationSchemaExtension = graphql.extend(() => ({
             error !== null &&
             (error as { code?: string }).code === 'P2002'
           ) {
-            throw new Error('此會員或證件已報名過此活動')
+            throw new Error('此會員已報名過此活動')
           }
           throw error
         }

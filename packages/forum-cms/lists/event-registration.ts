@@ -30,7 +30,6 @@ function addEventRegistrationPrismaConstraints(schema: string) {
     [
       '',
       '  @@unique([eventId, memberId])',
-      '  @@unique([eventId, identityHash])',
       '  @@index([eventId, status])',
       '}',
     ].join('\n')
@@ -98,26 +97,25 @@ const listConfigurations = list({
         { label: '居留證', value: 'resident_certificate' },
       ],
       db: { isNullable: true },
+      ...hiddenFromCmsUiAndGraphql,
     }),
     identityMasked: text({
       label: '證件號碼（遮罩）',
       db: { isNullable: true },
-      ui: readOnlyInCmsUi,
+      ...hiddenFromCmsUiAndGraphql,
     }),
     identityHash: text({
       label: '證件號碼 Hash',
-      isIndexed: true,
       db: { isNullable: true },
       ...hiddenFromCmsUiAndGraphql,
     }),
     phoneMasked: text({
       label: '手機號碼（遮罩）',
       db: { isNullable: true },
-      ui: readOnlyInCmsUi,
+      ...hiddenFromCmsUiAndGraphql,
     }),
     phoneHash: text({
       label: '手機號碼 Hash',
-      isIndexed: true,
       db: { isNullable: true },
       ...hiddenFromCmsUiAndGraphql,
     }),

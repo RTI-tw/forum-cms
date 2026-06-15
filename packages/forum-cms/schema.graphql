@@ -2975,20 +2975,6 @@ type RssKeyword {
   language: RssKeywordLanguageType
   note: String
   isEnabled: Boolean
-type Event {
-  id: ID!
-  slug: String
-  post: Post
-  externalLink: String
-  startAt: DateTime
-  endAt: DateTime
-  registrationStartAt: DateTime
-  registrationEndAt: DateTime
-  checkInStartAt: DateTime
-  checkInEndAt: DateTime
-  capacity: Int
-  registrations(where: EventRegistrationWhereInput! = {}, orderBy: [EventRegistrationOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: EventRegistrationWhereUniqueInput): [EventRegistration!]
-  registrationsCount(where: EventRegistrationWhereInput! = {}): Int
   createdAt: DateTime
   updatedAt: DateTime
   createdBy: User
@@ -3017,27 +3003,6 @@ input RssKeywordWhereInput {
   language: RssKeywordLanguageTypeNullableFilter
   note: StringFilter
   isEnabled: BooleanFilter
-input EventWhereUniqueInput {
-  id: ID
-  slug: String
-}
-
-input EventWhereInput {
-  AND: [EventWhereInput!]
-  OR: [EventWhereInput!]
-  NOT: [EventWhereInput!]
-  id: IDFilter
-  slug: StringFilter
-  post: PostWhereInput
-  externalLink: StringFilter
-  startAt: DateTimeNullableFilter
-  endAt: DateTimeNullableFilter
-  registrationStartAt: DateTimeNullableFilter
-  registrationEndAt: DateTimeNullableFilter
-  checkInStartAt: DateTimeNullableFilter
-  checkInEndAt: DateTimeNullableFilter
-  capacity: IntNullableFilter
-  registrations: EventRegistrationManyRelationFilter
   createdAt: DateTimeNullableFilter
   updatedAt: DateTimeNullableFilter
   createdBy: UserWhereInput
@@ -3057,17 +3022,6 @@ input RssKeywordOrderByInput {
   language: OrderDirection
   note: OrderDirection
   isEnabled: OrderDirection
-input EventOrderByInput {
-  id: OrderDirection
-  slug: OrderDirection
-  externalLink: OrderDirection
-  startAt: OrderDirection
-  endAt: OrderDirection
-  registrationStartAt: OrderDirection
-  registrationEndAt: OrderDirection
-  checkInStartAt: OrderDirection
-  checkInEndAt: OrderDirection
-  capacity: OrderDirection
   createdAt: OrderDirection
   updatedAt: OrderDirection
 }
@@ -3077,18 +3031,6 @@ input RssKeywordUpdateInput {
   language: RssKeywordLanguageType
   note: String
   isEnabled: Boolean
-input EventUpdateInput {
-  slug: String
-  post: PostRelateToOneForUpdateInput
-  externalLink: String
-  startAt: DateTime
-  endAt: DateTime
-  registrationStartAt: DateTime
-  registrationEndAt: DateTime
-  checkInStartAt: DateTime
-  checkInEndAt: DateTime
-  capacity: Int
-  registrations: EventRegistrationRelateToManyForUpdateInput
   createdAt: DateTime
   updatedAt: DateTime
   createdBy: UserRelateToOneForUpdateInput
@@ -3105,23 +3047,6 @@ input RssKeywordCreateInput {
   language: RssKeywordLanguageType
   note: String
   isEnabled: Boolean
-input EventUpdateArgs {
-  where: EventWhereUniqueInput!
-  data: EventUpdateInput!
-}
-
-input EventCreateInput {
-  slug: String
-  post: PostRelateToOneForCreateInput
-  externalLink: String
-  startAt: DateTime
-  endAt: DateTime
-  registrationStartAt: DateTime
-  registrationEndAt: DateTime
-  checkInStartAt: DateTime
-  checkInEndAt: DateTime
-  capacity: Int
-  registrations: EventRegistrationRelateToManyForCreateInput
   createdAt: DateTime
   updatedAt: DateTime
   createdBy: UserRelateToOneForCreateInput
@@ -3134,20 +3059,6 @@ type RssTopicMapping {
   topic: Topic
   isEnabled: Boolean
   note: String
-type EventRegistration {
-  id: ID!
-  event: Event
-  member: Member
-  status: EventRegistrationStatusType
-  registeredAt: DateTime
-  checkedInAt: DateTime
-  checkedInBy: User
-  cancelledAt: DateTime
-  cancelledBy: User
-  identityType: EventRegistrationIdentityTypeType
-  identityMasked: String
-  phoneMasked: String
-  checkInNotes: String
   createdAt: DateTime
   updatedAt: DateTime
   createdBy: User
@@ -3168,15 +3079,196 @@ input RssTopicMappingWhereInput {
   topic: TopicWhereInput
   isEnabled: BooleanFilter
   note: StringFilter
+  createdAt: DateTimeNullableFilter
+  updatedAt: DateTimeNullableFilter
+  createdBy: UserWhereInput
+  updatedBy: UserWhereInput
+}
+
+input RssTopicMappingOrderByInput {
+  id: OrderDirection
+  rssTopic: OrderDirection
+  isEnabled: OrderDirection
+  note: OrderDirection
+  createdAt: OrderDirection
+  updatedAt: OrderDirection
+}
+
+input RssTopicMappingUpdateInput {
+  rssTopic: String
+  topic: TopicRelateToOneForUpdateInput
+  isEnabled: Boolean
+  note: String
+  createdAt: DateTime
+  updatedAt: DateTime
+  createdBy: UserRelateToOneForUpdateInput
+  updatedBy: UserRelateToOneForUpdateInput
+}
+
+input RssTopicMappingUpdateArgs {
+  where: RssTopicMappingWhereUniqueInput!
+  data: RssTopicMappingUpdateInput!
+}
+
+input RssTopicMappingCreateInput {
+  rssTopic: String
+  topic: TopicRelateToOneForCreateInput
+  isEnabled: Boolean
+  note: String
+  createdAt: DateTime
+  updatedAt: DateTime
+  createdBy: UserRelateToOneForCreateInput
+  updatedBy: UserRelateToOneForCreateInput
+}
+
+type Event {
+  id: ID!
+  slug: String
+  label: EventLabelType
+  notice: String
+  availabilityStatus: String
+  post: Post
+  externalLink: String
+  startAt: DateTime
+  endAt: DateTime
+  registrationStartAt: DateTime
+  registrationEndAt: DateTime
+  checkInStartAt: DateTime
+  checkInEndAt: DateTime
+  capacity: Int
+  registrations(where: EventRegistrationWhereInput! = {}, orderBy: [EventRegistrationOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: EventRegistrationWhereUniqueInput): [EventRegistration!]
+  registrationsCount(where: EventRegistrationWhereInput! = {}): Int
+  createdAt: DateTime
+  updatedAt: DateTime
+  createdBy: User
+  updatedBy: User
+}
+
+enum EventLabelType {
+  hot
+  more
+  past
+}
+
+input EventWhereUniqueInput {
+  id: ID
+  slug: String
+}
+
+input EventWhereInput {
+  AND: [EventWhereInput!]
+  OR: [EventWhereInput!]
+  NOT: [EventWhereInput!]
+  id: IDFilter
+  slug: StringFilter
+  label: EventLabelTypeNullableFilter
+  notice: StringFilter
+  post: PostWhereInput
+  externalLink: StringFilter
+  startAt: DateTimeNullableFilter
+  endAt: DateTimeNullableFilter
+  registrationStartAt: DateTimeNullableFilter
+  registrationEndAt: DateTimeNullableFilter
+  checkInStartAt: DateTimeNullableFilter
+  checkInEndAt: DateTimeNullableFilter
+  capacity: IntNullableFilter
+  registrations: EventRegistrationManyRelationFilter
+  createdAt: DateTimeNullableFilter
+  updatedAt: DateTimeNullableFilter
+  createdBy: UserWhereInput
+  updatedBy: UserWhereInput
+}
+
+input EventLabelTypeNullableFilter {
+  equals: EventLabelType
+  in: [EventLabelType!]
+  notIn: [EventLabelType!]
+  not: EventLabelTypeNullableFilter
+}
+
+input EventOrderByInput {
+  id: OrderDirection
+  slug: OrderDirection
+  label: OrderDirection
+  notice: OrderDirection
+  externalLink: OrderDirection
+  startAt: OrderDirection
+  endAt: OrderDirection
+  registrationStartAt: OrderDirection
+  registrationEndAt: OrderDirection
+  checkInStartAt: OrderDirection
+  checkInEndAt: OrderDirection
+  capacity: OrderDirection
+  createdAt: OrderDirection
+  updatedAt: OrderDirection
+}
+
+input EventUpdateInput {
+  slug: String
+  label: EventLabelType
+  notice: String
+  post: PostRelateToOneForUpdateInput
+  externalLink: String
+  startAt: DateTime
+  endAt: DateTime
+  registrationStartAt: DateTime
+  registrationEndAt: DateTime
+  checkInStartAt: DateTime
+  checkInEndAt: DateTime
+  capacity: Int
+  registrations: EventRegistrationRelateToManyForUpdateInput
+  createdAt: DateTime
+  updatedAt: DateTime
+  createdBy: UserRelateToOneForUpdateInput
+  updatedBy: UserRelateToOneForUpdateInput
+}
+
+input EventUpdateArgs {
+  where: EventWhereUniqueInput!
+  data: EventUpdateInput!
+}
+
+input EventCreateInput {
+  slug: String
+  label: EventLabelType
+  notice: String
+  post: PostRelateToOneForCreateInput
+  externalLink: String
+  startAt: DateTime
+  endAt: DateTime
+  registrationStartAt: DateTime
+  registrationEndAt: DateTime
+  checkInStartAt: DateTime
+  checkInEndAt: DateTime
+  capacity: Int
+  registrations: EventRegistrationRelateToManyForCreateInput
+  createdAt: DateTime
+  updatedAt: DateTime
+  createdBy: UserRelateToOneForCreateInput
+  updatedBy: UserRelateToOneForCreateInput
+}
+
+type EventRegistration {
+  id: ID!
+  event: Event
+  member: Member
+  status: EventRegistrationStatusType
+  registeredAt: DateTime
+  checkedInAt: DateTime
+  checkedInBy: User
+  cancelledAt: DateTime
+  cancelledBy: User
+  checkInNotes: String
+  createdAt: DateTime
+  updatedAt: DateTime
+  createdBy: User
+  updatedBy: User
+}
+
 enum EventRegistrationStatusType {
   registered
   checkedIn
   cancelled
-}
-
-enum EventRegistrationIdentityTypeType {
-  national_id
-  resident_certificate
 }
 
 input EventRegistrationWhereUniqueInput {
@@ -3196,9 +3288,6 @@ input EventRegistrationWhereInput {
   checkedInBy: UserWhereInput
   cancelledAt: DateTimeNullableFilter
   cancelledBy: UserWhereInput
-  identityType: EventRegistrationIdentityTypeTypeNullableFilter
-  identityMasked: StringNullableFilter
-  phoneMasked: StringNullableFilter
   checkInNotes: StringFilter
   createdAt: DateTimeNullableFilter
   updatedAt: DateTimeNullableFilter
@@ -3206,23 +3295,11 @@ input EventRegistrationWhereInput {
   updatedBy: UserWhereInput
 }
 
-input RssTopicMappingOrderByInput {
-  id: OrderDirection
-  rssTopic: OrderDirection
-  isEnabled: OrderDirection
-  note: OrderDirection
 input EventRegistrationStatusTypeNullableFilter {
   equals: EventRegistrationStatusType
   in: [EventRegistrationStatusType!]
   notIn: [EventRegistrationStatusType!]
   not: EventRegistrationStatusTypeNullableFilter
-}
-
-input EventRegistrationIdentityTypeTypeNullableFilter {
-  equals: EventRegistrationIdentityTypeType
-  in: [EventRegistrationIdentityTypeType!]
-  notIn: [EventRegistrationIdentityTypeType!]
-  not: EventRegistrationIdentityTypeTypeNullableFilter
 }
 
 input StringNullableFilter {
@@ -3246,19 +3323,11 @@ input EventRegistrationOrderByInput {
   registeredAt: OrderDirection
   checkedInAt: OrderDirection
   cancelledAt: OrderDirection
-  identityType: OrderDirection
-  identityMasked: OrderDirection
-  phoneMasked: OrderDirection
   checkInNotes: OrderDirection
   createdAt: OrderDirection
   updatedAt: OrderDirection
 }
 
-input RssTopicMappingUpdateInput {
-  rssTopic: String
-  topic: TopicRelateToOneForUpdateInput
-  isEnabled: Boolean
-  note: String
 input EventRegistrationUpdateInput {
   event: EventRelateToOneForUpdateInput
   member: MemberRelateToOneForUpdateInput
@@ -3268,9 +3337,6 @@ input EventRegistrationUpdateInput {
   checkedInBy: UserRelateToOneForUpdateInput
   cancelledAt: DateTime
   cancelledBy: UserRelateToOneForUpdateInput
-  identityType: EventRegistrationIdentityTypeType
-  identityMasked: String
-  phoneMasked: String
   checkInNotes: String
   createdAt: DateTime
   updatedAt: DateTime
@@ -3278,16 +3344,6 @@ input EventRegistrationUpdateInput {
   updatedBy: UserRelateToOneForUpdateInput
 }
 
-input RssTopicMappingUpdateArgs {
-  where: RssTopicMappingWhereUniqueInput!
-  data: RssTopicMappingUpdateInput!
-}
-
-input RssTopicMappingCreateInput {
-  rssTopic: String
-  topic: TopicRelateToOneForCreateInput
-  isEnabled: Boolean
-  note: String
 input EventRelateToOneForUpdateInput {
   create: EventCreateInput
   connect: EventWhereUniqueInput
@@ -3308,16 +3364,12 @@ input EventRegistrationCreateInput {
   checkedInBy: UserRelateToOneForCreateInput
   cancelledAt: DateTime
   cancelledBy: UserRelateToOneForCreateInput
-  identityType: EventRegistrationIdentityTypeType
-  identityMasked: String
-  phoneMasked: String
   checkInNotes: String
   createdAt: DateTime
   updatedAt: DateTime
   createdBy: UserRelateToOneForCreateInput
   updatedBy: UserRelateToOneForCreateInput
 }
-
 
 input EventRelateToOneForCreateInput {
   create: EventCreateInput
@@ -3491,8 +3543,6 @@ type MemberEventRegistrationResult {
   status: String
   registeredAt: String
   checkedInAt: String
-  identityMasked: String
-  phoneMasked: String
   event: EventRegistrationEventResult!
 }
 
@@ -3500,6 +3550,8 @@ type EventRegistrationEventResult {
   id: ID!
   title: String
   slug: String
+  label: String
+  notice: String
   content: String
   externalLink: String
   status: String
@@ -3527,9 +3579,6 @@ type EventRegistrationEventImageResult {
 
 input RegisterForEventInput {
   eventSlug: String!
-  identityType: String!
-  identityNumber: String!
-  phoneNumber: String!
 }
 
 type EventCheckInQrTokenResult {
@@ -3695,9 +3744,52 @@ type Query {
   authenticatedItem: AuthenticatedItem
   validateUserPasswordResetToken(email: String!, token: String!): ValidateUserPasswordResetTokenResult
   authenticatedMember: MemberSessionMember
+  eventPreviews: EventPreviewSectionsResult!
   eventBySlug(slug: String!): EventRegistrationEventResult
   myEventRegistrations: [MemberEventRegistrationResult!]!
   previewEventCheckInToken(token: String!): EventCheckInPreviewResult!
+}
+
+type EventPreviewSectionsResult {
+  hot: [EventPreviewItemResult!]!
+  more: [EventPreviewItemResult!]!
+  past: [EventPreviewItemResult!]!
+}
+
+type EventPreviewItemResult {
+  id: ID!
+  title: String
+  slug: String
+  label: String
+  notice: String
+  externalLink: String
+  startAt: String
+  endAt: String
+  registrationStartAt: String
+  registrationEndAt: String
+  capacity: Int
+  firstImage: EventPreviewImageResult
+  images: [EventPreviewImageResult!]!
+  registrationCount: Int!
+  remainingCapacity: Int
+  availabilityStatus: EventPreviewAvailabilityStatus!
+  isRegistered: Boolean!
+}
+
+type EventPreviewImageResult {
+  id: ID!
+  name: String
+  urlOriginal: String
+  altText: String
+  caption: String
+  sortOrder: Int
+}
+
+enum EventPreviewAvailabilityStatus {
+  open
+  notStarted
+  full
+  closed
 }
 
 union AuthenticatedItem = User

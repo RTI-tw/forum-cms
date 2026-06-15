@@ -27,6 +27,12 @@ test('event keeps activity fields and relates content through post', () => {
   const eventFields = (Event as any).fields
   const photoFields = (Photo as any).fields
 
+  assert.ok(eventFields.label, 'Event should expose label')
+  assert.ok(eventFields.notice, 'Event should expose notice')
+  assert.ok(
+    eventFields.availabilityStatus,
+    'Event should expose virtual availabilityStatus'
+  )
   assert.ok(eventFields.post, 'Event should expose related Post')
   assert.ok(eventFields.externalLink, 'Event should expose externalLink')
   assert.ok(eventFields.startAt, 'Event should expose startAt')
@@ -50,15 +56,42 @@ test('event external link uses shared safe URL validation', () => {
   assert.match(source, /resolvedData\.externalLink/)
 })
 
-test('event registration prisma model enforces duplicate prevention constraints', () => {
+test('event registration prisma model only enforces member duplicate prevention', () => {
   const schema = fs.readFileSync(
     path.join(__dirname, '../schema.prisma'),
     'utf8'
   )
   assert.match(schema, /@@unique\(\[eventId, memberId\]\)/)
-  assert.match(schema, /@@unique\(\[eventId, identityHash\]\)/)
+  assert.doesNotMatch(schema, /@@unique\(\[eventId, identityHash\]\)/)
+  assert.doesNotMatch(schema, /@@index\(\[identityHash\]\)/)
+  assert.doesNotMatch(schema, /@@index\(\[phoneHash\]\)/)
   assert.match(schema, /@@index\(\[eventId, status\]\)/)
   assert.doesNotMatch(schema, /lastQrTokenExpiresAt/)
+})
+
+test('event registration personal identifier fields stay hidden in CMS configuration', () => {
+  const source = fs.readFileSync(
+    path.join(__dirname, 'event-registration.ts'),
+    'utf8'
+  )
+
+  for (const fieldName of [
+    'identityType',
+    'identityMasked',
+    'identityHash',
+    'phoneMasked',
+    'phoneHash',
+  ]) {
+    const fieldConfig = source.match(
+      new RegExp(`${fieldName}:\\s+(?:select|text)\\(\\{[\\s\\S]+?\\n    \\}\\),`)
+    )?.[0]
+    assert.ok(fieldConfig, `${fieldName} should exist`)
+    assert.match(
+      fieldConfig,
+      /hiddenFromCmsUiAndGraphql/,
+      `${fieldName} should be hidden from the CMS UI and GraphQL`
+    )
+  }
 })
 
 test('event prisma model stores event metadata and references post content', () => {
@@ -68,15 +101,27 @@ test('event prisma model stores event metadata and references post content', () 
   )
   const postModel = schema.match(/model Post \{[\s\S]+?\n\}/)?.[0]
   const eventModel = schema.match(/model Event \{[\s\S]+?\n\}/)?.[0]
+  const eventLabelEnum = schema.match(/enum EventLabelType \{[\s\S]+?\n\}/)?.[0]
   const photoModel = schema.match(/model Photo \{[\s\S]+?\n\}/)?.[0]
 
   assert.ok(postModel)
   assert.ok(eventModel)
+  assert.ok(eventLabelEnum)
   assert.ok(photoModel)
+  assert.match(eventLabelEnum, /\bhot\b/)
+  assert.match(eventLabelEnum, /\bmore\b/)
+  assert.match(eventLabelEnum, /\bpast\b/)
   assert.match(postModel, /events\s+Event\[\]\s+@relation\("Event_post"\)/)
   assert.match(eventModel, /post\s+Post\?\s+@relation\("Event_post"/)
   assert.match(eventModel, /postId\s+Int\?\s+@map\("post"\)/)
+  assert.match(eventModel, /label\s+EventLabelType\s+@default\(more\)/)
+  assert.match(eventModel, /notice\s+String\s+@default\(""\)/)
   assert.match(eventModel, /externalLink\s+String\s+@default\(""\)/)
+  assert.doesNotMatch(
+    eventModel,
+    /\bavailabilityStatus\b/,
+    'Event availabilityStatus should be virtual and not stored in Prisma'
+  )
   assert.doesNotMatch(eventModel, /\btitle\b/)
   assert.doesNotMatch(eventModel, /\bcontent\b/)
   assert.doesNotMatch(eventModel, /\bimages\b/)
@@ -98,18 +143,50 @@ test('event check-in custom GraphQL operations are registered', () => {
   assert.match(schema, /previewEventCheckInToken\(/)
   assert.match(schema, /confirmEventCheckIn\(/)
   assert.match(schema, /eventBySlug\(/)
+  assert.match(schema, /eventPreviews/)
   assert.match(schema, /myEventRegistrations/)
   assert.match(schema, /registerForEvent\(/)
   const tokenResult = schema.match(/type EventCheckInQrTokenResult \{[^}]+\}/)?.[0]
   assert.ok(tokenResult)
   assert.doesNotMatch(tokenResult, /expiresAt/)
 
+  const memberRegistrationResult = schema.match(/type MemberEventRegistrationResult \{[^}]+\}/)?.[0]
+  assert.ok(memberRegistrationResult)
+  assert.doesNotMatch(memberRegistrationResult, /identityMasked/)
+  assert.doesNotMatch(memberRegistrationResult, /phoneMasked/)
+
+  const registerInput = schema.match(/input RegisterForEventInput \{[^}]+\}/)?.[0]
+  assert.ok(registerInput)
+  assert.match(registerInput, /eventSlug: String!/)
+  assert.doesNotMatch(registerInput, /identityType/)
+  assert.doesNotMatch(registerInput, /identityNumber/)
+  assert.doesNotMatch(registerInput, /phoneNumber/)
+
   const eventResult = schema.match(/type EventRegistrationEventResult \{[^}]+\}/)?.[0]
+  const eventType = schema.match(/type Event \{[\s\S]+?\n\}/)?.[0]
+  assert.ok(eventType)
+  assert.match(eventType, /\n  availabilityStatus: String\n/)
   assert.ok(eventResult)
+  assert.match(eventResult, /label: String/)
+  assert.match(eventResult, /notice: String/)
   assert.match(eventResult, /content: String/)
   assert.match(eventResult, /externalLink: String/)
   assert.match(eventResult, /images: \[EventRegistrationEventImageResult!\]!/)
   assert.doesNotMatch(eventResult, /description/)
+
+  const previewSections = schema.match(/type EventPreviewSectionsResult \{[^}]+\}/)?.[0]
+  assert.ok(previewSections)
+  assert.match(previewSections, /hot: \[EventPreviewItemResult!\]!/)
+  assert.match(previewSections, /more: \[EventPreviewItemResult!\]!/)
+  assert.match(previewSections, /past: \[EventPreviewItemResult!\]!/)
+
+  const previewItem = schema.match(/type EventPreviewItemResult \{[^}]+\}/)?.[0]
+  assert.ok(previewItem)
+  assert.match(previewItem, /label: String/)
+  assert.match(previewItem, /notice: String/)
+  assert.match(previewItem, /availabilityStatus: EventPreviewAvailabilityStatus!/)
+  assert.match(previewItem, /isRegistered: Boolean!/)
+  assert.match(previewItem, /registrationCount: Int!/)
 
   const imageResult = schema.match(/type EventRegistrationEventImageResult \{[^}]+\}/)?.[0]
   assert.ok(imageResult)
@@ -135,5 +212,15 @@ test('event check-in custom GraphQL operations are registered', () => {
     resolverSource,
     /event\.images/,
     'event public operations should not use removed Event.images'
+  )
+  assert.doesNotMatch(
+    resolverSource,
+    /identityHash:\s*form\.identityHash/,
+    'registration duplicate checks should no longer use personal identifiers'
+  )
+  assert.doesNotMatch(
+    resolverSource,
+    /phoneHash:\s*form\.phoneHash/,
+    'registration creation should no longer store phone hashes'
   )
 })

@@ -1,13 +1,31 @@
 import { utils } from '@mirrormedia/lilith-core'
 import { allowRoles, admin, moderator, editor } from '../utils/access-control'
-import { list } from '@keystone-6/core'
-import { integer, relationship, text, timestamp } from '@keystone-6/core/fields'
+import { graphql, list } from '@keystone-6/core'
+import {
+  integer,
+  relationship,
+  select,
+  text,
+  timestamp,
+  virtual,
+} from '@keystone-6/core/fields'
 import { isSafeLinkUrl } from '../utils/url-safety'
+import { getEventPreviewAvailabilityStatus } from '../utils/event-preview-status'
 
 type ToOneRelationInput = {
   connect?: { id?: string | number | null } | null
   create?: unknown
   disconnect?: boolean
+}
+
+const ACTIVE_REGISTRATION_STATUSES = ['registered', 'checkedIn'] as const
+
+type EventAvailabilityItem = {
+  id?: number | string | null
+  endAt?: Date | string | null
+  registrationStartAt?: Date | string | null
+  registrationEndAt?: Date | string | null
+  capacity?: number | null
 }
 
 function hasRelatedPost(value: unknown) {
@@ -24,6 +42,68 @@ const listConfigurations = list({
       ui: {
         description: '供前台活動頁與 API 查詢使用，建議使用英數與連字號。',
       },
+    }),
+    label: select({
+      label: '活動標籤',
+      type: 'enum',
+      options: [
+        { label: '熱門活動', value: 'hot' },
+        { label: '更多活動', value: 'more' },
+        { label: '活動回顧', value: 'past' },
+      ],
+      defaultValue: 'more',
+      validation: { isRequired: true },
+      ui: {
+        description: '決定活動預覽卡顯示在哪個前台區塊。',
+      },
+    }),
+    notice: text({
+      label: '活動須知',
+      validation: {
+        length: { max: 100 },
+      },
+      ui: {
+        views: './lists/views/markdown-editor/index',
+        displayMode: 'textarea',
+        description: '最多 100 字，支援 Markdown 編輯與預覽。',
+      },
+    }),
+    availabilityStatus: virtual({
+      label: '活動狀態',
+      field: graphql.field({
+        type: graphql.String,
+        resolve: async (item, _args, context) => {
+          const event = item as EventAvailabilityItem
+          const eventId = Number(event.id)
+
+          if (!Number.isFinite(eventId)) {
+            return getEventPreviewAvailabilityStatus(event)
+          }
+
+          const [storedEvent, registrationCount] = await Promise.all([
+            context.prisma.event.findUnique({
+              where: { id: eventId },
+              select: {
+                endAt: true,
+                registrationStartAt: true,
+                registrationEndAt: true,
+                capacity: true,
+              },
+            }),
+            context.prisma.eventRegistration.count({
+              where: {
+                eventId,
+                status: { in: [...ACTIVE_REGISTRATION_STATUSES] },
+              },
+            }),
+          ])
+
+          return getEventPreviewAvailabilityStatus(
+            storedEvent ?? event,
+            registrationCount
+          )
+        },
+      }),
     }),
     post: relationship({
       ref: 'Post.events',
@@ -85,6 +165,9 @@ const listConfigurations = list({
     listView: {
       initialColumns: [
         'slug',
+        'label',
+        'notice',
+        'availabilityStatus',
         'post',
         'externalLink',
         'startAt',
