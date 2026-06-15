@@ -123,6 +123,9 @@ KEYSTONE_AUTH_TOKEN=<shared-secret>
 
 目前這組 token 只開放 cron 讀取 `RSS 關鍵字`、`RSS 主題合併` 與平台主題，
 以及建立／查詢／更新 `Post`；不會開放一般 CMS 管理操作。
+RSS 建立／更新文章時，CMS 會另外驗證指定作者為 `active` 且已勾選官方帳號的
+`Member`，並強制文章狀態為 `pending`、勾選「央廣精選」。沒有有效 cron token
+的請求不可使用 RSS 欄位建立文章。
 
 後台可在 `RSS 主題合併` list 建立多對一 mapping：多個央廣 RSS category
 可分別對應到同一個平台主題。RSS 匯入時若沒有任何啟用中的 mapping 命中，
