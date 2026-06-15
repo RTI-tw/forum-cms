@@ -9,10 +9,21 @@ function getBearerToken(context: KeystoneContext): string | null {
   return token.length > 0 ? token : null
 }
 
+function getCronServiceToken(context: KeystoneContext): string | null {
+  const header = context.req?.headers?.['x-cron-service-token']
+  const token = Array.isArray(header) ? header[0] : header
+  if (typeof token !== 'string') return null
+  const trimmed = token.trim()
+  return trimmed.length > 0 ? trimmed : null
+}
+
 export function isCronServiceRequest(context: KeystoneContext): boolean {
   const expected = process.env.CRON_SERVICES_GQL_WRITE_TOKEN?.trim()
   if (!expected) return false
-  const token = getBearerToken(context)
+  // Cloud Run may reserve Authorization for platform authentication, so
+  // deployed cron-services uses a dedicated header. Bearer remains supported
+  // for local development and backwards compatibility.
+  const token = getCronServiceToken(context) ?? getBearerToken(context)
   if (!token) return false
 
   const tokenBuffer = Buffer.from(token)
