@@ -230,7 +230,7 @@ const listConfigurations = list({
             },
         }),
         isRtiChoice: checkbox({
-            label: '央廣精選',
+            label: '精選新聞',
             defaultValue: false,
             ui: {
                 description: '央廣精選相關旗標，供前台集中展示央廣 RSS 匯入文章。',
