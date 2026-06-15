@@ -109,7 +109,9 @@ ACCESS_CONTROL_STRATEGY=gql npm run dev
 
 ### Cron services RSS 自動發文
 
-`cron-services` 匯入央廣 RSS 並寫入論壇文章時，GraphQL request 必須帶一組 cron 專用 Bearer token。CMS 端設定：
+`cron-services` 匯入央廣 RSS 並寫入論壇文章時，GraphQL request 必須透過
+`X-Cron-Service-Token` 帶一組 cron 專用 token，避免與 Cloud Run 使用的
+`Authorization` 標頭衝突。CMS 端設定：
 
 ```
 CRON_SERVICES_GQL_WRITE_TOKEN=<shared-secret>
