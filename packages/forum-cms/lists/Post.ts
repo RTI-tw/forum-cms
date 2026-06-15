@@ -40,6 +40,36 @@ function toFiniteNumber(value: unknown): number | null {
     return Number.isFinite(n) ? n : null
 }
 
+function connectedIntegerId(value: unknown): number | null {
+    const connect = (value as { connect?: { id?: unknown } } | undefined)
+        ?.connect
+    const rawId = connect?.id
+    if (rawId == null) return null
+    const id = typeof rawId === 'number' ? rawId : Number(rawId)
+    return Number.isInteger(id) ? id : null
+}
+
+function isRssPostInput(data: Record<string, unknown>): boolean {
+    return normText(data.rssSourceUrl) !== '' || data.isRtiChoice === true
+}
+
+async function validateCronRssPostInput(
+    context: Parameters<typeof isCronServiceRequest>[0],
+    data: Record<string, unknown>
+): Promise<void> {
+    const authorId = connectedIntegerId(data.author)
+    if (authorId == null) {
+        throw new Error('RSS 自動發文需要指定有效的官方會員作者 ID')
+    }
+    const author = await context.sudo().prisma.member.findUnique({
+        where: { id: authorId },
+        select: { status: true, isOfficial: true },
+    })
+    if (!author || author.status !== 'active' || author.isOfficial !== true) {
+        throw new Error('RSS 自動發文作者必須是有效且已啟用的官方會員')
+    }
+}
+
 /**
  * 欄位對應需求：標題原文（必填、≤80 字）、五語標題、貼文原文（必填）、五語內容、
  * 原始語言（必填）、作者（央廣後台預設 OfficialMapping 會員）、發文時間、已編輯、IP、SPAM、
@@ -449,7 +479,28 @@ const listConfigurations = list({
         }) => {
             const data = { ...resolvedData }
             if (operation === 'create') {
-                if (!isCmsRequest(context)) {
+                const isTrustedCronService = isCronServiceRequest(context)
+                const isRssPost = isRssPostInput(
+                    data as Record<string, unknown>
+                )
+                if (
+                    isRssPost &&
+                    !isCmsRequest(context) &&
+                    !isTrustedCronService
+                ) {
+                    throw new Error(
+                        'RSS 自動發文需要有效的 cron Bearer token'
+                    )
+                }
+                if (isTrustedCronService) {
+                    await validateCronRssPostInput(
+                        context,
+                        data as Record<string, unknown>
+                    )
+                    data.status = 'pending'
+                    data.isRtiChoice = true
+                }
+                if (!isCmsRequest(context) && !isTrustedCronService) {
                     // [AC-005] 非 CMS 建立文章時，以前台 bearer token 綁定 author 並固定進審核佇列。
                     const memberId = getAuthenticatedMemberId(context)
                     if (memberId == null) {
@@ -508,6 +559,17 @@ const listConfigurations = list({
             }
             if (operation === 'update') {
                 if (isCronServiceRequest(context)) {
+                    if (!isRssPostInput(data as Record<string, unknown>)) {
+                        throw new Error(
+                            'cron Bearer token 僅可更新帶有 RSS 來源網址的央廣精選文章'
+                        )
+                    }
+                    await validateCronRssPostInput(
+                        context,
+                        data as Record<string, unknown>
+                    )
+                    data.status = 'pending'
+                    data.isRtiChoice = true
                     return data
                 }
                 const moderated = await applyPostUpdateCmsRules(
