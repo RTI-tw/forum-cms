@@ -109,7 +109,9 @@ ACCESS_CONTROL_STRATEGY=gql npm run dev
 
 ### Cron services RSS 自動發文
 
-`cron-services` 匯入央廣 RSS 並寫入論壇文章時，GraphQL request 必須帶一組 cron 專用 Bearer token。CMS 端設定：
+`cron-services` 匯入央廣 RSS 並寫入論壇文章時，GraphQL request 必須透過
+`X-Cron-Service-Token` 帶一組 cron 專用 token，避免與 Cloud Run 使用的
+`Authorization` 標頭衝突。CMS 端設定：
 
 ```
 CRON_SERVICES_GQL_WRITE_TOKEN=<shared-secret>
@@ -123,6 +125,9 @@ KEYSTONE_AUTH_TOKEN=<shared-secret>
 
 目前這組 token 只開放 cron 讀取 `RSS 關鍵字`、`RSS 主題合併` 與平台主題，
 以及建立／查詢／更新 `Post`；不會開放一般 CMS 管理操作。
+RSS 建立／更新文章時，CMS 會另外驗證指定作者為 `active` 且已勾選官方帳號的
+`Member`，並強制文章狀態為 `pending`、勾選「央廣精選」。沒有有效 cron token
+的請求不可使用 RSS 欄位建立文章。
 
 後台可在 `RSS 主題合併` list 建立多對一 mapping：多個央廣 RSS category
 可分別對應到同一個平台主題。RSS 匯入時若沒有任何啟用中的 mapping 命中，

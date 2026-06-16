@@ -361,7 +361,10 @@ async function buildMemberEventRegistration(
 
 export function buildEventCheckInPreview(
   registration: EventRegistrationRecord | null,
-  now = new Date()
+  now = new Date(),
+  // When issuing a QR for a member, skip the check-in time-window gate so the QR
+  // is available as soon as they register; staff-side scanning still enforces it.
+  { ignoreWindow = false }: { ignoreWindow?: boolean } = {}
 ): CheckInPreview {
   if (!registration) {
     return {
@@ -436,23 +439,25 @@ export function buildEventCheckInPreview(
     }
   }
 
-  if (isBefore(registration.event.checkInStartAt, now)) {
-    return {
-      ok: false,
-      canCheckIn: false,
-      code: 'CHECK_IN_NOT_STARTED',
-      message: '活動尚未開始報到',
-      ...base,
+  if (!ignoreWindow) {
+    if (isBefore(registration.event.checkInStartAt, now)) {
+      return {
+        ok: false,
+        canCheckIn: false,
+        code: 'CHECK_IN_NOT_STARTED',
+        message: '活動尚未開始報到',
+        ...base,
+      }
     }
-  }
 
-  if (isAfter(registration.event.checkInEndAt, now)) {
-    return {
-      ok: false,
-      canCheckIn: false,
-      code: 'CHECK_IN_CLOSED',
-      message: '活動報到已結束',
-      ...base,
+    if (isAfter(registration.event.checkInEndAt, now)) {
+      return {
+        ok: false,
+        canCheckIn: false,
+        code: 'CHECK_IN_CLOSED',
+        message: '活動報到已結束',
+        ...base,
+      }
     }
   }
 
@@ -921,7 +926,9 @@ export const eventRegistrationSchemaExtension = graphql.extend(() => ({
           throw new Error('找不到可使用的活動報名紀錄')
         }
 
-        const preview = buildEventCheckInPreview(registration)
+        // Issue as soon as the member is registered (eligibility checks only);
+        // the check-in time window is enforced when staff scan the token.
+        const preview = buildEventCheckInPreview(registration, new Date(), { ignoreWindow: true })
         if (!preview.canCheckIn) {
           throw new Error(preview.message)
         }
