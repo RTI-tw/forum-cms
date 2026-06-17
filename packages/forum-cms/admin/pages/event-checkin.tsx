@@ -5,6 +5,7 @@ import {
   useApolloClient,
   useMutation,
 } from '@keystone-6/core/admin-ui/apollo'
+import jsQR from 'jsqr'
 
 const PREVIEW_EVENT_CHECK_IN_TOKEN = gql`
   query PreviewEventCheckInToken($token: String!) {
@@ -71,6 +72,14 @@ type BarcodeDetectorConstructor = new (options?: {
   detect: (source: HTMLVideoElement) => Promise<Array<{ rawValue: string }>>
 }
 
+type BarcodeDetectorGlobal = BarcodeDetectorConstructor & {
+  getSupportedFormats?: () => Promise<string[]>
+}
+
+type QrCodeDetector = {
+  detect: (source: HTMLVideoElement) => Promise<string | null>
+}
+
 function formatDateTime(value?: string | null) {
   if (!value) {
     return '-'
@@ -86,13 +95,69 @@ function getBarcodeDetector() {
     return null
   }
   return (window as typeof window & {
-    BarcodeDetector?: BarcodeDetectorConstructor
+    BarcodeDetector?: BarcodeDetectorGlobal
   }).BarcodeDetector ?? null
+}
+
+function detectWithCanvas(
+  video: HTMLVideoElement,
+  canvas: HTMLCanvasElement
+) {
+  const width = video.videoWidth
+  const height = video.videoHeight
+  if (!width || !height) {
+    return null
+  }
+
+  canvas.width = width
+  canvas.height = height
+
+  const context = canvas.getContext('2d', { willReadFrequently: true })
+  if (!context) {
+    return null
+  }
+
+  context.drawImage(video, 0, 0, width, height)
+  const imageData = context.getImageData(0, 0, width, height)
+  const code = jsQR(imageData.data, width, height, {
+    inversionAttempts: 'attemptBoth',
+  })
+
+  return code?.data.trim() || null
+}
+
+async function createQrCodeDetector(
+  canvas: HTMLCanvasElement
+): Promise<QrCodeDetector> {
+  const BarcodeDetector = getBarcodeDetector()
+  if (BarcodeDetector) {
+    try {
+      const supportedFormats = await BarcodeDetector.getSupportedFormats?.()
+      if (!supportedFormats || supportedFormats.includes('qr_code')) {
+        const detector = new BarcodeDetector({ formats: ['qr_code'] })
+        return {
+          async detect(source) {
+            const codes = await detector.detect(source)
+            return codes[0]?.rawValue?.trim() || null
+          },
+        }
+      }
+    } catch (_error) {
+      // Fall back to the JS decoder when native feature detection fails.
+    }
+  }
+
+  return {
+    async detect(source) {
+      return detectWithCanvas(source, canvas)
+    },
+  }
 }
 
 export default function EventCheckInPage() {
   const apolloClient = useApolloClient()
   const videoRef = useRef<HTMLVideoElement | null>(null)
+  const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const streamRef = useRef<MediaStream | null>(null)
   const frameRef = useRef<number | null>(null)
   const lastScannedRef = useRef('')
@@ -153,9 +218,8 @@ export default function EventCheckInPage() {
   )
 
   const startCamera = useCallback(async () => {
-    const BarcodeDetector = getBarcodeDetector()
-    if (!BarcodeDetector) {
-      setCameraError('此瀏覽器不支援 QR Code 掃描，請改用手動輸入。')
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setCameraError('此瀏覽器不支援攝影機存取，請改用手動輸入。')
       return
     }
 
@@ -171,7 +235,9 @@ export default function EventCheckInPage() {
         await videoRef.current.play()
       }
 
-      const detector = new BarcodeDetector({ formats: ['qr_code'] })
+      const canvas = canvasRef.current ?? document.createElement('canvas')
+      canvasRef.current = canvas
+      const detector = await createQrCodeDetector(canvas)
       setIsCameraActive(true)
 
       const scan = async () => {
@@ -180,8 +246,7 @@ export default function EventCheckInPage() {
         }
 
         try {
-          const codes = await detector.detect(videoRef.current)
-          const rawValue = codes[0]?.rawValue?.trim()
+          const rawValue = await detector.detect(videoRef.current)
           if (rawValue && rawValue !== lastScannedRef.current) {
             lastScannedRef.current = rawValue
             await previewToken(rawValue)
