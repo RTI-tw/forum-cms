@@ -2660,6 +2660,7 @@ type Ad {
   endAt: DateTime
   status: AdStatusType
   image: Photo
+  mobileImage: Photo
   slides(where: AdSlideWhereInput! = {}, orderBy: [AdSlideOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: AdSlideWhereUniqueInput): [AdSlide!]
   slidesCount(where: AdSlideWhereInput! = {}): Int
   videoUrl: String
@@ -2706,6 +2707,7 @@ input AdWhereInput {
   endAt: DateTimeNullableFilter
   status: AdStatusTypeNullableFilter
   image: PhotoWhereInput
+  mobileImage: PhotoWhereInput
   slides: AdSlideManyRelationFilter
   videoUrl: StringFilter
   adCode: StringFilter
@@ -2757,6 +2759,7 @@ input AdUpdateInput {
   endAt: DateTime
   status: AdStatusType
   image: PhotoRelateToOneForUpdateInput
+  mobileImage: PhotoRelateToOneForUpdateInput
   slides: AdSlideRelateToManyForUpdateInput
   videoUrl: String
   videoFile: FileFieldInput
@@ -2791,6 +2794,7 @@ input AdCreateInput {
   endAt: DateTime
   status: AdStatusType
   image: PhotoRelateToOneForCreateInput
+  mobileImage: PhotoRelateToOneForCreateInput
   slides: AdSlideRelateToManyForCreateInput
   videoUrl: String
   videoFile: FileFieldInput
@@ -2811,6 +2815,7 @@ type AdSlide {
   id: ID!
   ad: Ad
   image: Photo
+  mobileImage: Photo
   linkUrl: String
   sortOrder: Int
   createdAt: DateTime
@@ -2830,6 +2835,7 @@ input AdSlideWhereInput {
   id: IDFilter
   ad: AdWhereInput
   image: PhotoWhereInput
+  mobileImage: PhotoWhereInput
   linkUrl: StringFilter
   sortOrder: IntNullableFilter
   createdAt: DateTimeNullableFilter
@@ -2849,6 +2855,7 @@ input AdSlideOrderByInput {
 input AdSlideUpdateInput {
   ad: AdRelateToOneForUpdateInput
   image: PhotoRelateToOneForUpdateInput
+  mobileImage: PhotoRelateToOneForUpdateInput
   linkUrl: String
   sortOrder: Int
   createdAt: DateTime
@@ -2871,6 +2878,7 @@ input AdSlideUpdateArgs {
 input AdSlideCreateInput {
   ad: AdRelateToOneForCreateInput
   image: PhotoRelateToOneForCreateInput
+  mobileImage: PhotoRelateToOneForCreateInput
   linkUrl: String
   sortOrder: Int
   createdAt: DateTime

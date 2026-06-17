@@ -516,7 +516,9 @@ model Photo {
   updatedById              Int?            @map("updatedBy")
   from_Member_avatar_image Member[]        @relation("Member_avatar_image")
   from_Ad_image            Ad[]            @relation("Ad_image")
+  from_Ad_mobileImage      Ad[]            @relation("Ad_mobileImage")
   from_AdSlide_image       AdSlide[]       @relation("AdSlide_image")
+  from_AdSlide_mobileImage AdSlide[]       @relation("AdSlide_mobileImage")
   from_HomepageImage_image HomepageImage[] @relation("HomepageImage_image")
 
   @@index([uploadedById])
@@ -534,6 +536,8 @@ model Ad {
   status             AdStatusType @default(draft)
   image              Photo?       @relation("Ad_image", fields: [imageId], references: [id])
   imageId            Int?         @map("image")
+  mobileImage        Photo?       @relation("Ad_mobileImage", fields: [mobileImageId], references: [id])
+  mobileImageId      Int?         @map("mobileImage")
   slides             AdSlide[]    @relation("AdSlide_ad")
   videoUrl           String       @default("")
   videoFile_filesize Int?
@@ -548,27 +552,31 @@ model Ad {
   updatedById        Int?         @map("updatedBy")
 
   @@index([imageId])
+  @@index([mobileImageId])
   @@index([createdById])
   @@index([updatedById])
 }
 
 model AdSlide {
-  id          Int       @id @default(autoincrement())
-  ad          Ad?       @relation("AdSlide_ad", fields: [adId], references: [id])
-  adId        Int?      @map("ad")
-  image       Photo?    @relation("AdSlide_image", fields: [imageId], references: [id])
-  imageId     Int?      @map("image")
-  linkUrl     String    @default("")
-  sortOrder   Int?      @default(0)
-  createdAt   DateTime?
-  updatedAt   DateTime?
-  createdBy   User?     @relation("AdSlide_createdBy", fields: [createdById], references: [id])
-  createdById Int?      @map("createdBy")
-  updatedBy   User?     @relation("AdSlide_updatedBy", fields: [updatedById], references: [id])
-  updatedById Int?      @map("updatedBy")
+  id            Int       @id @default(autoincrement())
+  ad            Ad?       @relation("AdSlide_ad", fields: [adId], references: [id])
+  adId          Int?      @map("ad")
+  image         Photo?    @relation("AdSlide_image", fields: [imageId], references: [id])
+  imageId       Int?      @map("image")
+  mobileImage   Photo?    @relation("AdSlide_mobileImage", fields: [mobileImageId], references: [id])
+  mobileImageId Int?      @map("mobileImage")
+  linkUrl       String    @default("")
+  sortOrder     Int?      @default(0)
+  createdAt     DateTime?
+  updatedAt     DateTime?
+  createdBy     User?     @relation("AdSlide_createdBy", fields: [createdById], references: [id])
+  createdById   Int?      @map("createdBy")
+  updatedBy     User?     @relation("AdSlide_updatedBy", fields: [updatedById], references: [id])
+  updatedById   Int?      @map("updatedBy")
 
   @@index([adId])
   @@index([imageId])
+  @@index([mobileImageId])
   @@index([createdById])
   @@index([updatedById])
 }

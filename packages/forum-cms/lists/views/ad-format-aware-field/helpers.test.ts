@@ -39,13 +39,16 @@ test('defaults to single image when the form state has no selected format', () =
 
 test('shows only fields that belong to the current ad format', () => {
   assert.equal(isAdFormatFieldVisible('image', itemValueFor('single_image')), true)
+  assert.equal(isAdFormatFieldVisible('mobileImage', itemValueFor('single_image')), true)
   assert.equal(isAdFormatFieldVisible('slides', itemValueFor('single_image')), false)
 
   assert.equal(isAdFormatFieldVisible('slides', itemValueFor('carousel')), true)
   assert.equal(isAdFormatFieldVisible('image', itemValueFor('carousel')), false)
+  assert.equal(isAdFormatFieldVisible('mobileImage', itemValueFor('carousel')), false)
 
   assert.equal(isAdFormatFieldVisible('videoUrl', itemValueFor('video')), true)
   assert.equal(isAdFormatFieldVisible('videoFile', itemValueFor('video')), true)
+  assert.equal(isAdFormatFieldVisible('mobileImage', itemValueFor('video')), false)
   assert.equal(isAdFormatFieldVisible('adCode', itemValueFor('video')), false)
 
   assert.equal(isAdFormatFieldVisible('adCode', itemValueFor('third_party')), true)

@@ -72,10 +72,20 @@ const listConfigurations = list({
     image: relationship({
       ref: 'Photo',
       many: false,
-      label: '廣告圖片 Image（單張靜態圖）',
+      label: '桌機廣告圖片 Desktop image（單張靜態圖）',
       ui: {
         description:
-          '格式為「單張靜態圖」時使用。建議素材：桌機 728×90（超級橫幅）、手機 300×250（中矩形）。',
+          '格式為「單張靜態圖」時使用。建議素材：桌機 728×90（超級橫幅）。',
+        views: formatAwareRelationshipView,
+      },
+    }),
+    mobileImage: relationship({
+      ref: 'Photo',
+      many: false,
+      label: '手機版廣告圖片 Mobile image（單張靜態圖）',
+      ui: {
+        description:
+          '格式為「單張靜態圖」時使用。建議素材：手機 300×250（中矩形）。',
         views: formatAwareRelationshipView,
       },
     }),
@@ -88,9 +98,9 @@ const listConfigurations = list({
         description:
           '格式為「靜態圖輪播」時使用。每一格可設定獨立圖片、連結與顯示順序。',
         displayMode: 'cards',
-        cardFields: ['image', 'linkUrl', 'sortOrder'],
-        inlineCreate: { fields: ['image', 'linkUrl', 'sortOrder'] },
-        inlineEdit: { fields: ['image', 'linkUrl', 'sortOrder'] },
+        cardFields: ['image', 'mobileImage', 'linkUrl', 'sortOrder'],
+        inlineCreate: { fields: ['image', 'mobileImage', 'linkUrl', 'sortOrder'] },
+        inlineEdit: { fields: ['image', 'mobileImage', 'linkUrl', 'sortOrder'] },
         inlineConnect: true,
         linkToItem: true,
         removeMode: 'disconnect',

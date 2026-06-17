@@ -11,6 +11,7 @@ const AD_FORMATS = new Set<AdFormat>([
 
 const FIELD_FORMATS: Record<string, readonly AdFormat[]> = {
   image: ['single_image'],
+  mobileImage: ['single_image'],
   slides: ['carousel'],
   videoUrl: ['video'],
   videoFile: ['video'],
