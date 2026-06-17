@@ -63,9 +63,8 @@ const listConfigurations = list({
         length: { max: 100 },
       },
       ui: {
-        views: './lists/views/markdown-editor/index',
         displayMode: 'textarea',
-        description: '最多 100 字，支援 Markdown 編輯與預覽。',
+        description: '最多 100 字。',
       },
     }),
     availabilityStatus: virtual({
