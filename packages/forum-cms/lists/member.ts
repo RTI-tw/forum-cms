@@ -189,7 +189,6 @@ const listConfigurations = list({
         }
         return {
           status: { equals: 'active' },
-          isOfficial: { equals: true },
         }
       },
     },
