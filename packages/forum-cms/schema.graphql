@@ -3310,21 +3310,6 @@ input EventRegistrationStatusTypeNullableFilter {
   not: EventRegistrationStatusTypeNullableFilter
 }
 
-input StringNullableFilter {
-  equals: String
-  in: [String!]
-  notIn: [String!]
-  lt: String
-  lte: String
-  gt: String
-  gte: String
-  contains: String
-  startsWith: String
-  endsWith: String
-  mode: QueryMode
-  not: StringNullableFilter
-}
-
 input EventRegistrationOrderByInput {
   id: OrderDirection
   status: OrderDirection
@@ -3400,8 +3385,6 @@ type Mutation {
   createMembers(data: [MemberCreateInput!]!): [Member]
   updateMember(where: MemberWhereUniqueInput!, data: MemberUpdateInput!): Member
   updateMembers(data: [MemberUpdateArgs!]!): [Member]
-  deleteMember(where: MemberWhereUniqueInput!): Member
-  deleteMembers(where: [MemberWhereUniqueInput!]!): [Member]
   createOfficialMapping(data: OfficialMappingCreateInput!): OfficialMapping
   createOfficialMappings(data: [OfficialMappingCreateInput!]!): [OfficialMapping]
   updateOfficialMapping(where: OfficialMappingWhereUniqueInput!, data: OfficialMappingUpdateInput!): OfficialMapping
@@ -3541,6 +3524,8 @@ type Mutation {
   redeemUserPasswordResetToken(email: String!, token: String!, password: String!): RedeemUserPasswordResetTokenResult
   changeMyPassword(data: ChangeMyPasswordInput!): ChangeMyPasswordResult!
   authenticateMemberWithFirebase(data: AuthenticateMemberWithFirebaseInput!): AuthenticateMemberWithFirebaseResult!
+  deleteMember(where: MemberWhereUniqueInput!): Member
+  deleteMembers(where: [MemberWhereUniqueInput!]!): [Member]
   registerForEvent(data: RegisterForEventInput!): MemberEventRegistrationResult!
   issueEventCheckInQrToken(registrationId: ID!): EventCheckInQrTokenResult!
   confirmEventCheckIn(token: String!): EventCheckInPreviewResult!
