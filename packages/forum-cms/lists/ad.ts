@@ -19,11 +19,10 @@ import { isSafeLinkUrl } from '../utils/url-safety'
  */
 type AdFormat = 'single_image' | 'carousel' | 'video' | 'third_party'
 
-/** 依廣告格式，在 itemView 顯示/隱藏對應欄位（依已儲存的 item.format 判斷）。 */
-function visibleForFormat(...formats: AdFormat[]) {
-  return ({ item }: { item?: Record<string, unknown> }) =>
-    formats.includes(item?.format as AdFormat) ? 'edit' : 'hidden'
-}
+const formatAwareRelationshipView =
+  './lists/views/ad-format-aware-field/relationship'
+const formatAwareTextView = './lists/views/ad-format-aware-field/text'
+const formatAwareFileView = './lists/views/ad-format-aware-field/file'
 
 const listConfigurations = list({
   fields: {
@@ -73,11 +72,21 @@ const listConfigurations = list({
     image: relationship({
       ref: 'Photo',
       many: false,
-      label: '廣告圖片 Image（單張靜態圖）',
+      label: '桌機廣告圖片 Desktop image（單張靜態圖）',
       ui: {
         description:
-          '格式為「單張靜態圖」時使用。建議素材：桌機 728×90（超級橫幅）、手機 300×250（中矩形）。',
-        itemView: { fieldMode: visibleForFormat('single_image') },
+          '格式為「單張靜態圖」時使用。建議素材：桌機 728×90（超級橫幅）。',
+        views: formatAwareRelationshipView,
+      },
+    }),
+    mobileImage: relationship({
+      ref: 'Photo',
+      many: false,
+      label: '手機版廣告圖片 Mobile image（單張靜態圖）',
+      ui: {
+        description:
+          '格式為「單張靜態圖」時使用。建議素材：手機 300×250（中矩形）。',
+        views: formatAwareRelationshipView,
       },
     }),
     // --- 靜態圖輪播 ---
@@ -89,13 +98,13 @@ const listConfigurations = list({
         description:
           '格式為「靜態圖輪播」時使用。每一格可設定獨立圖片、連結與顯示順序。',
         displayMode: 'cards',
-        cardFields: ['image', 'linkUrl', 'sortOrder'],
-        inlineCreate: { fields: ['image', 'linkUrl', 'sortOrder'] },
-        inlineEdit: { fields: ['image', 'linkUrl', 'sortOrder'] },
+        cardFields: ['image', 'mobileImage', 'linkUrl', 'sortOrder'],
+        inlineCreate: { fields: ['image', 'mobileImage', 'linkUrl', 'sortOrder'] },
+        inlineEdit: { fields: ['image', 'mobileImage', 'linkUrl', 'sortOrder'] },
         inlineConnect: true,
         linkToItem: true,
         removeMode: 'disconnect',
-        itemView: { fieldMode: visibleForFormat('carousel') },
+        views: formatAwareRelationshipView,
       },
     }),
     // --- 動態影像 ---
@@ -104,7 +113,7 @@ const listConfigurations = list({
       ui: {
         description:
           '格式為「動態影像」時使用；外部影片連結（YouTube / Vimeo / mp4 等 http/https 網址）。',
-        itemView: { fieldMode: visibleForFormat('video') },
+        views: formatAwareTextView,
       },
     }),
     videoFile: file({
@@ -113,7 +122,7 @@ const listConfigurations = list({
       ui: {
         description:
           '格式為「動態影像」時使用；可改為上傳影片檔。注意：伺服器上傳上限為 20MB，較長的影片請改用「影片網址」。',
-        itemView: { fieldMode: visibleForFormat('video') },
+        views: formatAwareFileView,
       },
     }),
     // --- 第三方廣告代碼 ---
@@ -123,7 +132,7 @@ const listConfigurations = list({
         displayMode: 'textarea',
         description:
           '格式為「第三方廣告代碼」時使用；貼上廣告商提供的 HTML / script tag（例如 Google Ad Manager）。此內容會原樣輸出至前台，請務必只貼信任來源的代碼。',
-        itemView: { fieldMode: visibleForFormat('third_party') },
+        views: formatAwareTextView,
       },
     }),
     // --- 共用：點擊導向 ---

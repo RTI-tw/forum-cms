@@ -5,6 +5,7 @@ import {
   useApolloClient,
   useMutation,
 } from '@keystone-6/core/admin-ui/apollo'
+import jsQR from 'jsqr'
 
 const PREVIEW_EVENT_CHECK_IN_TOKEN = gql`
   query PreviewEventCheckInToken($token: String!) {
@@ -71,6 +72,14 @@ type BarcodeDetectorConstructor = new (options?: {
   detect: (source: HTMLVideoElement) => Promise<Array<{ rawValue: string }>>
 }
 
+type BarcodeDetectorGlobal = BarcodeDetectorConstructor & {
+  getSupportedFormats?: () => Promise<string[]>
+}
+
+type QrCodeDetector = {
+  detect: (source: HTMLVideoElement) => Promise<string | null>
+}
+
 function formatDateTime(value?: string | null) {
   if (!value) {
     return '-'
@@ -86,13 +95,69 @@ function getBarcodeDetector() {
     return null
   }
   return (window as typeof window & {
-    BarcodeDetector?: BarcodeDetectorConstructor
+    BarcodeDetector?: BarcodeDetectorGlobal
   }).BarcodeDetector ?? null
+}
+
+function detectWithCanvas(
+  video: HTMLVideoElement,
+  canvas: HTMLCanvasElement
+) {
+  const width = video.videoWidth
+  const height = video.videoHeight
+  if (!width || !height) {
+    return null
+  }
+
+  canvas.width = width
+  canvas.height = height
+
+  const context = canvas.getContext('2d', { willReadFrequently: true })
+  if (!context) {
+    return null
+  }
+
+  context.drawImage(video, 0, 0, width, height)
+  const imageData = context.getImageData(0, 0, width, height)
+  const code = jsQR(imageData.data, width, height, {
+    inversionAttempts: 'attemptBoth',
+  })
+
+  return code?.data.trim() || null
+}
+
+async function createQrCodeDetector(
+  canvas: HTMLCanvasElement
+): Promise<QrCodeDetector> {
+  const BarcodeDetector = getBarcodeDetector()
+  if (BarcodeDetector) {
+    try {
+      const supportedFormats = await BarcodeDetector.getSupportedFormats?.()
+      if (!supportedFormats || supportedFormats.includes('qr_code')) {
+        const detector = new BarcodeDetector({ formats: ['qr_code'] })
+        return {
+          async detect(source) {
+            const codes = await detector.detect(source)
+            return codes[0]?.rawValue?.trim() || null
+          },
+        }
+      }
+    } catch (_error) {
+      // Fall back to the JS decoder when native feature detection fails.
+    }
+  }
+
+  return {
+    async detect(source) {
+      return detectWithCanvas(source, canvas)
+    },
+  }
 }
 
 export default function EventCheckInPage() {
   const apolloClient = useApolloClient()
   const videoRef = useRef<HTMLVideoElement | null>(null)
+  const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const streamRef = useRef<MediaStream | null>(null)
   const frameRef = useRef<number | null>(null)
   const lastScannedRef = useRef('')
@@ -153,9 +218,8 @@ export default function EventCheckInPage() {
   )
 
   const startCamera = useCallback(async () => {
-    const BarcodeDetector = getBarcodeDetector()
-    if (!BarcodeDetector) {
-      setCameraError('此瀏覽器不支援 QR Code 掃描，請改用手動輸入。')
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setCameraError('此瀏覽器不支援攝影機存取，請改用手動輸入。')
       return
     }
 
@@ -171,7 +235,9 @@ export default function EventCheckInPage() {
         await videoRef.current.play()
       }
 
-      const detector = new BarcodeDetector({ formats: ['qr_code'] })
+      const canvas = canvasRef.current ?? document.createElement('canvas')
+      canvasRef.current = canvas
+      const detector = await createQrCodeDetector(canvas)
       setIsCameraActive(true)
 
       const scan = async () => {
@@ -180,8 +246,7 @@ export default function EventCheckInPage() {
         }
 
         try {
-          const codes = await detector.detect(videoRef.current)
-          const rawValue = codes[0]?.rawValue?.trim()
+          const rawValue = await detector.detect(videoRef.current)
           if (rawValue && rawValue !== lastScannedRef.current) {
             lastScannedRef.current = rawValue
             await previewToken(rawValue)
@@ -231,60 +296,46 @@ export default function EventCheckInPage() {
       <Head>
         <title>活動報到</title>
       </Head>
-      <main style={{ padding: '32px', maxWidth: 960 }}>
-        <h1 style={{ marginTop: 0 }}>活動報到</h1>
+      <main className="event-checkin-page">
+        <h1 className="event-checkin-title">活動報到</h1>
 
-        <section style={{ marginBottom: 24 }}>
+        <section className="event-checkin-section">
           <video
             ref={videoRef}
             muted
             playsInline
-            style={{
-              width: '100%',
-              maxWidth: 520,
-              aspectRatio: '4 / 3',
-              background: '#0f172a',
-              borderRadius: 8,
-              display: 'block',
-              objectFit: 'cover',
-            }}
+            className="scanner-video"
           />
-          <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+          <div className="scanner-actions">
             <button
               type="button"
               onClick={isCameraActive ? stopCamera : startCamera}
-              style={{ padding: '8px 12px' }}
+              className="secondary-action-button"
             >
               {isCameraActive ? '停止掃描' : '開始掃描'}
             </button>
           </div>
           {cameraError ? (
-            <p style={{ color: '#b45309', marginBottom: 0 }}>{cameraError}</p>
+            <p className="camera-error">{cameraError}</p>
           ) : null}
         </section>
 
-        <section style={{ marginBottom: 24 }}>
-          <label htmlFor="event-check-in-token" style={{ display: 'block' }}>
+        <section className="event-checkin-section">
+          <label htmlFor="event-check-in-token" className="token-label">
             QR Code token 或 URL
           </label>
-          <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+          <div className="token-input-row">
             <input
               id="event-check-in-token"
               value={tokenInput}
               onChange={(event) => setTokenInput(event.target.value)}
-              style={{
-                flex: 1,
-                minWidth: 0,
-                padding: '8px 10px',
-                border: '1px solid #cbd5e1',
-                borderRadius: 6,
-              }}
+              className="token-input"
             />
             <button
               type="button"
               onClick={() => previewToken(tokenInput)}
               disabled={isPreviewing}
-              style={{ padding: '8px 12px' }}
+              className="preview-button"
             >
               {isPreviewing ? '查詢中' : '預覽'}
             </button>
@@ -292,22 +343,9 @@ export default function EventCheckInPage() {
         </section>
 
         {preview ? (
-          <section
-            style={{
-              border: '1px solid #cbd5e1',
-              borderRadius: 8,
-              padding: 20,
-              maxWidth: 640,
-            }}
-          >
-            <h2 style={{ marginTop: 0, fontSize: 20 }}>{preview.message}</h2>
-            <dl
-              style={{
-                display: 'grid',
-                gridTemplateColumns: '120px 1fr',
-                gap: '8px 12px',
-              }}
-            >
+          <section className="check-in-card">
+            <h2 className="check-in-heading">{preview.message}</h2>
+            <dl className="check-in-details">
               <dt>活動</dt>
               <dd>{preview.eventTitle ?? '-'}</dd>
               <dt>會員</dt>
@@ -326,23 +364,189 @@ export default function EventCheckInPage() {
               type="button"
               onClick={handleConfirm}
               disabled={!preview.canCheckIn || isConfirming}
-              style={{
-                marginTop: 16,
-                padding: '10px 14px',
-                background: preview.canCheckIn ? '#0f766e' : '#94a3b8',
-                color: 'white',
-                border: 0,
-                borderRadius: 6,
-                cursor: preview.canCheckIn ? 'pointer' : 'not-allowed',
-              }}
+              className="confirm-button"
             >
               {isConfirming ? '報到中' : '確認報到'}
             </button>
           </section>
         ) : null}
 
-        {statusMessage ? <p>{statusMessage}</p> : null}
+        {statusMessage ? <p className="status-message">{statusMessage}</p> : null}
       </main>
+      <style>{`
+        .event-checkin-page {
+          box-sizing: border-box;
+          max-width: 960px;
+          padding: 32px;
+        }
+
+        .event-checkin-page * {
+          box-sizing: border-box;
+        }
+
+        .event-checkin-title {
+          margin-top: 0;
+        }
+
+        .event-checkin-section {
+          margin-bottom: 24px;
+        }
+
+        .scanner-video {
+          aspect-ratio: 4 / 3;
+          background: #0f172a;
+          border-radius: 8px;
+          display: block;
+          max-width: 520px;
+          object-fit: cover;
+          width: 100%;
+        }
+
+        .scanner-actions {
+          display: flex;
+          gap: 8px;
+          margin-top: 12px;
+        }
+
+        .secondary-action-button,
+        .preview-button {
+          font: inherit;
+          padding: 8px 12px;
+          white-space: nowrap;
+        }
+
+        .camera-error {
+          color: #b45309;
+          margin-bottom: 0;
+        }
+
+        .token-label {
+          display: block;
+        }
+
+        .token-input-row {
+          display: grid;
+          gap: 8px;
+          grid-template-columns: minmax(0, 1fr) auto;
+          margin-top: 8px;
+          max-width: 640px;
+        }
+
+        .token-input {
+          border: 1px solid #cbd5e1;
+          border-radius: 6px;
+          font: inherit;
+          font-size: 16px;
+          min-width: 0;
+          padding: 8px 10px;
+          width: 100%;
+        }
+
+        .check-in-card {
+          border: 1px solid #cbd5e1;
+          border-radius: 8px;
+          max-width: 640px;
+          padding: 20px;
+          width: 100%;
+        }
+
+        .check-in-heading {
+          font-size: 20px;
+          margin-top: 0;
+        }
+
+        .check-in-details {
+          display: grid;
+          gap: 8px 12px;
+          grid-template-columns: minmax(92px, 120px) minmax(0, 1fr);
+          margin: 0;
+        }
+
+        .check-in-details dt,
+        .check-in-details dd {
+          margin: 0;
+          min-width: 0;
+        }
+
+        .check-in-details dd {
+          overflow-wrap: anywhere;
+          word-break: break-word;
+        }
+
+        .confirm-button {
+          background: #0f766e;
+          border: 0;
+          border-radius: 6px;
+          color: white;
+          cursor: pointer;
+          font: inherit;
+          margin-top: 16px;
+          padding: 10px 14px;
+        }
+
+        .confirm-button:disabled {
+          background: #94a3b8;
+          cursor: not-allowed;
+        }
+
+        .status-message {
+          margin-bottom: 0;
+        }
+
+        @media (max-width: 640px) {
+          .event-checkin-page {
+            max-width: none;
+            padding: 20px 16px 32px;
+            width: 100%;
+          }
+
+          .event-checkin-title {
+            font-size: 24px;
+          }
+
+          .event-checkin-section {
+            margin-bottom: 20px;
+          }
+
+          .scanner-video {
+            max-width: 100%;
+          }
+
+          .check-in-card {
+            max-width: none;
+            padding: 16px;
+          }
+
+          .check-in-details {
+            gap: 4px;
+            grid-template-columns: 1fr;
+          }
+
+          .check-in-details dt {
+            font-weight: 600;
+            margin-top: 12px;
+          }
+
+          .check-in-details dt:first-child {
+            margin-top: 0;
+          }
+
+          .confirm-button {
+            margin-top: 20px;
+            width: 100%;
+          }
+        }
+
+        @media (max-width: 360px) {
+          .token-input-row {
+            grid-template-columns: 1fr;
+          }
+
+          .preview-button {
+            width: 100%;
+          }
+        }
+      `}</style>
     </>
   )
 }

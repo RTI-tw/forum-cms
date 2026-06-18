@@ -56,6 +56,18 @@ test('event external link uses shared safe URL validation', () => {
   assert.match(source, /resolvedData\.externalLink/)
 })
 
+test('event notice uses native textarea without markdown editor view', () => {
+  const source = fs.readFileSync(path.join(__dirname, 'event.ts'), 'utf8')
+  const noticeConfig = source.match(
+    /notice:\s+text\(\{[\s\S]+?\n    \}\),/
+  )?.[0]
+
+  assert.ok(noticeConfig, 'Event.notice should exist')
+  assert.match(noticeConfig, /displayMode:\s*'textarea'/)
+  assert.doesNotMatch(noticeConfig, /views:\s*['"]\.\/lists\/views\/markdown-editor\/index['"]/)
+  assert.doesNotMatch(noticeConfig, /Markdown/)
+})
+
 test('event registration prisma model only enforces member duplicate prevention', () => {
   const schema = fs.readFileSync(
     path.join(__dirname, '../schema.prisma'),

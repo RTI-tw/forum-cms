@@ -4,6 +4,9 @@ import { utils } from '@mirrormedia/lilith-core'
 import { allowRoles, admin, moderator, editor } from '../utils/access-control'
 import { isSafeLinkUrl } from '../utils/url-safety'
 
+const formatAwareRelationshipView =
+  './lists/views/ad-format-aware-field/relationship'
+
 /**
  * 廣告輪播單格（AdSlide）：隸屬於某個「靜態圖輪播」格式的廣告（Ad.slides）。
  * 每一格有獨立的圖片、點擊連結與排序。
@@ -22,10 +25,27 @@ const listConfigurations = list({
     image: relationship({
       ref: 'Photo',
       many: false,
-      label: '圖片 Image',
+      label: '桌機廣告圖片 Desktop image',
       ui: {
         description:
-          '可從圖片庫挑選現有圖片，或直接上傳新圖片（上傳後會存入圖片庫）。',
+          '可從圖片庫挑選現有桌機版廣告圖片，或直接上傳新圖片（上傳後會存入圖片庫）。',
+        views: formatAwareRelationshipView,
+        displayMode: 'cards',
+        cardFields: ['name', 'urlOriginal', 'altText'],
+        inlineConnect: true,
+        inlineCreate: { fields: ['name', 'file', 'altText'] },
+        inlineEdit: { fields: ['name', 'file', 'altText'] },
+        linkToItem: true,
+      },
+    }),
+    mobileImage: relationship({
+      ref: 'Photo',
+      many: false,
+      label: '手機版廣告圖片 Mobile image',
+      ui: {
+        description:
+          '可從圖片庫挑選現有手機版廣告圖片，或直接上傳新圖片（上傳後會存入圖片庫）。',
+        views: formatAwareRelationshipView,
         displayMode: 'cards',
         cardFields: ['name', 'urlOriginal', 'altText'],
         inlineConnect: true,
