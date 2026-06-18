@@ -38,6 +38,10 @@ import {
     signMemberSession,
     verifyMemberSession,
 } from "./utils/member-session";
+import {
+    softDeleteMemberByWhere,
+    type MemberWhereUniqueInput,
+} from "./utils/member-account-deletion";
 import { eventRegistrationSchemaExtension } from "./utils/event-registration-gql";
 
 // 获取 createLoginLoggingPlugin 函数（兼容新旧版本）
@@ -624,6 +628,66 @@ const memberAuthSchemaExtension = graphql.extend(() => ({
         }),
     },
 }));
+
+function removeGeneratedMemberDeleteMutations(schema: any) {
+    const mutationType = schema.getMutationType?.();
+    const fields = mutationType?.getFields?.();
+
+    if (fields) {
+        delete fields.deleteMember;
+        delete fields.deleteMembers;
+    }
+
+    return schema;
+}
+
+const memberAccountDeletionSchemaExtension = graphql.extend((base) => {
+    const memberType = base.object("Member");
+    const memberWhereUniqueInput = base.inputObject("MemberWhereUniqueInput");
+
+    return {
+        mutation: {
+            deleteMember: graphql.field({
+                type: memberType,
+                args: {
+                    where: graphql.arg({
+                        type: graphql.nonNull(memberWhereUniqueInput),
+                    }),
+                },
+                resolve(
+                    _root: unknown,
+                    { where }: { where: MemberWhereUniqueInput },
+                    context: KeystoneContext,
+                ) {
+                    return softDeleteMemberByWhere(context, where);
+                },
+            }),
+            deleteMembers: graphql.field({
+                type: graphql.list(memberType),
+                args: {
+                    where: graphql.arg({
+                        type: graphql.nonNull(
+                            graphql.list(
+                                graphql.nonNull(memberWhereUniqueInput),
+                            ),
+                        ),
+                    }),
+                },
+                async resolve(
+                    _root: unknown,
+                    { where }: { where: MemberWhereUniqueInput[] },
+                    context: KeystoneContext,
+                ) {
+                    return Promise.all(
+                        where.map((itemWhere) =>
+                            softDeleteMemberByWhere(context, itemWhere),
+                        ),
+                    );
+                },
+            }),
+        },
+    };
+});
 
 const accountLockedPageTemplate = String.raw`
 import { useEffect, useState } from 'react';
@@ -2450,6 +2514,8 @@ const graphqlConfig = {
     extendGraphqlSchema: (schema: any) => {
         schema = passwordSchemaExtension(schema);
         schema = memberAuthSchemaExtension(schema);
+        schema = removeGeneratedMemberDeleteMutations(schema);
+        schema = memberAccountDeletionSchemaExtension(schema);
         schema = eventRegistrationSchemaExtension(schema);
         return schema;
     },

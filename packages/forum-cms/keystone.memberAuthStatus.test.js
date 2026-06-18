@@ -21,3 +21,14 @@ assert.doesNotMatch(
   /member\.status\s*!==\s*["']active["']/,
   'authenticatedMember should allow inactive members to finish profile setup'
 )
+
+assert.match(
+  source,
+  /memberAccountDeletionSchemaExtension/,
+  'Keystone should install the member account deletion schema extension'
+)
+assert.match(
+  source,
+  /deleteMember:\s*graphql\.field/,
+  'deleteMember should be handled by a custom soft-delete resolver'
+)

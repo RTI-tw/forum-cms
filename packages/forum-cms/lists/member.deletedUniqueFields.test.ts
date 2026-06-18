@@ -55,7 +55,18 @@ async function testDeletedStatusDoesNotRewriteAlreadyDeletedMember() {
   assert.equal(output.customId, undefined)
 }
 
+function testMemberOmitsGeneratedDeleteMutations() {
+  const graphqlConfig = (Member as any).graphql
+
+  assert.equal(
+    graphqlConfig?.omit?.delete,
+    true,
+    'Member should omit Keystone generated hard-delete mutations'
+  )
+}
+
 async function main() {
+  testMemberOmitsGeneratedDeleteMutations()
   await testDeletedStatusReleasesUniqueMemberFields()
   await testDeletedStatusDoesNotRewriteAlreadyDeletedMember()
 }
