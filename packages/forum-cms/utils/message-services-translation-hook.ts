@@ -67,6 +67,20 @@ function readMergedBool(
   return raw === true
 }
 
+function hasResolvedTextChange(
+  resolvedData: Record<string, unknown>,
+  originalItem: Record<string, unknown>,
+  keys: string[]
+): boolean {
+  for (const key of keys) {
+    if (resolvedData[key] === undefined) continue
+    if (normText(resolvedData[key]) !== normText(originalItem[key])) {
+      return true
+    }
+  }
+  return false
+}
+
 function getSourceText(
   entityType: MessageServicesEntityType,
   item: Record<string, unknown>
@@ -92,7 +106,8 @@ function getSourceText(
 /**
  * create：有原文就觸發翻譯。
  * update：僅在「原文欄位」有變更時觸發（翻譯欄位寫回不觸發，避免迴圈）。
- * Post／Content：標題／正文與 resolvedData 比對。
+ * Post：以本次 update 的 resolvedData 為準；未提交 title/content 不觸發。
+ * Content：標題／正文與 resolvedData 比對，必要時 fallback 到 item/originalItem。
  * Comment：以 content 為原文；update 時併用 resolvedData.content 比對。
  * Comment：`pauseAutoTranslation` 為 true 時不送自動翻譯。
  */
@@ -114,16 +129,14 @@ function shouldSyncTranslations(
     // afterOperation 的 item 與 originalItem 比對遺漏（例如部分欄位未回傳／合併時差）。
     const rd = resolvedData
     if (rd != null) {
-      if (rd.title !== undefined) {
-        const prevTitle = normText(originalItem.title)
-        const submittedTitle = normText(rd.title)
-        if (submittedTitle !== prevTitle) return true
+      const resolvedTextChanged = hasResolvedTextChange(rd, originalItem, [
+        'title',
+        'content',
+      ])
+      if (entityType === 'post') {
+        return resolvedTextChanged
       }
-      if (rd.content !== undefined) {
-        const prevContent = normText(originalItem.content)
-        const submittedContent = normText(rd.content)
-        if (submittedContent !== prevContent) return true
-      }
+      if (resolvedTextChanged) return true
     }
 
     const prevTitle = normText(originalItem.title)
