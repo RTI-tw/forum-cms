@@ -174,6 +174,11 @@ const listConfigurations = list({
       ],
     },
   },
+  graphql: {
+    omit: {
+      delete: true,
+    },
+  },
   access: {
     operation: {
       query: async (auth) =>
@@ -189,7 +194,6 @@ const listConfigurations = list({
         }
         return {
           status: { equals: 'active' },
-          isOfficial: { equals: true },
         }
       },
     },
