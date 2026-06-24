@@ -3,7 +3,7 @@
  * - 非目前 CMS 使用者 OfficialMapping 對應前台會員之貼文／留言：
  *   **不可**透過後台修改使用者貼上的**原文標題與內文**
  *   （Post：`title`、`content`；Comment：`content`）；譯文、原始語言、狀態、旗標、主圖、關聯等其餘欄位可更新。
- * - 投票：僅可改譯文，不可改說明／選項原文／票數（仍以白名單實作）。
+ * - 投票：僅可改譯文與截止時間，不可改說明／選項原文／票數（仍以白名單實作）。
  *
  * 僅在部署環境 **ACCESS_CONTROL_STRATEGY=cms**（預設值）時生效；
  * `gql` / `preview` / `api` 等不套用此檔內任何欄位過濾。
@@ -32,13 +32,14 @@ const POST_UPDATE_DENIED_NON_OFFICIAL_ORIGINAL = new Set(['title', 'content'])
 /** 非官方作者留言：鎖使用者原文「內文」；譯文為 content_* */
 const COMMENT_UPDATE_DENIED_NON_OFFICIAL_ORIGINAL = new Set(['content'])
 
-/** 投票 update 僅允許譯文標題 */
+/** 投票 update 僅允許譯文標題與截止時間 */
 const POLL_UPDATE_TRANSLATION_ONLY = new Set([
   'title_zh',
   'title_en',
   'title_vi',
   'title_id',
   'title_th',
+  'expiresAt',
 ])
 
 /** 投票選項 update 僅允許譯文 */

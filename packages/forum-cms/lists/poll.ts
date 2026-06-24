@@ -113,7 +113,14 @@ const listConfigurations = list({
     label: '投票活動',
     labelField: 'title',
     listView: {
-      initialColumns: ['title', 'post', 'member', 'totalVotes', 'expiresAt'],
+      initialColumns: [
+        'title',
+        'post',
+        'member',
+        'totalVotes',
+        'expiresAt',
+        'createdAt',
+      ],
     },
   },
   access: {
