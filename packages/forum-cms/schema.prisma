@@ -355,6 +355,7 @@ model PollOption {
   poll                 Poll?      @relation("PollOption_poll", fields: [pollId], references: [id])
   pollId               Int?       @map("poll")
   voteCount            Int?       @default(0)
+  sortOrder            Int?       @default(0)
   createdAt            DateTime?
   updatedAt            DateTime?
   createdBy            User?      @relation("PollOption_createdBy", fields: [createdById], references: [id])

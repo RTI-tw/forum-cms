@@ -55,6 +55,14 @@ const listConfigurations = list({
           '由「投票紀錄」建立／變更／刪除時自動重算；與該選項之 PollVote 筆數一致。',
       },
     }),
+    sortOrder: integer({
+      label: '顯示順序',
+      defaultValue: 0,
+      ui: {
+        description:
+          '選項顯示排序（由小到大）。前台發文時依設定順序帶入索引；數字越小越前面，不隨票數變動。',
+      },
+    }),
   },
   ui: {
     label: '投票選項',
