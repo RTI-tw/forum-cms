@@ -1881,6 +1881,7 @@ type PollOption {
   text_th: String
   poll: Poll
   voteCount: Int
+  sortOrder: Int
   createdAt: DateTime
   updatedAt: DateTime
   createdBy: User
@@ -1904,6 +1905,7 @@ input PollOptionWhereInput {
   text_th: StringFilter
   poll: PollWhereInput
   voteCount: IntNullableFilter
+  sortOrder: IntNullableFilter
   createdAt: DateTimeNullableFilter
   updatedAt: DateTimeNullableFilter
   createdBy: UserWhereInput
@@ -1919,6 +1921,7 @@ input PollOptionOrderByInput {
   text_id: OrderDirection
   text_th: OrderDirection
   voteCount: OrderDirection
+  sortOrder: OrderDirection
   createdAt: OrderDirection
   updatedAt: OrderDirection
 }
@@ -1932,6 +1935,7 @@ input PollOptionUpdateInput {
   text_th: String
   poll: PollRelateToOneForUpdateInput
   voteCount: Int
+  sortOrder: Int
   createdAt: DateTime
   updatedAt: DateTime
   createdBy: UserRelateToOneForUpdateInput
@@ -1958,6 +1962,7 @@ input PollOptionCreateInput {
   text_th: String
   poll: PollRelateToOneForCreateInput
   voteCount: Int
+  sortOrder: Int
   createdAt: DateTime
   updatedAt: DateTime
   createdBy: UserRelateToOneForCreateInput
