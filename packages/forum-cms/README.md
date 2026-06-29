@@ -157,6 +157,11 @@ npm run dev
 
 **注意**：`api` 的 list 等級僅限制讀寫範圍；若 list 沒有額外 filter / hook，仍不會自動驗證「哪一位會員／使用者」。部署時請在 **網路與雲端身分**上限制誰能打到 GraphQL（例如 **Cloud Run 需驗證 + `roles/run.invoker`、內部 LB、VPC／subnet、IAP** 等），勿將 endpoint 暴露在未受控的公網。
 
+`Post` 在 `api` 模式下視為後端服務讀取：只要 `ACCESS_CONTROL_API_RULES_JSON`
+允許 `Post` query，就可讀到包含 `pending` 在內的所有文章狀態，以便
+message-services 等服務寫回翻譯內容。前台公開／會員可見性規則仍適用於非
+`api`、非 CMS session 的 GraphQL 請求。
+
 ### Profile 分頁：hidden 內容可見性規則（前端必讀）
 
 為了解決 Profile「我的留言 / 我的投票 / 我的收藏」中，`hidden` 貼文需要區分「自己的」與「別人的」這個情境，後端已在 list access filter 統一加入貼文可見性規則（不需前端再手動寫跨層 OR）：

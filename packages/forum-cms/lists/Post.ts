@@ -22,6 +22,7 @@ import { applyPostUpdateCmsRules } from '../utils/cms-content-moderation'
 import { isCronServiceRequest } from '../utils/cron-service-auth'
 import {
     buildPostVisibilityWhere,
+    canReadAllPostStatuses,
     getAuthenticatedMemberId,
     isCmsRequest,
 } from '../utils/post-visibility'
@@ -429,16 +430,17 @@ const listConfigurations = list({
             delete: allowRoles(admin, editor),
         },
         /**
-         * ACCESS_CONTROL_STRATEGY 非 `cms`（例如 gql、preview、api）時，列表／單筆 query 僅能讀到
-         * `status: published`，避免公開 API 暴露草稿與未發布內容。
+         * 公開／會員 GraphQL 只回傳可見文章；CMS、cron 與 api-strategy 後端服務
+         * 可依 operation access 讀取所有狀態，讓 message-services 能寫回 pending 文章。
          */
         filter: {
             query: ({ context }) => {
                 if (isCronServiceRequest(context)) {
                     return true
                 }
-                // CMS logged-in users should be able to query all post statuses.
-                if (isCmsRequest(context)) {
+                // CMS users and trusted api-strategy backend services need all
+                // statuses; public/member visibility is handled below.
+                if (canReadAllPostStatuses(context)) {
                     return true
                 }
                 const memberId = getAuthenticatedMemberId(context)
