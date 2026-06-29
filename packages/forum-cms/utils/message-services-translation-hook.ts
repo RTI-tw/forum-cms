@@ -16,7 +16,7 @@ type AfterOperationHookFn = Extract<
 /**
  * 與 message-services `KeystoneHookSyncTranslationRequest.type` 一致。
  * 新增類型時請同步更新 message-services：`/hooks/sync-translations` 的 handler、
- * Keystone 實體讀取與翻譯欄位寫回（word → word_zh … word_th 等）。
+ * Keystone 實體讀取與翻譯欄位寫回（word → word_zh … word_th、notice → notice_zh … notice_th 等）。
  */
 export type MessageServicesEntityType =
   | 'post'
@@ -26,6 +26,7 @@ export type MessageServicesEntityType =
   | 'pollOption'
   | 'content'
   | 'forbiddenKeyword'
+  | 'event'
 
 let warnedMissingMessageServicesUrl = false
 
@@ -98,6 +99,8 @@ function getSourceText(
       return normText(item.text)
     case 'forbiddenKeyword':
       return normText(item.word)
+    case 'event':
+      return normText(item.notice)
     default:
       return ''
   }
@@ -172,7 +175,7 @@ function shouldSyncTranslations(
 }
 
 /**
- * Post / Comment / Topic / Poll / PollOption / Content / ForbiddenKeyword 建立或原文變更後，
+ * Post / Comment / Topic / Poll / PollOption / Content / ForbiddenKeyword / Event 建立或原文變更後，
  * 呼叫 message-services POST /hooks/sync-translations。
  */
 export function createMessageServicesTranslationHook(
