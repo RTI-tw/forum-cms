@@ -3,6 +3,11 @@ import { allowRoles, admin, moderator, editor } from '../utils/access-control'
 import { list } from '@keystone-6/core'
 import { integer, relationship, select } from '@keystone-6/core/fields'
 import { editorChoiceStateFromPostStatus } from '../utils/sync-editor-choice-state'
+import {
+  createCronJsonExportHook,
+  HOME_EDITOR_CHOICES_EXPORT_ENDPOINT,
+  shouldTriggerEditorChoiceJsonExport,
+} from '../utils/cron-json-export-hook'
 
 type ToOneRelationInput = {
   connect?: { id?: string | number | null }
@@ -103,6 +108,11 @@ const listConfigurations = list({
     },
   },
   hooks: {
+    afterOperation: createCronJsonExportHook({
+      label: 'home editor choices json export',
+      endpoints: [HOME_EDITOR_CHOICES_EXPORT_ENDPOINT],
+      shouldTrigger: shouldTriggerEditorChoiceJsonExport,
+    }),
     resolveInput: async ({ resolvedData, operation, item, context }) => {
       const data = { ...resolvedData } as Record<string, unknown>
       const postRel = data.post as

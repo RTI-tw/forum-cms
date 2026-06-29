@@ -9,6 +9,11 @@ import {
 import { utils } from '@mirrormedia/lilith-core'
 import { allowRoles, admin, moderator, editor } from '../utils/access-control'
 import { isSafeLinkUrl } from '../utils/url-safety'
+import {
+  ADS_EXPORT_ENDPOINT,
+  createCronJsonExportHook,
+  shouldTriggerAdJsonExport,
+} from '../utils/cron-json-export-hook'
 
 /**
  * 廣告格式：
@@ -23,6 +28,12 @@ const formatAwareRelationshipView =
   './lists/views/ad-format-aware-field/relationship'
 const formatAwareTextView = './lists/views/ad-format-aware-field/text'
 const formatAwareFileView = './lists/views/ad-format-aware-field/file'
+
+const adJsonExportAfterOperation = createCronJsonExportHook({
+  label: 'ads json export',
+  endpoints: [ADS_EXPORT_ENDPOINT],
+  shouldTrigger: shouldTriggerAdJsonExport,
+})
 
 const listConfigurations = list({
   fields: {
@@ -160,6 +171,7 @@ const listConfigurations = list({
     },
   },
   hooks: {
+    afterOperation: adJsonExportAfterOperation,
     validateInput: async ({
       resolvedData,
       item,
