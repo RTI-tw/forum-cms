@@ -38,6 +38,10 @@ export function isCmsRequest(context: KeystoneContext): boolean {
   return getSessionUserId(context) !== null || envVar.accessControlStrategy === 'cms'
 }
 
+export function canReadAllPostStatuses(context: KeystoneContext): boolean {
+  return isCmsRequest(context) || envVar.accessControlStrategy === 'api'
+}
+
 /**
  * 文章可見性：
  * - published：所有人可見
