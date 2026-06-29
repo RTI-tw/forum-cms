@@ -3,9 +3,20 @@ import { text, relationship, integer } from '@keystone-6/core/fields'
 import { utils } from '@mirrormedia/lilith-core'
 import { allowRoles, admin, moderator, editor } from '../utils/access-control'
 import { isSafeLinkUrl } from '../utils/url-safety'
+import {
+  ADS_EXPORT_ENDPOINT,
+  createCronJsonExportHook,
+  shouldTriggerAdSlideJsonExport,
+} from '../utils/cron-json-export-hook'
 
 const formatAwareRelationshipView =
   './lists/views/ad-format-aware-field/relationship'
+
+const adSlideJsonExportAfterOperation = createCronJsonExportHook({
+  label: 'ad slide json export',
+  endpoints: [ADS_EXPORT_ENDPOINT],
+  shouldTrigger: shouldTriggerAdSlideJsonExport,
+})
 
 /**
  * 廣告輪播單格（AdSlide）：隸屬於某個「靜態圖輪播」格式的廣告（Ad.slides）。
@@ -85,6 +96,7 @@ const listConfigurations = list({
     },
   },
   hooks: {
+    afterOperation: adSlideJsonExportAfterOperation,
     validateInput: ({ resolvedData, operation, addValidationError }) => {
       if (operation !== 'create' && operation !== 'update') return
       const linkUrl = resolvedData.linkUrl

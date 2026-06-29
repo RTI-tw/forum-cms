@@ -27,8 +27,22 @@ import {
     isCmsRequest,
 } from '../utils/post-visibility'
 import envVar from '../environment-variables'
+import {
+    createCronJsonExportHook,
+    CURATED_POSTS_LATEST_POLLS_EXPORT_ENDPOINT,
+    HOME_EDITOR_CHOICES_EXPORT_ENDPOINT,
+    shouldTriggerPostJsonExport,
+} from '../utils/cron-json-export-hook'
 
 const translationAfterPost = createMessageServicesTranslationHook('post')
+const postJsonExportAfterOperation = createCronJsonExportHook({
+    label: 'post json exports',
+    endpoints: [
+        HOME_EDITOR_CHOICES_EXPORT_ENDPOINT,
+        CURATED_POSTS_LATEST_POLLS_EXPORT_ENDPOINT,
+    ],
+    shouldTrigger: shouldTriggerPostJsonExport,
+})
 
 function normText(value: unknown): string {
     return String(value ?? '').trim()
@@ -587,7 +601,10 @@ const listConfigurations = list({
         afterOperation: async (args) => {
             await translationAfterPost(args)
             const { operation, item, context } = args
-            if (operation === 'delete') return
+            if (operation === 'delete') {
+                await postJsonExportAfterOperation(args)
+                return
+            }
             const row = item as {
                 id?: unknown
                 spamScore?: unknown
@@ -610,6 +627,7 @@ const listConfigurations = list({
                     : rawId != null
                       ? Number(rawId)
                       : NaN
+            let exportArgs = args
             if (
                 nextStatus != null &&
                 Number.isFinite(postId) &&
@@ -619,10 +637,18 @@ const listConfigurations = list({
                     where: { id: postId },
                     data: { status: nextStatus },
                 })
+                exportArgs = {
+                    ...args,
+                    resolvedData: {
+                        ...(args.resolvedData as Record<string, unknown>),
+                        status: nextStatus,
+                    },
+                }
             }
             if (Number.isFinite(postId)) {
                 await syncEditorChoiceStateForPostId(context, postId)
             }
+            await postJsonExportAfterOperation(exportArgs)
         },
     },
 })
