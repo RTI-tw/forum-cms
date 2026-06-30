@@ -3572,6 +3572,11 @@ type MemberEventRegistrationResult {
 type EventRegistrationEventResult {
   id: ID!
   title: String
+  title_zh: String
+  title_en: String
+  title_vi: String
+  title_id: String
+  title_th: String
   slug: String
   label: String
   notice: String
@@ -3787,6 +3792,11 @@ type EventPreviewSectionsResult {
 type EventPreviewItemResult {
   id: ID!
   title: String
+  title_zh: String
+  title_en: String
+  title_vi: String
+  title_id: String
+  title_th: String
   slug: String
   label: String
   notice: String

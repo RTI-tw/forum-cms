@@ -55,6 +55,11 @@ type EventRegistrationRecord = {
 type EventPostRecord = {
   id: number
   title?: string | null
+  title_zh?: string | null
+  title_en?: string | null
+  title_vi?: string | null
+  title_id?: string | null
+  title_th?: string | null
   content?: string | null
   status?: string | null
   heroImages?: EventImageRecord[] | null
@@ -101,6 +106,11 @@ type EventLabel = 'hot' | 'more' | 'past'
 type PublicEvent = {
   id: string
   title?: string | null
+  title_zh?: string | null
+  title_en?: string | null
+  title_vi?: string | null
+  title_id?: string | null
+  title_th?: string | null
   slug?: string | null
   label?: string | null
   notice?: string | null
@@ -287,6 +297,11 @@ function buildPublicEvent(
   return {
     id: String(event.id),
     title: post?.title ?? null,
+    title_zh: post?.title_zh ?? null,
+    title_en: post?.title_en ?? null,
+    title_vi: post?.title_vi ?? null,
+    title_id: post?.title_id ?? null,
+    title_th: post?.title_th ?? null,
     slug: event.slug ?? null,
     label: event.label ?? null,
     notice: event.notice ?? null,
@@ -558,6 +573,11 @@ const EventRegistrationEventResult = graphql.object<PublicEvent>()({
   fields: {
     id: graphql.field({ type: graphql.nonNull(graphql.ID) }),
     title: graphql.field({ type: graphql.String }),
+    title_zh: graphql.field({ type: graphql.String }),
+    title_en: graphql.field({ type: graphql.String }),
+    title_vi: graphql.field({ type: graphql.String }),
+    title_id: graphql.field({ type: graphql.String }),
+    title_th: graphql.field({ type: graphql.String }),
     slug: graphql.field({ type: graphql.String }),
     label: graphql.field({ type: graphql.String }),
     notice: graphql.field({ type: graphql.String }),
@@ -606,6 +626,11 @@ const EventPreviewItemResult = graphql.object<EventPreviewItem>()({
   fields: {
     id: graphql.field({ type: graphql.nonNull(graphql.ID) }),
     title: graphql.field({ type: graphql.String }),
+    title_zh: graphql.field({ type: graphql.String }),
+    title_en: graphql.field({ type: graphql.String }),
+    title_vi: graphql.field({ type: graphql.String }),
+    title_id: graphql.field({ type: graphql.String }),
+    title_th: graphql.field({ type: graphql.String }),
     slug: graphql.field({ type: graphql.String }),
     label: graphql.field({ type: graphql.String }),
     notice: graphql.field({ type: graphql.String }),
