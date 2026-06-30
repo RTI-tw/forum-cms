@@ -11,6 +11,7 @@ import {
 } from '@keystone-6/core/fields'
 import { isSafeLinkUrl } from '../utils/url-safety'
 import { getEventPreviewAvailabilityStatus } from '../utils/event-preview-status'
+import { createMessageServicesTranslationHook } from '../utils/message-services-translation-hook'
 
 type ToOneRelationInput = {
   connect?: { id?: string | number | null } | null
@@ -67,6 +68,16 @@ const listConfigurations = list({
         description: '最多 100 字。',
       },
     }),
+    notice_zh: text({
+      label: '活動須知（中文）',
+      ui: {
+        description: '五國語言翻譯欄位之一；可透過 message-services 依原文同步。',
+      },
+    }),
+    notice_en: text({ label: '活動須知（英文）' }),
+    notice_vi: text({ label: '活動須知（越南文）' }),
+    notice_id: text({ label: '活動須知（印尼文）' }),
+    notice_th: text({ label: '活動須知（泰文）' }),
     availabilityStatus: virtual({
       label: '活動狀態',
       field: graphql.field({
@@ -166,6 +177,8 @@ const listConfigurations = list({
         'slug',
         'label',
         'notice',
+        'notice_zh',
+        'notice_en',
         'availabilityStatus',
         'post',
         'externalLink',
@@ -204,6 +217,7 @@ const listConfigurations = list({
         )
       }
     },
+    afterOperation: createMessageServicesTranslationHook('event'),
   },
 })
 

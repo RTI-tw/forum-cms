@@ -67,8 +67,75 @@ async function testPostUpdateWithoutSubmittedTitleOrContentSkipsTranslation() {
   })
 }
 
+async function testEventCreateWithNoticeTriggersTranslation() {
+  const {
+    createMessageServicesTranslationHook,
+  } = require('./message-services-translation-hook')
+  const hook = createMessageServicesTranslationHook('event')
+
+  await withCapturedFetch(async (calls) => {
+    await hook({
+      operation: 'create',
+      item: {
+        id: 7,
+        notice: '請準時入場',
+      },
+      originalItem: undefined,
+      resolvedData: {
+        notice: '請準時入場',
+      },
+    })
+
+    assert.equal(calls.length, 1)
+    assert.equal(
+      calls[0].url,
+      'https://message-services.example.test/hooks/sync-translations'
+    )
+    assert.equal(calls[0].method, 'POST')
+    assert.deepEqual(JSON.parse(String(calls[0].body)), {
+      type: 'event',
+      id: '7',
+      source_text: '請準時入場',
+    })
+  })
+}
+
+async function testEventTranslationOnlyUpdateSkipsTranslation() {
+  const {
+    createMessageServicesTranslationHook,
+  } = require('./message-services-translation-hook')
+  const hook = createMessageServicesTranslationHook('event')
+
+  await withCapturedFetch(async (calls) => {
+    await hook({
+      operation: 'update',
+      item: {
+        id: 7,
+        notice: '請準時入場',
+        notice_en: 'Please arrive on time',
+      },
+      originalItem: {
+        id: 7,
+        notice: '請準時入場',
+        notice_en: '',
+      },
+      resolvedData: {
+        notice_en: 'Please arrive on time',
+      },
+    })
+
+    assert.deepEqual(
+      calls,
+      [],
+      'Event update should not trigger translation when only notice translations change'
+    )
+  })
+}
+
 async function main() {
   await testPostUpdateWithoutSubmittedTitleOrContentSkipsTranslation()
+  await testEventCreateWithNoticeTriggersTranslation()
+  await testEventTranslationOnlyUpdateSkipsTranslation()
 }
 
 main().catch((error) => {

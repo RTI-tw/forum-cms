@@ -29,6 +29,15 @@ test('event keeps activity fields and relates content through post', () => {
 
   assert.ok(eventFields.label, 'Event should expose label')
   assert.ok(eventFields.notice, 'Event should expose notice')
+  for (const fieldName of [
+    'notice_zh',
+    'notice_en',
+    'notice_vi',
+    'notice_id',
+    'notice_th',
+  ]) {
+    assert.ok(eventFields[fieldName], `Event should expose ${fieldName}`)
+  }
   assert.ok(
     eventFields.availabilityStatus,
     'Event should expose virtual availabilityStatus'
@@ -128,6 +137,11 @@ test('event prisma model stores event metadata and references post content', () 
   assert.match(eventModel, /postId\s+Int\?\s+@map\("post"\)/)
   assert.match(eventModel, /label\s+EventLabelType\s+@default\(more\)/)
   assert.match(eventModel, /notice\s+String\s+@default\(""\)/)
+  assert.match(eventModel, /notice_zh\s+String\s+@default\(""\)/)
+  assert.match(eventModel, /notice_en\s+String\s+@default\(""\)/)
+  assert.match(eventModel, /notice_vi\s+String\s+@default\(""\)/)
+  assert.match(eventModel, /notice_id\s+String\s+@default\(""\)/)
+  assert.match(eventModel, /notice_th\s+String\s+@default\(""\)/)
   assert.match(eventModel, /externalLink\s+String\s+@default\(""\)/)
   assert.doesNotMatch(
     eventModel,
@@ -181,6 +195,11 @@ test('event check-in custom GraphQL operations are registered', () => {
   assert.ok(eventResult)
   assert.match(eventResult, /label: String/)
   assert.match(eventResult, /notice: String/)
+  assert.match(eventResult, /notice_zh: String/)
+  assert.match(eventResult, /notice_en: String/)
+  assert.match(eventResult, /notice_vi: String/)
+  assert.match(eventResult, /notice_id: String/)
+  assert.match(eventResult, /notice_th: String/)
   assert.match(eventResult, /content: String/)
   assert.match(eventResult, /externalLink: String/)
   assert.match(eventResult, /images: \[EventRegistrationEventImageResult!\]!/)
@@ -196,6 +215,11 @@ test('event check-in custom GraphQL operations are registered', () => {
   assert.ok(previewItem)
   assert.match(previewItem, /label: String/)
   assert.match(previewItem, /notice: String/)
+  assert.match(previewItem, /notice_zh: String/)
+  assert.match(previewItem, /notice_en: String/)
+  assert.match(previewItem, /notice_vi: String/)
+  assert.match(previewItem, /notice_id: String/)
+  assert.match(previewItem, /notice_th: String/)
   assert.match(previewItem, /availabilityStatus: EventPreviewAvailabilityStatus!/)
   assert.match(previewItem, /isRegistered: Boolean!/)
   assert.match(previewItem, /registrationCount: Int!/)
@@ -234,5 +258,10 @@ test('event check-in custom GraphQL operations are registered', () => {
     resolverSource,
     /phoneHash:\s*form\.phoneHash/,
     'registration creation should no longer store phone hashes'
+  )
+  assert.match(
+    resolverSource,
+    /notice_zh:\s*event\.notice_zh\s*\?\?\s*null/,
+    'event public operations should expose notice translations'
   )
 })

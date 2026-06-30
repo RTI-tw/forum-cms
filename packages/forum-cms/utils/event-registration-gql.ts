@@ -28,6 +28,11 @@ type EventRegistrationRecord = {
     slug?: string | null
     label?: EventLabel | string | null
     notice?: string | null
+    notice_zh?: string | null
+    notice_en?: string | null
+    notice_vi?: string | null
+    notice_id?: string | null
+    notice_th?: string | null
     externalLink?: string | null
     startAt?: Date | string | null
     endAt?: Date | string | null
@@ -50,6 +55,11 @@ type EventRegistrationRecord = {
 type EventPostRecord = {
   id: number
   title?: string | null
+  title_zh?: string | null
+  title_en?: string | null
+  title_vi?: string | null
+  title_id?: string | null
+  title_th?: string | null
   content?: string | null
   status?: string | null
   heroImages?: EventImageRecord[] | null
@@ -96,9 +106,19 @@ type EventLabel = 'hot' | 'more' | 'past'
 type PublicEvent = {
   id: string
   title?: string | null
+  title_zh?: string | null
+  title_en?: string | null
+  title_vi?: string | null
+  title_id?: string | null
+  title_th?: string | null
   slug?: string | null
   label?: string | null
   notice?: string | null
+  notice_zh?: string | null
+  notice_en?: string | null
+  notice_vi?: string | null
+  notice_id?: string | null
+  notice_th?: string | null
   content?: string | null
   externalLink?: string | null
   status?: string | null
@@ -277,9 +297,19 @@ function buildPublicEvent(
   return {
     id: String(event.id),
     title: post?.title ?? null,
+    title_zh: post?.title_zh ?? null,
+    title_en: post?.title_en ?? null,
+    title_vi: post?.title_vi ?? null,
+    title_id: post?.title_id ?? null,
+    title_th: post?.title_th ?? null,
     slug: event.slug ?? null,
     label: event.label ?? null,
     notice: event.notice ?? null,
+    notice_zh: event.notice_zh ?? null,
+    notice_en: event.notice_en ?? null,
+    notice_vi: event.notice_vi ?? null,
+    notice_id: event.notice_id ?? null,
+    notice_th: event.notice_th ?? null,
     content: post?.content ?? null,
     externalLink: event.externalLink ?? null,
     status: post?.status ?? null,
@@ -543,9 +573,19 @@ const EventRegistrationEventResult = graphql.object<PublicEvent>()({
   fields: {
     id: graphql.field({ type: graphql.nonNull(graphql.ID) }),
     title: graphql.field({ type: graphql.String }),
+    title_zh: graphql.field({ type: graphql.String }),
+    title_en: graphql.field({ type: graphql.String }),
+    title_vi: graphql.field({ type: graphql.String }),
+    title_id: graphql.field({ type: graphql.String }),
+    title_th: graphql.field({ type: graphql.String }),
     slug: graphql.field({ type: graphql.String }),
     label: graphql.field({ type: graphql.String }),
     notice: graphql.field({ type: graphql.String }),
+    notice_zh: graphql.field({ type: graphql.String }),
+    notice_en: graphql.field({ type: graphql.String }),
+    notice_vi: graphql.field({ type: graphql.String }),
+    notice_id: graphql.field({ type: graphql.String }),
+    notice_th: graphql.field({ type: graphql.String }),
     content: graphql.field({ type: graphql.String }),
     externalLink: graphql.field({ type: graphql.String }),
     status: graphql.field({ type: graphql.String }),
@@ -586,9 +626,19 @@ const EventPreviewItemResult = graphql.object<EventPreviewItem>()({
   fields: {
     id: graphql.field({ type: graphql.nonNull(graphql.ID) }),
     title: graphql.field({ type: graphql.String }),
+    title_zh: graphql.field({ type: graphql.String }),
+    title_en: graphql.field({ type: graphql.String }),
+    title_vi: graphql.field({ type: graphql.String }),
+    title_id: graphql.field({ type: graphql.String }),
+    title_th: graphql.field({ type: graphql.String }),
     slug: graphql.field({ type: graphql.String }),
     label: graphql.field({ type: graphql.String }),
     notice: graphql.field({ type: graphql.String }),
+    notice_zh: graphql.field({ type: graphql.String }),
+    notice_en: graphql.field({ type: graphql.String }),
+    notice_vi: graphql.field({ type: graphql.String }),
+    notice_id: graphql.field({ type: graphql.String }),
+    notice_th: graphql.field({ type: graphql.String }),
     externalLink: graphql.field({ type: graphql.String }),
     startAt: graphql.field({ type: graphql.String }),
     endAt: graphql.field({ type: graphql.String }),
