@@ -28,6 +28,11 @@ type EventRegistrationRecord = {
     slug?: string | null
     label?: EventLabel | string | null
     notice?: string | null
+    notice_zh?: string | null
+    notice_en?: string | null
+    notice_vi?: string | null
+    notice_id?: string | null
+    notice_th?: string | null
     externalLink?: string | null
     startAt?: Date | string | null
     endAt?: Date | string | null
@@ -99,6 +104,11 @@ type PublicEvent = {
   slug?: string | null
   label?: string | null
   notice?: string | null
+  notice_zh?: string | null
+  notice_en?: string | null
+  notice_vi?: string | null
+  notice_id?: string | null
+  notice_th?: string | null
   content?: string | null
   externalLink?: string | null
   status?: string | null
@@ -280,6 +290,11 @@ function buildPublicEvent(
     slug: event.slug ?? null,
     label: event.label ?? null,
     notice: event.notice ?? null,
+    notice_zh: event.notice_zh ?? null,
+    notice_en: event.notice_en ?? null,
+    notice_vi: event.notice_vi ?? null,
+    notice_id: event.notice_id ?? null,
+    notice_th: event.notice_th ?? null,
     content: post?.content ?? null,
     externalLink: event.externalLink ?? null,
     status: post?.status ?? null,
@@ -546,6 +561,11 @@ const EventRegistrationEventResult = graphql.object<PublicEvent>()({
     slug: graphql.field({ type: graphql.String }),
     label: graphql.field({ type: graphql.String }),
     notice: graphql.field({ type: graphql.String }),
+    notice_zh: graphql.field({ type: graphql.String }),
+    notice_en: graphql.field({ type: graphql.String }),
+    notice_vi: graphql.field({ type: graphql.String }),
+    notice_id: graphql.field({ type: graphql.String }),
+    notice_th: graphql.field({ type: graphql.String }),
     content: graphql.field({ type: graphql.String }),
     externalLink: graphql.field({ type: graphql.String }),
     status: graphql.field({ type: graphql.String }),
@@ -589,6 +609,11 @@ const EventPreviewItemResult = graphql.object<EventPreviewItem>()({
     slug: graphql.field({ type: graphql.String }),
     label: graphql.field({ type: graphql.String }),
     notice: graphql.field({ type: graphql.String }),
+    notice_zh: graphql.field({ type: graphql.String }),
+    notice_en: graphql.field({ type: graphql.String }),
+    notice_vi: graphql.field({ type: graphql.String }),
+    notice_id: graphql.field({ type: graphql.String }),
+    notice_th: graphql.field({ type: graphql.String }),
     externalLink: graphql.field({ type: graphql.String }),
     startAt: graphql.field({ type: graphql.String }),
     endAt: graphql.field({ type: graphql.String }),

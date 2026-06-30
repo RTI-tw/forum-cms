@@ -3139,6 +3139,11 @@ type Event {
   slug: String
   label: EventLabelType
   notice: String
+  notice_zh: String
+  notice_en: String
+  notice_vi: String
+  notice_id: String
+  notice_th: String
   availabilityStatus: String
   post: Post
   externalLink: String
@@ -3176,6 +3181,11 @@ input EventWhereInput {
   slug: StringFilter
   label: EventLabelTypeNullableFilter
   notice: StringFilter
+  notice_zh: StringFilter
+  notice_en: StringFilter
+  notice_vi: StringFilter
+  notice_id: StringFilter
+  notice_th: StringFilter
   post: PostWhereInput
   externalLink: StringFilter
   startAt: DateTimeNullableFilter
@@ -3204,6 +3214,11 @@ input EventOrderByInput {
   slug: OrderDirection
   label: OrderDirection
   notice: OrderDirection
+  notice_zh: OrderDirection
+  notice_en: OrderDirection
+  notice_vi: OrderDirection
+  notice_id: OrderDirection
+  notice_th: OrderDirection
   externalLink: OrderDirection
   startAt: OrderDirection
   endAt: OrderDirection
@@ -3220,6 +3235,11 @@ input EventUpdateInput {
   slug: String
   label: EventLabelType
   notice: String
+  notice_zh: String
+  notice_en: String
+  notice_vi: String
+  notice_id: String
+  notice_th: String
   post: PostRelateToOneForUpdateInput
   externalLink: String
   startAt: DateTime
@@ -3245,6 +3265,11 @@ input EventCreateInput {
   slug: String
   label: EventLabelType
   notice: String
+  notice_zh: String
+  notice_en: String
+  notice_vi: String
+  notice_id: String
+  notice_th: String
   post: PostRelateToOneForCreateInput
   externalLink: String
   startAt: DateTime
@@ -3550,6 +3575,11 @@ type EventRegistrationEventResult {
   slug: String
   label: String
   notice: String
+  notice_zh: String
+  notice_en: String
+  notice_vi: String
+  notice_id: String
+  notice_th: String
   content: String
   externalLink: String
   status: String
@@ -3760,6 +3790,11 @@ type EventPreviewItemResult {
   slug: String
   label: String
   notice: String
+  notice_zh: String
+  notice_en: String
+  notice_vi: String
+  notice_id: String
+  notice_th: String
   externalLink: String
   startAt: String
   endAt: String
