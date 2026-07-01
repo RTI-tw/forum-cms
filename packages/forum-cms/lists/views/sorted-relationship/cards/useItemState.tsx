@@ -18,17 +18,22 @@ export function useItemState({
   localList,
   id,
   field,
+  relationshipOrderBy,
 }: {
   selectedFields: string
   localList: ListMeta
   field: ReturnType<typeof controller>
   id: string | null
+  relationshipOrderBy?: string
 }) {
+  const relationshipQueryArgs = relationshipOrderBy
+    ? `(orderBy: ${relationshipOrderBy})`
+    : ''
   const { data, error, loading } = useQuery(
     gql`query($id: ID!) {
   item: ${localList.gqlNames.itemQueryName}(where: {id: $id}) {
     id
-    relationship: ${field.path} {
+    relationship: ${field.path}${relationshipQueryArgs} {
       ${selectedFields}
     }
   }
