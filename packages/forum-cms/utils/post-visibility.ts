@@ -38,8 +38,17 @@ export function isCmsRequest(context: KeystoneContext): boolean {
   return getSessionUserId(context) !== null || envVar.accessControlStrategy === 'cms'
 }
 
-export function canReadAllPostStatuses(context: KeystoneContext): boolean {
+/**
+ * Trusted backend content reads are still gated by each list's operation access.
+ * This only bypasses public/member visibility filters after the request has
+ * already passed list-level API rules.
+ */
+export function canReadTrustedBackendContent(context: KeystoneContext): boolean {
   return isCmsRequest(context) || envVar.accessControlStrategy === 'api'
+}
+
+export function canReadAllPostStatuses(context: KeystoneContext): boolean {
+  return canReadTrustedBackendContent(context)
 }
 
 /**

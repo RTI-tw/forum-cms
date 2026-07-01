@@ -22,6 +22,7 @@ import {
 } from '../utils/cms-content-moderation'
 import {
   buildPostVisibilityWhere,
+  canReadTrustedBackendContent,
   getAuthenticatedMemberId,
   isCmsRequest,
 } from '../utils/post-visibility'
@@ -151,7 +152,7 @@ const listConfigurations = list({
       // [AC-001] 非 CMS query 只回傳 published 留言；若有登入，也補上自己的 archived 留言。
       // 防止 hidden/rejected 留言透過 API 洩漏給不應看見的人。
       query: ({ context }) => {
-        if (isCmsRequest(context)) return true
+        if (canReadTrustedBackendContent(context)) return true
         const memberId = getAuthenticatedMemberId(context)
         const visibilityConditions = memberId
           ? {
