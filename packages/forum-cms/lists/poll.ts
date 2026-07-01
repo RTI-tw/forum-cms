@@ -61,12 +61,13 @@ const listConfigurations = list({
         hideCreate: false,
         displayMode: 'cards',
         /** 卡片上顯示的 PollOption 欄位（見 Relationship field cards） */
-        cardFields: ['text', 'voteCount'],
+        cardFields: ['text', 'sortOrder', 'voteCount'],
         linkToItem: true,
         /** 在投票項目頁內直接新增選項（不需另開 PollOption 建立頁） */
         inlineCreate: {
           fields: [
             'text',
+            'sortOrder',
             'text_zh',
             'text_en',
             'text_vi',
@@ -79,6 +80,7 @@ const listConfigurations = list({
         inlineEdit: {
           fields: [
             'text',
+            'sortOrder',
             'text_zh',
             'text_en',
             'text_vi',
