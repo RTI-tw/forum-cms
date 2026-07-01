@@ -328,6 +328,8 @@ model Poll {
   expiresAt          DateTime?
   options            PollOption[] @relation("PollOption_poll")
   totalVotes         Int?         @default(0)
+  voterCount         Int?         @default(0)
+  maxSelections      Int          @default(1)
   member             Member?      @relation("Poll_member", fields: [memberId], references: [id])
   memberId           Int?         @map("member")
   createdAt          DateTime?
