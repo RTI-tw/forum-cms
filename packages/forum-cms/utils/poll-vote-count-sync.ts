@@ -54,9 +54,15 @@ export async function syncPollVoteAggregates(
     await Promise.all(
         pids.map(async (pollId) => {
             const totalVotes = await prisma.pollVote.count({ where: { pollId } })
+            // 不重複投票人數：一人多選（複選投票）只計一次。單選時等於 totalVotes。
+            const voters = await prisma.pollVote.findMany({
+                where: { pollId, memberId: { not: null } },
+                distinct: ['memberId'],
+                select: { memberId: true },
+            })
             await prisma.poll.update({
                 where: { id: pollId },
-                data: { totalVotes },
+                data: { totalVotes, voterCount: voters.length },
             })
         })
     )

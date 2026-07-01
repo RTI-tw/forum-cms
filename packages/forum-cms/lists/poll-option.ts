@@ -69,7 +69,8 @@ const listConfigurations = list({
     /** 供 Poll.options（cards / inline）顯示卡片標題與連結文字 */
     labelField: 'text',
     listView: {
-      initialColumns: ['text', 'poll', 'voteCount'],
+      initialColumns: ['text', 'sortOrder', 'poll', 'voteCount'],
+      initialSort: { field: 'sortOrder', direction: 'ASC' },
     },
   },
   access: {

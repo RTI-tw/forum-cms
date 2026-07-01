@@ -62,6 +62,13 @@ const listConfigurations = list({
         if (!memberId) return false
         return { member: { id: { equals: memberId } } }
       },
+      // [AC-003] 會員只能刪除自己的票（複選投票的「取消選取」）。
+      delete: ({ context }) => {
+        if (isCmsRequest(context)) return true
+        const memberId = getAuthenticatedMemberId(context)
+        if (!memberId) return false
+        return { member: { id: { equals: memberId } } }
+      },
     },
   },
   hooks: {
@@ -86,7 +93,7 @@ const listConfigurations = list({
           id: pollId,
           post: buildPostVisibilityWhere(memberId) as object,
         },
-        select: { id: true },
+        select: { id: true, maxSelections: true },
       })
       if (!poll) {
         addValidationError('投票不存在或不可參與')
@@ -103,12 +110,26 @@ const listConfigurations = list({
       }
 
       if (memberId) {
-        const existing = await context.prisma.pollVote.findFirst({
-          where: { pollId, memberId },
+        // 不可重複選取同一選項
+        const duplicate = await context.prisma.pollVote.findFirst({
+          where: { pollId, memberId, optionId },
           select: { id: true },
         })
-        if (existing) {
-          addValidationError('每位會員每個投票只能投一票')
+        if (duplicate) {
+          addValidationError('不可重複選取同一選項')
+          return
+        }
+        // 每位會員最多可選 maxSelections 項（單選 = 1）
+        const maxSelections = poll.maxSelections ?? 1
+        const currentCount = await context.prisma.pollVote.count({
+          where: { pollId, memberId },
+        })
+        if (currentCount >= maxSelections) {
+          addValidationError(
+            maxSelections > 1
+              ? `每位會員最多可選擇 ${maxSelections} 項`
+              : '每位會員每個投票只能投一票'
+          )
         }
       }
     },
