@@ -97,7 +97,23 @@ const listConfigurations = list({
       defaultValue: 0,
       ui: {
         description:
-          '由「投票紀錄」建立／變更／刪除時自動重算；與 PollVote 筆數一致。',
+          '由「投票紀錄」建立／變更／刪除時自動重算；與 PollVote 筆數一致（一人多選會計多筆）。',
+      },
+    }),
+    voterCount: integer({
+      label: '投票人數',
+      defaultValue: 0,
+      ui: {
+        description:
+          '不重複投票人數（一人多選只計一人）；由「投票紀錄」建立／變更／刪除時自動重算。單選時等於總票數。',
+      },
+    }),
+    maxSelections: integer({
+      label: '可複選上限',
+      defaultValue: 1,
+      validation: { isRequired: true, min: 1 },
+      ui: {
+        description: '每位會員最多可選幾項；1 = 單選（預設），設為 2 以上即為複選。',
       },
     }),
     member: relationship({
