@@ -82,6 +82,8 @@ export function Cards({
   value,
   onChange,
   forceValidation,
+  relationshipOrderBy,
+  relationshipSortField,
 }: {
   foreignList: ListMeta
   localList: ListMeta
@@ -90,6 +92,8 @@ export function Cards({
   field: ReturnType<typeof controller>
   onChange?: RelationshipFieldChangeHandler
   forceValidation?: boolean
+  relationshipOrderBy?: string
+  relationshipSortField?: string
 }) {
   const { displayOptions } = value
   let selectedFields = [
@@ -121,6 +125,7 @@ export function Cards({
     localList,
     id,
     field,
+    relationshipOrderBy,
   })
 
   const client = useApolloClient()
@@ -160,6 +165,24 @@ export function Cards({
   const currentIdsArrayWithFetchedItems = [...value.currentIds]
     .map((id) => ({ itemGetter: items[id], id }))
     .filter((x) => x.itemGetter)
+
+  if (relationshipSortField) {
+    currentIdsArrayWithFetchedItems.sort((left, right) => {
+      const leftValue = left.itemGetter.get(relationshipSortField).data
+      const rightValue = right.itemGetter.get(relationshipSortField).data
+      if (leftValue == null && rightValue == null) {
+        return left.id.localeCompare(right.id)
+      }
+      if (leftValue == null) return 1
+      if (rightValue == null) return -1
+      if (typeof leftValue === 'number' && typeof rightValue === 'number') {
+        const diff = leftValue - rightValue
+        return diff === 0 ? left.id.localeCompare(right.id) : diff
+      }
+      const diff = String(leftValue).localeCompare(String(rightValue))
+      return diff === 0 ? left.id.localeCompare(right.id) : diff
+    })
+  }
 
   return (
     <Stack gap="medium">

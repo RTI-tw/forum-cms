@@ -58,6 +58,7 @@ const listConfigurations = list({
       many: true,
       label: '投票選項',
       ui: {
+        views: './lists/views/poll-options-sorted-relationship/index',
         hideCreate: false,
         displayMode: 'cards',
         /** 卡片上顯示的 PollOption 欄位（見 Relationship field cards） */
