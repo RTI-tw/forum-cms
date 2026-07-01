@@ -145,3 +145,18 @@ assert.match(
   /data\[parentRelationship\.fieldKey\]\s*=\s*\{\s*connect:\s*\{\s*id:\s*parentRelationship\.itemId\s*\},?\s*\}/,
   'Inline create should connect the new PollOption to the parent Poll during create'
 )
+assert.doesNotMatch(
+  sortedRelationshipInlineCreateSource,
+  /<form[\s\S]+onSubmit=\{onSubmit\}/,
+  'Inline create should not render a nested form inside Keystone drawers'
+)
+assert.match(
+  sortedRelationshipInlineCreateSource,
+  /<section>[\s\S]+<Button[\s\S]+onClick=\{onSubmit\}/,
+  'Inline create should submit from a button click instead of a nested form submit'
+)
+assert.doesNotMatch(
+  sortedRelationshipInlineCreateSource,
+  /type="submit"/,
+  'Inline create button should not submit the surrounding Keystone drawer form'
+)

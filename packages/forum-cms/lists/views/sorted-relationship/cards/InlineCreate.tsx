@@ -1,7 +1,7 @@
 /** @jsxRuntime classic */
 /** @jsx jsx */
 
-import { FormEvent, useState } from 'react'
+import { useState } from 'react'
 // eslint-disable-next-line
 import { jsx, Stack } from '@keystone-ui/core';
 import isDeepEqual from 'fast-deep-equal'
@@ -62,8 +62,7 @@ export function InlineCreate({
 
   const [forceValidation, setForceValidation] = useState(false)
 
-  const onSubmit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
+  const onSubmit = () => {
     const newForceValidation = invalidFields.size !== 0
     setForceValidation(newForceValidation)
 
@@ -122,7 +121,7 @@ export function InlineCreate({
   }
 
   return (
-    <form onSubmit={onSubmit}>
+    <section>
       <Stack gap="xlarge">
         {error && (
           <GraphQLErrorNotice
@@ -139,11 +138,11 @@ export function InlineCreate({
         />
         <Stack gap="small" across>
           <Button
+            onClick={onSubmit}
             isLoading={loading}
             size="small"
             tone="positive"
             weight="bold"
-            type="submit"
           >
             Create {list.singular}
           </Button>
@@ -152,6 +151,6 @@ export function InlineCreate({
           </Button>
         </Stack>
       </Stack>
-    </form>
+    </section>
   )
 }
