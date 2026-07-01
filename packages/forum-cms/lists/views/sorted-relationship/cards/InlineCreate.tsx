@@ -26,6 +26,7 @@ export function InlineCreate({
   onCancel,
   onCreate,
   fields: fieldPaths,
+  parentRelationship,
   selectedFields,
 }: {
   list: ListMeta
@@ -33,6 +34,7 @@ export function InlineCreate({
   fields: readonly string[]
   onCancel: () => void
   onCreate: (itemGetter: DataGetter<ItemData>) => void
+  parentRelationship?: { fieldKey: string; itemId: string }
 }) {
   const toasts = useToasts()
   const fields = useFieldsObj(list, fieldPaths)
@@ -77,6 +79,14 @@ export function InlineCreate({
         Object.assign(data, serialized)
       }
     })
+    if (
+      parentRelationship &&
+      data[parentRelationship.fieldKey] === undefined
+    ) {
+      data[parentRelationship.fieldKey] = {
+        connect: { id: parentRelationship.itemId },
+      }
+    }
 
     createItem({
       variables: {

@@ -15,6 +15,10 @@ const sortedRelationshipCardsSource = fs.readFileSync(
   path.join(__dirname, 'views/sorted-relationship/cards/index.tsx'),
   'utf8'
 )
+const sortedRelationshipInlineCreateSource = fs.readFileSync(
+  path.join(__dirname, 'views/sorted-relationship/cards/InlineCreate.tsx'),
+  'utf8'
+)
 const cmsModerationSource = fs.readFileSync(
   path.join(__dirname, '../utils/cms-content-moderation.ts'),
   'utf8'
@@ -115,4 +119,29 @@ assert.match(
   sortedRelationshipCardsSource,
   /currentIdsArrayWithFetchedItems\.sort/,
   'Sorted relationship cards should sort rendered cards when a display sort field is provided'
+)
+assert.match(
+  sortedRelationshipCardsSource,
+  /const parentRelationship\s*=[\s\S]+field\.refFieldKey[\s\S]+\{ fieldKey: field\.refFieldKey, itemId: id \}/,
+  'Poll.options cards should derive parent relationship context from the parent Poll id'
+)
+assert.match(
+  sortedRelationshipCardsSource,
+  /parentRelationship=\{parentRelationship\}/,
+  'Poll.options inline create should receive parent Poll relationship context'
+)
+assert.match(
+  sortedRelationshipCardsSource,
+  /initialIds:\s*parentRelationship[\s\S]+new Set\(\[\.\.\.value\.initialIds, itemId\]\)/,
+  'Poll.options inline create should mark immediately connected options as persisted'
+)
+assert.match(
+  sortedRelationshipInlineCreateSource,
+  /parentRelationship\?:\s*\{\s*fieldKey:\s*string;?\s*itemId:\s*string\s*\}/,
+  'Inline create should accept an optional parent relationship context'
+)
+assert.match(
+  sortedRelationshipInlineCreateSource,
+  /data\[parentRelationship\.fieldKey\]\s*=\s*\{\s*connect:\s*\{\s*id:\s*parentRelationship\.itemId\s*\},?\s*\}/,
+  'Inline create should connect the new PollOption to the parent Poll during create'
 )
