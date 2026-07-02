@@ -120,6 +120,7 @@ assert.match(
   /currentIdsArrayWithFetchedItems\.sort/,
   'Sorted relationship cards should sort rendered cards when a display sort field is provided'
 )
+
 assert.match(
   sortedRelationshipCardsSource,
   /const parentRelationship\s*=[\s\S]+field\.refFieldKey[\s\S]+\{ fieldKey: field\.refFieldKey, itemId: id \}/,
