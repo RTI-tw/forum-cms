@@ -183,6 +183,10 @@ export function Cards({
       return diff === 0 ? left.id.localeCompare(right.id) : diff
     })
   }
+  const parentRelationship =
+    id && field.many && field.refFieldKey
+      ? { fieldKey: field.refFieldKey, itemId: id }
+      : undefined
 
   return (
     <Stack gap="medium">
@@ -432,18 +436,22 @@ export function Cards({
             selectedFields={selectedFields}
             fields={displayOptions.inlineCreate!.fields}
             list={foreignList}
+            parentRelationship={parentRelationship}
             onCancel={() => {
               onChange({ ...value, itemBeingCreated: false })
             }}
             onCreate={(itemGetter) => {
-              const id = itemGetter.data.id
-              setItems({ ...items, [id]: itemGetter })
+              const itemId = itemGetter.data.id
+              setItems({ ...items, [itemId]: itemGetter })
               onChange({
                 ...value,
                 itemBeingCreated: false,
+                initialIds: parentRelationship
+                  ? new Set([...value.initialIds, itemId])
+                  : value.initialIds,
                 currentIds: field.many
-                  ? new Set([...value.currentIds, id])
-                  : new Set([id]),
+                  ? new Set([...value.currentIds, itemId])
+                  : new Set([itemId]),
               })
             }}
           />

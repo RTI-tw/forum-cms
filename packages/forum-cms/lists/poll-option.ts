@@ -6,8 +6,8 @@ import { createMessageServicesTranslationHook } from '../utils/message-services-
 import { applyPollOptionUpdateTranslationOnly } from '../utils/cms-content-moderation'
 import {
   buildPostVisibilityWhere,
+  canReadTrustedBackendContent,
   getAuthenticatedMemberId,
-  isCmsRequest,
 } from '../utils/post-visibility'
 
 /**
@@ -83,7 +83,7 @@ const listConfigurations = list({
     filter: {
       // [AC-004] 非 CMS query 只回傳有可見父層 Poll（及其 Post）的選項，防止草稿選項洩漏。
       query: ({ context }) => {
-        if (isCmsRequest(context)) return true
+        if (canReadTrustedBackendContent(context)) return true
         const memberId = getAuthenticatedMemberId(context)
         return {
           poll: {

@@ -23,32 +23,50 @@ function createContextWithSession(itemId?: string | null) {
 }
 
 function testApiStrategyCanReadAllPostStatuses() {
-  const { canReadAllPostStatuses } = loadPostVisibility('api')
+  const { canReadAllPostStatuses, canReadTrustedBackendContent } =
+    loadPostVisibility('api')
 
   assert.equal(
     canReadAllPostStatuses(createContextWithSession(null)),
     true,
     'api strategy should allow backend services such as message-services to read pending posts when API list rules allow Post query'
   )
+  assert.equal(
+    canReadTrustedBackendContent(createContextWithSession(null)),
+    true,
+    'api strategy should allow trusted backend services to read translatable content behind public visibility filters when list rules allow query'
+  )
 }
 
 function testPublicPreviewStrategyCannotReadAllPostStatuses() {
-  const { canReadAllPostStatuses } = loadPostVisibility('preview')
+  const { canReadAllPostStatuses, canReadTrustedBackendContent } =
+    loadPostVisibility('preview')
 
   assert.equal(
     canReadAllPostStatuses(createContextWithSession(null)),
     false,
     'anonymous preview-strategy requests should still use public post visibility'
   )
+  assert.equal(
+    canReadTrustedBackendContent(createContextWithSession(null)),
+    false,
+    'anonymous preview-strategy requests should still use public visibility filters for translatable content'
+  )
 }
 
 function testCmsSessionCanReadAllPostStatuses() {
-  const { canReadAllPostStatuses } = loadPostVisibility('preview')
+  const { canReadAllPostStatuses, canReadTrustedBackendContent } =
+    loadPostVisibility('preview')
 
   assert.equal(
     canReadAllPostStatuses(createContextWithSession('1')),
     true,
     'CMS sessions should continue to read all post statuses'
+  )
+  assert.equal(
+    canReadTrustedBackendContent(createContextWithSession('1')),
+    true,
+    'CMS sessions should continue to read translatable content behind public visibility filters'
   )
 }
 

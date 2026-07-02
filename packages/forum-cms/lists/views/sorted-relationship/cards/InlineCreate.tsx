@@ -1,7 +1,7 @@
 /** @jsxRuntime classic */
 /** @jsx jsx */
 
-import { FormEvent, useState } from 'react'
+import { useState } from 'react'
 // eslint-disable-next-line
 import { jsx, Stack } from '@keystone-ui/core';
 import isDeepEqual from 'fast-deep-equal'
@@ -26,6 +26,7 @@ export function InlineCreate({
   onCancel,
   onCreate,
   fields: fieldPaths,
+  parentRelationship,
   selectedFields,
 }: {
   list: ListMeta
@@ -33,6 +34,7 @@ export function InlineCreate({
   fields: readonly string[]
   onCancel: () => void
   onCreate: (itemGetter: DataGetter<ItemData>) => void
+  parentRelationship?: { fieldKey: string; itemId: string }
 }) {
   const toasts = useToasts()
   const fields = useFieldsObj(list, fieldPaths)
@@ -60,8 +62,7 @@ export function InlineCreate({
 
   const [forceValidation, setForceValidation] = useState(false)
 
-  const onSubmit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
+  const onSubmit = () => {
     const newForceValidation = invalidFields.size !== 0
     setForceValidation(newForceValidation)
 
@@ -77,6 +78,14 @@ export function InlineCreate({
         Object.assign(data, serialized)
       }
     })
+    if (
+      parentRelationship &&
+      data[parentRelationship.fieldKey] === undefined
+    ) {
+      data[parentRelationship.fieldKey] = {
+        connect: { id: parentRelationship.itemId },
+      }
+    }
 
     createItem({
       variables: {
@@ -112,7 +121,7 @@ export function InlineCreate({
   }
 
   return (
-    <form onSubmit={onSubmit}>
+    <section>
       <Stack gap="xlarge">
         {error && (
           <GraphQLErrorNotice
@@ -129,11 +138,11 @@ export function InlineCreate({
         />
         <Stack gap="small" across>
           <Button
+            onClick={onSubmit}
             isLoading={loading}
             size="small"
             tone="positive"
             weight="bold"
-            type="submit"
           >
             Create {list.singular}
           </Button>
@@ -142,6 +151,6 @@ export function InlineCreate({
           </Button>
         </Stack>
       </Stack>
-    </form>
+    </section>
   )
 }
