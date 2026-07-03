@@ -43,6 +43,16 @@ function restoreInactiveEmail(email?: string | null, firebaseId?: string | null)
   }
 }
 
+function allowCmsMemberHardDeleteOnly(
+  auth: Parameters<ReturnType<typeof allowAdminOnly>>[0]
+) {
+  if (process.env.ACCESS_CONTROL_STRATEGY === 'api') {
+    return false
+  }
+
+  return allowAdminOnly()(auth)
+}
+
 const listConfigurations = list({
   fields: {
     firebaseId: text({
@@ -171,12 +181,9 @@ const listConfigurations = list({
         'status',
         'isCompleteProfile',
         'nationality',
+        'createdAt',
       ],
-    },
-  },
-  graphql: {
-    omit: {
-      delete: true,
+      initialSort: { field: 'createdAt', direction: 'DESC' },
     },
   },
   access: {
@@ -185,7 +192,7 @@ const listConfigurations = list({
         isCronServiceRequest(auth.context) || allowAdminOnly()(auth),
       update: allowAdminOnly(),
       create: allowAdminOnly(),
-      delete: allowAdminOnly(),
+      delete: allowCmsMemberHardDeleteOnly,
     },
     filter: {
       query: ({ context }) => {

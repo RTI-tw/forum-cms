@@ -1,17 +1,73 @@
 import assert from 'assert'
-import Member from './member'
+
+const MEMBER_MODULE_PATH = require.resolve('./member')
+const ACCESS_CONTROL_MODULE_PATH = require.resolve('../utils/access-control')
+const API_ACCESS_RULES_MODULE_PATH = require.resolve('../utils/api-access-rules')
+
+type EnvPatch = {
+  ACCESS_CONTROL_STRATEGY?: string
+  ACCESS_CONTROL_API_RULES_JSON?: string
+}
+
+async function withMemberConfig<T>(
+  envPatch: EnvPatch,
+  callback: (Member: any) => Promise<T> | T
+) {
+  const previousStrategy = process.env.ACCESS_CONTROL_STRATEGY
+  const previousApiRules = process.env.ACCESS_CONTROL_API_RULES_JSON
+
+  if (envPatch.ACCESS_CONTROL_STRATEGY === undefined) {
+    delete process.env.ACCESS_CONTROL_STRATEGY
+  } else {
+    process.env.ACCESS_CONTROL_STRATEGY = envPatch.ACCESS_CONTROL_STRATEGY
+  }
+
+  if (envPatch.ACCESS_CONTROL_API_RULES_JSON === undefined) {
+    delete process.env.ACCESS_CONTROL_API_RULES_JSON
+  } else {
+    process.env.ACCESS_CONTROL_API_RULES_JSON =
+      envPatch.ACCESS_CONTROL_API_RULES_JSON
+  }
+
+  delete require.cache[MEMBER_MODULE_PATH]
+  delete require.cache[ACCESS_CONTROL_MODULE_PATH]
+  delete require.cache[API_ACCESS_RULES_MODULE_PATH]
+
+  try {
+    const Member = require('./member').default
+    return await callback(Member)
+  } finally {
+    if (previousStrategy === undefined) {
+      delete process.env.ACCESS_CONTROL_STRATEGY
+    } else {
+      process.env.ACCESS_CONTROL_STRATEGY = previousStrategy
+    }
+
+    if (previousApiRules === undefined) {
+      delete process.env.ACCESS_CONTROL_API_RULES_JSON
+    } else {
+      process.env.ACCESS_CONTROL_API_RULES_JSON = previousApiRules
+    }
+
+    delete require.cache[MEMBER_MODULE_PATH]
+    delete require.cache[ACCESS_CONTROL_MODULE_PATH]
+    delete require.cache[API_ACCESS_RULES_MODULE_PATH]
+  }
+}
 
 async function resolveMemberInput(
   resolvedData: Record<string, unknown>,
   item: Record<string, unknown>
 ) {
-  const resolveInput = (Member as any).hooks?.resolveInput
-  assert.equal(typeof resolveInput, 'function')
+  return withMemberConfig({}, async (Member) => {
+    const resolveInput = Member.hooks?.resolveInput
+    assert.equal(typeof resolveInput, 'function')
 
-  return await resolveInput({
-    resolvedData,
-    item,
-    context: { session: null },
+    return await resolveInput({
+      resolvedData,
+      item,
+      context: { session: null },
+    })
   })
 }
 
@@ -55,18 +111,63 @@ async function testDeletedStatusDoesNotRewriteAlreadyDeletedMember() {
   assert.equal(output.customId, undefined)
 }
 
-function testMemberOmitsGeneratedDeleteMutations() {
-  const graphqlConfig = (Member as any).graphql
+async function testMemberExposesGeneratedHardDeleteMutations() {
+  await withMemberConfig({}, (Member) => {
+    const graphqlConfig = Member.graphql
 
-  assert.equal(
-    graphqlConfig?.omit?.delete,
-    true,
-    'Member should omit Keystone generated hard-delete mutations'
+    assert.notEqual(
+      graphqlConfig?.omit?.delete,
+      true,
+      'Member should expose Keystone generated hard-delete mutations for CMS'
+    )
+  })
+}
+
+async function testApiStrategyCannotHardDeleteMembersEvenWhenRulesAllowWrites() {
+  await withMemberConfig(
+    {
+      ACCESS_CONTROL_STRATEGY: 'api',
+      ACCESS_CONTROL_API_RULES_JSON: JSON.stringify({ Member: 'read_write' }),
+    },
+    async (Member) => {
+      const deleteAccess = Member.access?.operation?.delete
+      assert.equal(typeof deleteAccess, 'function')
+
+      const allowed = await deleteAccess({
+        listKey: 'Member',
+        operation: 'delete',
+        context: {},
+      })
+
+      assert.equal(
+        allowed,
+        false,
+        'api strategy must not hard-delete members even when Member has read_write API rules'
+      )
+    }
   )
 }
 
+async function testMemberListDefaultsShowAndSortByCreatedAt() {
+  await withMemberConfig({}, (Member) => {
+    const listView = Member.ui?.listView
+
+    assert.ok(
+      listView?.initialColumns?.includes('createdAt'),
+      'Member list default columns should include createdAt'
+    )
+    assert.deepEqual(
+      listView?.initialSort,
+      { field: 'createdAt', direction: 'DESC' },
+      'Member list should default sort by createdAt desc'
+    )
+  })
+}
+
 async function main() {
-  testMemberOmitsGeneratedDeleteMutations()
+  await testMemberExposesGeneratedHardDeleteMutations()
+  await testApiStrategyCannotHardDeleteMembersEvenWhenRulesAllowWrites()
+  await testMemberListDefaultsShowAndSortByCreatedAt()
   await testDeletedStatusReleasesUniqueMemberFields()
   await testDeletedStatusDoesNotRewriteAlreadyDeletedMember()
 }

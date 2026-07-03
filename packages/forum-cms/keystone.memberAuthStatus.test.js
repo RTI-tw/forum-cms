@@ -22,13 +22,28 @@ assert.doesNotMatch(
   'authenticatedMember should allow inactive members to finish profile setup'
 )
 
-assert.match(
+assert.doesNotMatch(
   source,
   /memberAccountDeletionSchemaExtension/,
-  'Keystone should install the member account deletion schema extension'
+  'Keystone should not install a custom soft-delete member mutation over generated deleteMember'
 )
-assert.match(
+assert.doesNotMatch(
   source,
-  /deleteMember:\s*graphql\.field/,
-  'deleteMember should be handled by a custom soft-delete resolver'
+  /softDeleteMemberByWhere/,
+  'Keystone should not route deleteMember through the soft-delete resolver'
+)
+assert.doesNotMatch(
+  source,
+  /removeGeneratedMemberDeleteMutations\(schema\)/,
+  'Keystone should keep generated Member hard-delete mutations for CMS'
+)
+assert.doesNotMatch(
+  source,
+  /memberAccountDeletionSchemaExtension\(schema\)/,
+  'Keystone should not override generated deleteMember with the soft-delete resolver'
+)
+assert.doesNotMatch(
+  source,
+  /delete fields\.deleteMember/,
+  'Keystone should not remove generated deleteMember from the schema'
 )
