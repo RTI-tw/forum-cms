@@ -66,11 +66,27 @@ async function testCallsConfiguredEndpointsForRelevantOperations() {
 
 async function testTriggerPredicates() {
   const {
+    ADS_EXPORT_ENDPOINT,
+    CURATED_POSTS_LATEST_POLLS_EXPORT_ENDPOINT,
+    HOME_EDITOR_CHOICES_EXPORT_ENDPOINT,
     shouldTriggerAdJsonExport,
     shouldTriggerAdSlideJsonExport,
     shouldTriggerEditorChoiceJsonExport,
     shouldTriggerPostJsonExport,
   } = requireFreshCronJsonExportHook()
+
+  assert.equal(
+    HOME_EDITOR_CHOICES_EXPORT_ENDPOINT,
+    '/export/home-editor-choices-to-gcs?prefix=json/home-sections&limit=100&post_state=active&scan_multiplier=10&cache_control_seconds=300'
+  )
+  assert.equal(
+    CURATED_POSTS_LATEST_POLLS_EXPORT_ENDPOINT,
+    '/export/curated-posts-latest-polls-to-gcs?prefix=json/curated&limit=100&post_state=active&scan_multiplier=10&cache_control_seconds=60'
+  )
+  assert.equal(
+    ADS_EXPORT_ENDPOINT,
+    '/export/ads-to-gcs?prefix=json/ads&take=1&cache_control_seconds=300'
+  )
 
   assert.equal(
     shouldTriggerEditorChoiceJsonExport({

@@ -23,10 +23,11 @@ type TriggerArgs = {
 }
 
 export const HOME_EDITOR_CHOICES_EXPORT_ENDPOINT =
-  '/export/home-editor-choices-to-gcs'
+  '/export/home-editor-choices-to-gcs?prefix=json/home-sections&limit=100&post_state=active&scan_multiplier=10&cache_control_seconds=300'
 export const CURATED_POSTS_LATEST_POLLS_EXPORT_ENDPOINT =
-  '/export/curated-posts-latest-polls-to-gcs'
-export const ADS_EXPORT_ENDPOINT = '/export/ads-to-gcs'
+  '/export/curated-posts-latest-polls-to-gcs?prefix=json/curated&limit=100&post_state=active&scan_multiplier=10&cache_control_seconds=60'
+export const ADS_EXPORT_ENDPOINT =
+  '/export/ads-to-gcs?prefix=json/ads&take=1&cache_control_seconds=300'
 
 export const EDITOR_CHOICE_JSON_EXPORT_FIELDS = [
   'post',

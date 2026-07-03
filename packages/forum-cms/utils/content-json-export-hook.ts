@@ -9,6 +9,6 @@ type AfterOperationHookFn = Extract<
 export function createContentJsonExportHook(): AfterOperationHookFn {
   return createCronJsonExportHook({
     label: 'content json export',
-    endpoints: ['/export/contents-to-gcs'],
+    endpoints: ['/export/contents-to-gcs?prefix=json/content&page_size=100'],
   })
 }
