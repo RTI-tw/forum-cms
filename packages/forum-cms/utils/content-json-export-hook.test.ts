@@ -29,7 +29,7 @@ async function main() {
 
     assert.deepEqual(calls, [
       {
-        url: 'https://cron-services.example.test/export/contents-to-gcs',
+        url: 'https://cron-services.example.test/export/contents-to-gcs?prefix=json/content&page_size=100',
         method: 'GET',
         body: undefined,
       },
