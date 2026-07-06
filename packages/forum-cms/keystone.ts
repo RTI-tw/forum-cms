@@ -284,6 +284,7 @@ type MemberSessionMemberValue = {
     name: string;
     nickname: string;
     isCompleteProfile: boolean;
+    isCoCreationPartner: boolean;
     status: MemberStatus;
     email?: string | null;
 };
@@ -295,6 +296,7 @@ type MemberRecord = {
     name?: string | null;
     nickname?: string | null;
     isCompleteProfile?: boolean | null;
+    isCoCreationPartner?: boolean | null;
     status?: MemberStatus | string | null;
     email?: string | null;
 };
@@ -306,6 +308,7 @@ const MemberSessionMember = graphql.object<{
     name: string;
     nickname: string;
     isCompleteProfile: boolean;
+    isCoCreationPartner: boolean;
     status: "active" | "inactive" | "banned" | "deleted";
     email?: string | null;
 }>()({
@@ -317,6 +320,7 @@ const MemberSessionMember = graphql.object<{
         name: graphql.field({ type: graphql.nonNull(graphql.String) }),
         nickname: graphql.field({ type: graphql.nonNull(graphql.String) }),
         isCompleteProfile: graphql.field({ type: graphql.nonNull(graphql.Boolean) }),
+        isCoCreationPartner: graphql.field({ type: graphql.nonNull(graphql.Boolean) }),
         status: graphql.field({ type: graphql.nonNull(graphql.String) }),
         email: graphql.field({ type: graphql.String }),
     },
@@ -332,6 +336,7 @@ const AuthenticateMemberWithFirebaseResult = graphql.object<{
         name: string;
         nickname: string;
         isCompleteProfile: boolean;
+        isCoCreationPartner: boolean;
         status: "active" | "inactive" | "banned" | "deleted";
         email?: string | null;
     };
@@ -389,6 +394,7 @@ function mapMemberSessionMember(member: MemberRecord): MemberSessionMemberValue 
         name: member.name ?? "",
         nickname: member.nickname ?? "",
         isCompleteProfile: Boolean(member.isCompleteProfile),
+        isCoCreationPartner: Boolean(member.isCoCreationPartner),
         status: normalizeMemberStatus(member.status),
         email: member.email ?? null,
     };

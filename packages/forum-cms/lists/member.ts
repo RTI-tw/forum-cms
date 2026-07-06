@@ -114,6 +114,10 @@ const listConfigurations = list({
       label: '已完成個人資料',
       defaultValue: false,
     }),
+    isCoCreationPartner: checkbox({
+      label: '共創夥伴電子徽章',
+      defaultValue: false,
+    }),
     comment: relationship({
       label: '留言',
       ref: 'Comment.member',
@@ -180,6 +184,7 @@ const listConfigurations = list({
         'email',
         'status',
         'isCompleteProfile',
+        'isCoCreationPartner',
         'nationality',
         'createdAt',
       ],
