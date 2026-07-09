@@ -219,6 +219,7 @@ type Member {
   status: MemberStatusType
   verified: Boolean
   isCompleteProfile: Boolean
+  isCoCreationPartner: Boolean
   comment(where: CommentWhereInput! = {}, orderBy: [CommentOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: CommentWhereUniqueInput): [Comment!]
   commentCount(where: CommentWhereInput! = {}): Int
   posts(where: PostWhereInput! = {}, orderBy: [PostOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: PostWhereUniqueInput): [Post!]
@@ -529,6 +530,7 @@ input MemberWhereInput {
   status: MemberStatusTypeNullableFilter
   verified: BooleanFilter
   isCompleteProfile: BooleanFilter
+  isCoCreationPartner: BooleanFilter
   comment: CommentManyRelationFilter
   posts: PostManyRelationFilter
   memberPolls: PollManyRelationFilter
@@ -606,6 +608,7 @@ input MemberOrderByInput {
   status: OrderDirection
   verified: OrderDirection
   isCompleteProfile: OrderDirection
+  isCoCreationPartner: OrderDirection
   isOfficial: OrderDirection
   joinDate: OrderDirection
   language: OrderDirection
@@ -625,6 +628,7 @@ input MemberUpdateInput {
   status: MemberStatusType
   verified: Boolean
   isCompleteProfile: Boolean
+  isCoCreationPartner: Boolean
   comment: CommentRelateToManyForUpdateInput
   posts: PostRelateToManyForUpdateInput
   memberPolls: PollRelateToManyForUpdateInput
@@ -703,6 +707,7 @@ input MemberCreateInput {
   status: MemberStatusType
   verified: Boolean
   isCompleteProfile: Boolean
+  isCoCreationPartner: Boolean
   comment: CommentRelateToManyForCreateInput
   posts: PostRelateToManyForCreateInput
   memberPolls: PollRelateToManyForCreateInput
@@ -3650,6 +3655,7 @@ type MemberSessionMember {
   name: String!
   nickname: String!
   isCompleteProfile: Boolean!
+  isCoCreationPartner: Boolean!
   status: String!
   email: String
 }

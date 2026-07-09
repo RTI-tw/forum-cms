@@ -1,8 +1,11 @@
 import assert from 'assert'
+import fs from 'fs'
+import path from 'path'
 
 const MEMBER_MODULE_PATH = require.resolve('./member')
 const ACCESS_CONTROL_MODULE_PATH = require.resolve('../utils/access-control')
 const API_ACCESS_RULES_MODULE_PATH = require.resolve('../utils/api-access-rules')
+const FORUM_CMS_ROOT = path.resolve(__dirname, '..')
 
 type EnvPatch = {
   ACCESS_CONTROL_STRATEGY?: string
@@ -164,10 +167,114 @@ async function testMemberListDefaultsShowAndSortByCreatedAt() {
   })
 }
 
+async function testMemberCoCreationPartnerBadgeFieldConfig() {
+  await withMemberConfig({}, (Member) => {
+    assert.equal(
+      typeof Member.fields?.isCoCreationPartner,
+      'function',
+      'Member should expose isCoCreationPartner field'
+    )
+    assert.ok(
+      Member.ui?.listView?.initialColumns?.includes('isCoCreationPartner'),
+      'Member list default columns should include isCoCreationPartner'
+    )
+  })
+}
+
+function readForumCmsSource(relativePath: string) {
+  return fs.readFileSync(path.join(FORUM_CMS_ROOT, relativePath), 'utf8')
+}
+
+function extractSchemaBlock(schema: string, blockName: string) {
+  const block = schema.match(new RegExp(`${blockName} \\{[\\s\\S]*?\\n\\}`))?.[0]
+  assert.ok(block, `${blockName} should exist in schema.graphql`)
+  return block
+}
+
+function testMemberCoCreationPartnerBadgeSource() {
+  const memberSource = readForumCmsSource('lists/member.ts')
+
+  assert.match(
+    memberSource,
+    /isCoCreationPartner:\s*checkbox\(\{[\s\S]*label:\s*'共創夥伴電子徽章'[\s\S]*defaultValue:\s*false[\s\S]*\}\)/,
+    'Member isCoCreationPartner should be a checkbox labeled 共創夥伴電子徽章 with default false'
+  )
+}
+
+function testMemberSessionGraphqlExposesCoCreationPartnerBadge() {
+  const keystoneSource = readForumCmsSource('keystone.ts')
+
+  assert.match(
+    keystoneSource,
+    /isCoCreationPartner:\s*boolean/,
+    'Member session value type should include isCoCreationPartner'
+  )
+  assert.match(
+    keystoneSource,
+    /isCoCreationPartner\?:\s*boolean\s*\|\s*null/,
+    'Member record type should include nullable isCoCreationPartner'
+  )
+  assert.match(
+    keystoneSource,
+    /isCoCreationPartner:\s*graphql\.field\(\{\s*type:\s*graphql\.nonNull\(graphql\.Boolean\)\s*\}\)/,
+    'MemberSessionMember GraphQL type should expose non-null isCoCreationPartner'
+  )
+  assert.match(
+    keystoneSource,
+    /isCoCreationPartner:\s*Boolean\(member\.isCoCreationPartner\)/,
+    'Member session mapper should return isCoCreationPartner'
+  )
+}
+
+function testMemberSchemaExposesCoCreationPartnerBadge() {
+  const schema = readForumCmsSource('schema.graphql')
+  const memberType = extractSchemaBlock(schema, 'type Member')
+  const memberWhereInput = extractSchemaBlock(schema, 'input MemberWhereInput')
+  const memberOrderByInput = extractSchemaBlock(schema, 'input MemberOrderByInput')
+  const memberUpdateInput = extractSchemaBlock(schema, 'input MemberUpdateInput')
+  const memberCreateInput = extractSchemaBlock(schema, 'input MemberCreateInput')
+  const memberSessionType = extractSchemaBlock(schema, 'type MemberSessionMember')
+
+  assert.match(
+    memberType,
+    /isCoCreationPartner:\s*Boolean/,
+    'Member schema type should expose isCoCreationPartner'
+  )
+  assert.match(
+    memberWhereInput,
+    /isCoCreationPartner:\s*BooleanFilter/,
+    'MemberWhereInput should filter by isCoCreationPartner'
+  )
+  assert.match(
+    memberOrderByInput,
+    /isCoCreationPartner:\s*OrderDirection/,
+    'MemberOrderByInput should sort by isCoCreationPartner'
+  )
+  assert.match(
+    memberUpdateInput,
+    /isCoCreationPartner:\s*Boolean/,
+    'MemberUpdateInput should allow updating isCoCreationPartner'
+  )
+  assert.match(
+    memberCreateInput,
+    /isCoCreationPartner:\s*Boolean/,
+    'MemberCreateInput should allow creating isCoCreationPartner'
+  )
+  assert.match(
+    memberSessionType,
+    /isCoCreationPartner:\s*Boolean!/,
+    'MemberSessionMember should expose non-null isCoCreationPartner'
+  )
+}
+
 async function main() {
   await testMemberExposesGeneratedHardDeleteMutations()
   await testApiStrategyCannotHardDeleteMembersEvenWhenRulesAllowWrites()
   await testMemberListDefaultsShowAndSortByCreatedAt()
+  await testMemberCoCreationPartnerBadgeFieldConfig()
+  testMemberCoCreationPartnerBadgeSource()
+  testMemberSessionGraphqlExposesCoCreationPartnerBadge()
+  testMemberSchemaExposesCoCreationPartnerBadge()
   await testDeletedStatusReleasesUniqueMemberFields()
   await testDeletedStatusDoesNotRewriteAlreadyDeletedMember()
 }

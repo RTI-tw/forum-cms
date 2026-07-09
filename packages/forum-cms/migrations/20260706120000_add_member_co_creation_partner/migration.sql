@@ -1,0 +1,1 @@
+ALTER TABLE "Member" ADD COLUMN "isCoCreationPartner" BOOLEAN NOT NULL DEFAULT false;
