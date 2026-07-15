@@ -39,6 +39,7 @@ import {
     verifyMemberSession,
 } from "./utils/member-session";
 import { eventRegistrationSchemaExtension } from "./utils/event-registration-gql";
+import { createGraphqlResourceLimitRule } from "./utils/graphql-resource-limits";
 
 // 获取 createLoginLoggingPlugin 函数（兼容新旧版本）
 // const createLoginLoggingPlugin =
@@ -2426,6 +2427,7 @@ export default class CustomDocument extends Document {
 
 const graphqlConfig = {
     apolloConfig: {
+        validationRules: [createGraphqlResourceLimitRule()],
         ...(envVar.graphqlDisableCsrfPrevention
             ? { csrfPrevention: false }
             : {}),
@@ -2635,6 +2637,9 @@ const baseKeystoneConfig = config({
                 })
             );
 
+            // Public GraphQL traffic is proxied by the frontend, but keep a
+            // small backend cap as defense-in-depth before parsing/validation.
+            app.use("/api/graphql", express.json({ limit: "256kb" }));
             app.use(express.json({ limit: "10mb" }));
 
             // [AUTH-004] Server-side 強制：mustChangePassword 的 session 只允許改密碼相關操作。
