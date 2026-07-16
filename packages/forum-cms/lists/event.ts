@@ -1,5 +1,6 @@
 import { utils } from '@mirrormedia/lilith-core'
-import { allowRoles, admin, moderator, editor } from '../utils/access-control'
+import { allowRoles, admin, moderator, editor, partner } from '../utils/access-control'
+import { connectedId, getPartnerMemberId, isPartnerSession, partnerOwnsPost, requirePartnerMemberId } from '../utils/partner-access'
 import { graphql, list } from '@keystone-6/core'
 import {
   integer,
@@ -168,6 +169,15 @@ const listConfigurations = list({
       many: true,
       label: '報名紀錄',
     }),
+    creator: relationship({
+      ref: 'Member.partnerEvents',
+      many: false,
+      label: '建立者',
+      ui: {
+        createView: { fieldMode: 'hidden' },
+        itemView: { fieldMode: 'read' },
+      },
+    }),
   },
   ui: {
     label: '活動',
@@ -194,14 +204,28 @@ const listConfigurations = list({
   },
   access: {
     operation: {
-      query: allowRoles(admin, moderator, editor),
-      update: allowRoles(admin, moderator, editor),
-      create: allowRoles(admin, moderator, editor),
+      query: allowRoles(admin, moderator, editor, partner),
+      update: allowRoles(admin, moderator, editor, partner),
+      create: allowRoles(admin, moderator, editor, partner),
       delete: allowRoles(admin, editor),
+    },
+    filter: {
+      query: ({ context }) => {
+        if (!isPartnerSession(context)) return true
+        return getPartnerMemberId(context).then((memberId) =>
+          memberId == null ? false : { creator: { id: { equals: memberId } } }
+        )
+      },
+      update: ({ context }) => {
+        if (!isPartnerSession(context)) return true
+        return getPartnerMemberId(context).then((memberId) =>
+          memberId == null ? false : { creator: { id: { equals: memberId } } }
+        )
+      },
     },
   },
   hooks: {
-    validateInput: ({ resolvedData, operation, addValidationError }) => {
+    validateInput: async ({ resolvedData, operation, addValidationError, context }) => {
       if (operation !== 'create' && operation !== 'update') return
       const postRelation = resolvedData.post as ToOneRelationInput | undefined
       if (operation === 'create' && !hasRelatedPost(postRelation)) {
@@ -216,6 +240,23 @@ const listConfigurations = list({
           '活動連結僅允許 http/https 絕對網址或以 / 開頭的站內路徑。'
         )
       }
+      if (isPartnerSession(context)) {
+        const postId = connectedId(resolvedData.post)
+        if (postId != null && !(await partnerOwnsPost(context, postId))) {
+          addValidationError('Partner 只能關聯自己的文章。')
+        }
+      }
+    },
+    resolveInput: async ({ resolvedData, operation, context }) => {
+      if (!isPartnerSession(context)) return resolvedData
+      const data = { ...resolvedData }
+      if (operation === 'create') {
+        const memberId = await requirePartnerMemberId(context)
+        data.creator = { connect: { id: memberId } }
+      } else {
+        delete data.creator
+      }
+      return data
     },
     afterOperation: createMessageServicesTranslationHook('event'),
   },

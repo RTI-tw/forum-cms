@@ -18,6 +18,7 @@ model User {
   password                           String
   role                               String
   officialAccounts                   OfficialMapping[]   @relation("OfficialMapping_cmsUser")
+  partnerMember                      Member?             @relation("Member_partnerUser")
   isProtected                        Boolean             @default(false)
   passwordUpdatedAt                  DateTime?           @default(now())
   mustChangePassword                 Boolean             @default(false)
@@ -96,6 +97,9 @@ model Member {
   posts                               Post[]                 @relation("Post_author")
   memberPolls                         Poll[]                 @relation("Poll_member")
   eventRegistrations                  EventRegistration[]    @relation("EventRegistration_member")
+  partnerUser                         User?                  @relation("Member_partnerUser", fields: [partnerUserId], references: [id])
+  partnerUserId                       Int?                   @unique @map("partnerUser")
+  partnerEvents                       Event[]                @relation("Event_creator")
   reactions                           Reaction[]             @relation("Reaction_member")
   isOfficial                          Boolean                @default(false)
   joinDate                            DateTime?              @default(now())
@@ -662,6 +666,8 @@ model Event {
   checkInEndAt        DateTime?
   capacity            Int?
   registrations       EventRegistration[] @relation("EventRegistration_event")
+  creator             Member?             @relation("Event_creator", fields: [creatorId], references: [id])
+  creatorId           Int?                @map("creator")
   createdAt           DateTime?
   updatedAt           DateTime?
   createdBy           User?               @relation("Event_createdBy", fields: [createdById], references: [id])
@@ -670,6 +676,7 @@ model Event {
   updatedById         Int?                @map("updatedBy")
 
   @@index([postId])
+  @@index([creatorId])
   @@index([createdById])
   @@index([updatedById])
 }
