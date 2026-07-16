@@ -3143,6 +3143,7 @@ type Event {
   id: ID!
   slug: String
   label: EventLabelType
+  isPromoted: Boolean
   notice: String
   notice_zh: String
   notice_en: String
@@ -3185,6 +3186,7 @@ input EventWhereInput {
   id: IDFilter
   slug: StringFilter
   label: EventLabelTypeNullableFilter
+  isPromoted: BooleanFilter
   notice: StringFilter
   notice_zh: StringFilter
   notice_en: StringFilter
@@ -3218,6 +3220,7 @@ input EventOrderByInput {
   id: OrderDirection
   slug: OrderDirection
   label: OrderDirection
+  isPromoted: OrderDirection
   notice: OrderDirection
   notice_zh: OrderDirection
   notice_en: OrderDirection
@@ -3239,6 +3242,7 @@ input EventOrderByInput {
 input EventUpdateInput {
   slug: String
   label: EventLabelType
+  isPromoted: Boolean
   notice: String
   notice_zh: String
   notice_en: String
@@ -3269,6 +3273,7 @@ input EventUpdateArgs {
 input EventCreateInput {
   slug: String
   label: EventLabelType
+  isPromoted: Boolean
   notice: String
   notice_zh: String
   notice_en: String
