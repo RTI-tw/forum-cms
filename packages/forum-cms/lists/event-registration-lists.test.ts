@@ -5,6 +5,7 @@ import test from 'node:test'
 import { listDefinition } from './index'
 import Member from './member'
 import Event from './event'
+import EventRegistration from './event-registration'
 import Photo from './image'
 
 test('event lists are registered', () => {
@@ -21,6 +22,28 @@ test('event lists are registered', () => {
 test('member exposes event registrations relationship', () => {
   const fields = (Member as any).fields
   assert.ok(fields.eventRegistrations, 'Member should expose eventRegistrations')
+})
+
+test('event registration list displays member nationality', () => {
+  const fields = (EventRegistration as any).fields
+  const initialColumns = (EventRegistration as any).ui.listView.initialColumns
+  const schema = fs.readFileSync(
+    path.join(__dirname, '../schema.graphql'),
+    'utf8'
+  )
+  const eventRegistrationType = schema.match(
+    /type EventRegistration \{[\s\S]+?\n\}/
+  )?.[0]
+
+  assert.ok(
+    fields.memberNationality,
+    'EventRegistration should expose memberNationality virtual field'
+  )
+  assert.ok(
+    initialColumns.includes('memberNationality'),
+    'EventRegistration list should display memberNationality by default'
+  )
+  assert.match(eventRegistrationType ?? '', /memberNationality: String/)
 })
 
 test('event keeps activity fields and relates content through post', () => {

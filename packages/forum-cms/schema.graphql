@@ -3300,6 +3300,7 @@ type EventRegistration {
   id: ID!
   event: Event
   member: Member
+  memberNationality: String
   status: EventRegistrationStatusType
   registeredAt: DateTime
   checkedInAt: DateTime
