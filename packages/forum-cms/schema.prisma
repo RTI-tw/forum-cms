@@ -645,6 +645,7 @@ model Event {
   id                  Int                 @id @default(autoincrement())
   slug                String              @unique @default("")
   label               EventLabelType      @default(more)
+  isPromoted          Boolean             @default(false)
   notice              String              @default("")
   notice_zh           String              @default("")
   notice_en           String              @default("")
