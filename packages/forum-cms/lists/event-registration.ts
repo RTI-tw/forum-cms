@@ -1,7 +1,18 @@
 import { utils } from '@mirrormedia/lilith-core'
 import { allowRoles, admin, moderator, editor } from '../utils/access-control'
-import { list } from '@keystone-6/core'
-import { relationship, select, text, timestamp } from '@keystone-6/core/fields'
+import { graphql, list } from '@keystone-6/core'
+import {
+  relationship,
+  select,
+  text,
+  timestamp,
+  virtual,
+} from '@keystone-6/core/fields'
+import { nationalitySelectOptions } from '../utils/countries-data'
+
+const nationalityLabels = new Map(
+  nationalitySelectOptions.map(({ label, value }) => [value, label])
+)
 
 const hiddenFromCmsUi = {
   createView: { fieldMode: 'hidden' as const },
@@ -50,6 +61,29 @@ const listConfigurations = list({
       ref: 'Member.eventRegistrations',
       many: false,
       label: '會員',
+    }),
+    memberNationality: virtual({
+      label: '會員國籍',
+      field: graphql.field({
+        type: graphql.String,
+        resolve: async (item, _args, context) => {
+          const registrationId = Number(item.id)
+
+          if (!Number.isFinite(registrationId)) return null
+
+          const registration =
+            await context.prisma.eventRegistration.findUnique({
+              where: { id: registrationId },
+              select: { member: { select: { nationality: true } } },
+            })
+          const nationality = registration?.member?.nationality
+
+          return nationality
+            ? nationalityLabels.get(nationality) ?? nationality
+            : null
+        },
+      }),
+      ui: readOnlyInCmsUi,
     }),
     status: select({
       label: '報名狀態',
@@ -146,6 +180,7 @@ const listConfigurations = list({
       initialColumns: [
         'event',
         'member',
+        'memberNationality',
         'status',
         'registeredAt',
         'checkedInAt',

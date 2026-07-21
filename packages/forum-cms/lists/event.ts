@@ -2,6 +2,7 @@ import { utils } from '@mirrormedia/lilith-core'
 import { allowRoles, admin, moderator, editor } from '../utils/access-control'
 import { graphql, list } from '@keystone-6/core'
 import {
+  checkbox,
   integer,
   relationship,
   select,
@@ -57,6 +58,10 @@ const listConfigurations = list({
       ui: {
         description: '決定活動預覽卡顯示在哪個前台區塊。',
       },
+    }),
+    isPromoted: checkbox({
+      label: '是否推廣',
+      defaultValue: false,
     }),
     notice: text({
       label: '活動須知',
@@ -176,6 +181,7 @@ const listConfigurations = list({
       initialColumns: [
         'slug',
         'label',
+        'isPromoted',
         'notice',
         'notice_zh',
         'notice_en',

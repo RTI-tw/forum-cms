@@ -1,0 +1,1 @@
+ALTER TABLE "Event" ADD COLUMN "isPromoted" BOOLEAN NOT NULL DEFAULT false;
