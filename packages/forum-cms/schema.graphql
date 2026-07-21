@@ -9,6 +9,7 @@ type User {
   role: String
   officialAccounts(where: OfficialMappingWhereInput! = {}, orderBy: [OfficialMappingOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: OfficialMappingWhereUniqueInput): [OfficialMapping!]
   officialAccountsCount(where: OfficialMappingWhereInput! = {}): Int
+  partnerMember: Member
   isProtected: Boolean
   passwordUpdatedAt: DateTime
   mustChangePassword: Boolean
@@ -30,6 +31,7 @@ scalar DateTime @specifiedBy(url: "https://datatracker.ietf.org/doc/html/rfc3339
 input UserWhereUniqueInput {
   id: ID
   email: String
+  partnerMember: MemberWhereUniqueInput
 }
 
 input UserWhereInput {
@@ -41,6 +43,7 @@ input UserWhereInput {
   email: StringFilter
   role: StringFilter
   officialAccounts: OfficialMappingManyRelationFilter
+  partnerMember: MemberWhereInput
   isProtected: BooleanFilter
   passwordUpdatedAt: DateTimeNullableFilter
   mustChangePassword: BooleanFilter
@@ -160,6 +163,7 @@ input UserUpdateInput {
   password: String
   role: String
   officialAccounts: OfficialMappingRelateToManyForUpdateInput
+  partnerMember: MemberRelateToOneForUpdateInput
   isProtected: Boolean
   passwordUpdatedAt: DateTime
   mustChangePassword: Boolean
@@ -179,6 +183,12 @@ input OfficialMappingRelateToManyForUpdateInput {
   connect: [OfficialMappingWhereUniqueInput!]
 }
 
+input MemberRelateToOneForUpdateInput {
+  create: MemberCreateInput
+  connect: MemberWhereUniqueInput
+  disconnect: Boolean
+}
+
 input UserUpdateArgs {
   where: UserWhereUniqueInput!
   data: UserUpdateInput!
@@ -190,6 +200,7 @@ input UserCreateInput {
   password: String
   role: String
   officialAccounts: OfficialMappingRelateToManyForCreateInput
+  partnerMember: MemberRelateToOneForCreateInput
   isProtected: Boolean
   passwordUpdatedAt: DateTime
   mustChangePassword: Boolean
@@ -205,6 +216,11 @@ input UserCreateInput {
 input OfficialMappingRelateToManyForCreateInput {
   create: [OfficialMappingCreateInput!]
   connect: [OfficialMappingWhereUniqueInput!]
+}
+
+input MemberRelateToOneForCreateInput {
+  create: MemberCreateInput
+  connect: MemberWhereUniqueInput
 }
 
 type Member {
@@ -228,6 +244,9 @@ type Member {
   memberPollsCount(where: PollWhereInput! = {}): Int
   eventRegistrations(where: EventRegistrationWhereInput! = {}, orderBy: [EventRegistrationOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: EventRegistrationWhereUniqueInput): [EventRegistration!]
   eventRegistrationsCount(where: EventRegistrationWhereInput! = {}): Int
+  partnerUser: User
+  partnerEvents(where: EventWhereInput! = {}, orderBy: [EventOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: EventWhereUniqueInput): [Event!]
+  partnerEventsCount(where: EventWhereInput! = {}): Int
   reactions(where: ReactionWhereInput! = {}, orderBy: [ReactionOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: ReactionWhereUniqueInput): [Reaction!]
   reactionsCount(where: ReactionWhereInput! = {}): Int
   isOfficial: Boolean
@@ -513,6 +532,7 @@ input MemberWhereUniqueInput {
   firebaseId: String
   customId: String
   email: String
+  partnerUser: UserWhereUniqueInput
 }
 
 input MemberWhereInput {
@@ -535,6 +555,8 @@ input MemberWhereInput {
   posts: PostManyRelationFilter
   memberPolls: PollManyRelationFilter
   eventRegistrations: EventRegistrationManyRelationFilter
+  partnerUser: UserWhereInput
+  partnerEvents: EventManyRelationFilter
   reactions: ReactionManyRelationFilter
   isOfficial: BooleanFilter
   joinDate: DateTimeNullableFilter
@@ -575,6 +597,12 @@ input EventRegistrationManyRelationFilter {
   every: EventRegistrationWhereInput
   some: EventRegistrationWhereInput
   none: EventRegistrationWhereInput
+}
+
+input EventManyRelationFilter {
+  every: EventWhereInput
+  some: EventWhereInput
+  none: EventWhereInput
 }
 
 input ReactionManyRelationFilter {
@@ -633,6 +661,8 @@ input MemberUpdateInput {
   posts: PostRelateToManyForUpdateInput
   memberPolls: PollRelateToManyForUpdateInput
   eventRegistrations: EventRegistrationRelateToManyForUpdateInput
+  partnerUser: UserRelateToOneForUpdateInput
+  partnerEvents: EventRelateToManyForUpdateInput
   reactions: ReactionRelateToManyForUpdateInput
   isOfficial: Boolean
   joinDate: DateTime
@@ -678,17 +708,24 @@ input EventRegistrationRelateToManyForUpdateInput {
   connect: [EventRegistrationWhereUniqueInput!]
 }
 
+input UserRelateToOneForUpdateInput {
+  create: UserCreateInput
+  connect: UserWhereUniqueInput
+  disconnect: Boolean
+}
+
+input EventRelateToManyForUpdateInput {
+  disconnect: [EventWhereUniqueInput!]
+  set: [EventWhereUniqueInput!]
+  create: [EventCreateInput!]
+  connect: [EventWhereUniqueInput!]
+}
+
 input ReactionRelateToManyForUpdateInput {
   disconnect: [ReactionWhereUniqueInput!]
   set: [ReactionWhereUniqueInput!]
   create: [ReactionCreateInput!]
   connect: [ReactionWhereUniqueInput!]
-}
-
-input UserRelateToOneForUpdateInput {
-  create: UserCreateInput
-  connect: UserWhereUniqueInput
-  disconnect: Boolean
 }
 
 input MemberUpdateArgs {
@@ -712,6 +749,8 @@ input MemberCreateInput {
   posts: PostRelateToManyForCreateInput
   memberPolls: PollRelateToManyForCreateInput
   eventRegistrations: EventRegistrationRelateToManyForCreateInput
+  partnerUser: UserRelateToOneForCreateInput
+  partnerEvents: EventRelateToManyForCreateInput
   reactions: ReactionRelateToManyForCreateInput
   isOfficial: Boolean
   joinDate: DateTime
@@ -748,14 +787,19 @@ input EventRegistrationRelateToManyForCreateInput {
   connect: [EventRegistrationWhereUniqueInput!]
 }
 
-input ReactionRelateToManyForCreateInput {
-  create: [ReactionCreateInput!]
-  connect: [ReactionWhereUniqueInput!]
-}
-
 input UserRelateToOneForCreateInput {
   create: UserCreateInput
   connect: UserWhereUniqueInput
+}
+
+input EventRelateToManyForCreateInput {
+  create: [EventCreateInput!]
+  connect: [EventWhereUniqueInput!]
+}
+
+input ReactionRelateToManyForCreateInput {
+  create: [ReactionCreateInput!]
+  connect: [ReactionWhereUniqueInput!]
 }
 
 type OfficialMapping {
@@ -804,12 +848,6 @@ input OfficialMappingUpdateInput {
   updatedBy: UserRelateToOneForUpdateInput
 }
 
-input MemberRelateToOneForUpdateInput {
-  create: MemberCreateInput
-  connect: MemberWhereUniqueInput
-  disconnect: Boolean
-}
-
 input OfficialMappingUpdateArgs {
   where: OfficialMappingWhereUniqueInput!
   data: OfficialMappingUpdateInput!
@@ -823,11 +861,6 @@ input OfficialMappingCreateInput {
   updatedAt: DateTime
   createdBy: UserRelateToOneForCreateInput
   updatedBy: UserRelateToOneForCreateInput
-}
-
-input MemberRelateToOneForCreateInput {
-  create: MemberCreateInput
-  connect: MemberWhereUniqueInput
 }
 
 type Post {
@@ -973,12 +1006,6 @@ input EditorChoiceManyRelationFilter {
   none: EditorChoiceWhereInput
 }
 
-input EventManyRelationFilter {
-  every: EventWhereInput
-  some: EventWhereInput
-  none: EventWhereInput
-}
-
 input PostStatusTypeNullableFilter {
   equals: PostStatusType
   in: [PostStatusType!]
@@ -1084,13 +1111,6 @@ input EditorChoiceRelateToManyForUpdateInput {
   connect: [EditorChoiceWhereUniqueInput!]
 }
 
-input EventRelateToManyForUpdateInput {
-  disconnect: [EventWhereUniqueInput!]
-  set: [EventWhereUniqueInput!]
-  create: [EventCreateInput!]
-  connect: [EventWhereUniqueInput!]
-}
-
 input TopicRelateToOneForUpdateInput {
   create: TopicCreateInput
   connect: TopicWhereUniqueInput
@@ -1168,11 +1188,6 @@ input PostCreateInput {
 input EditorChoiceRelateToManyForCreateInput {
   create: [EditorChoiceCreateInput!]
   connect: [EditorChoiceWhereUniqueInput!]
-}
-
-input EventRelateToManyForCreateInput {
-  create: [EventCreateInput!]
-  connect: [EventWhereUniqueInput!]
 }
 
 input TopicRelateToOneForCreateInput {
@@ -1770,6 +1785,8 @@ type Poll {
   options(where: PollOptionWhereInput! = {}, orderBy: [PollOptionOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: PollOptionWhereUniqueInput): [PollOption!]
   optionsCount(where: PollOptionWhereInput! = {}): Int
   totalVotes: Int
+  voterCount: Int
+  maxSelections: Int
   member: Member
   createdAt: DateTime
   updatedAt: DateTime
@@ -1796,6 +1813,8 @@ input PollWhereInput {
   expiresAt: DateTimeNullableFilter
   options: PollOptionManyRelationFilter
   totalVotes: IntNullableFilter
+  voterCount: IntNullableFilter
+  maxSelections: IntFilter
   member: MemberWhereInput
   createdAt: DateTimeNullableFilter
   updatedAt: DateTimeNullableFilter
@@ -1809,6 +1828,17 @@ input PollOptionManyRelationFilter {
   none: PollOptionWhereInput
 }
 
+input IntFilter {
+  equals: Int
+  in: [Int!]
+  notIn: [Int!]
+  lt: Int
+  lte: Int
+  gt: Int
+  gte: Int
+  not: IntFilter
+}
+
 input PollOrderByInput {
   id: OrderDirection
   title: OrderDirection
@@ -1819,6 +1849,8 @@ input PollOrderByInput {
   title_th: OrderDirection
   expiresAt: OrderDirection
   totalVotes: OrderDirection
+  voterCount: OrderDirection
+  maxSelections: OrderDirection
   createdAt: OrderDirection
   updatedAt: OrderDirection
 }
@@ -1834,6 +1866,8 @@ input PollUpdateInput {
   expiresAt: DateTime
   options: PollOptionRelateToManyForUpdateInput
   totalVotes: Int
+  voterCount: Int
+  maxSelections: Int
   member: MemberRelateToOneForUpdateInput
   createdAt: DateTime
   updatedAt: DateTime
@@ -1864,6 +1898,8 @@ input PollCreateInput {
   expiresAt: DateTime
   options: PollOptionRelateToManyForCreateInput
   totalVotes: Int
+  voterCount: Int
+  maxSelections: Int
   member: MemberRelateToOneForCreateInput
   createdAt: DateTime
   updatedAt: DateTime
@@ -2123,17 +2159,6 @@ input ContentWhereInput {
   updatedAt: DateTimeNullableFilter
   createdBy: UserWhereInput
   updatedBy: UserWhereInput
-}
-
-input IntFilter {
-  equals: Int
-  in: [Int!]
-  notIn: [Int!]
-  lt: Int
-  lte: Int
-  gt: Int
-  gte: Int
-  not: IntFilter
 }
 
 input ContentStatusTypeNullableFilter {
@@ -3162,6 +3187,7 @@ type Event {
   capacity: Int
   registrations(where: EventRegistrationWhereInput! = {}, orderBy: [EventRegistrationOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: EventRegistrationWhereUniqueInput): [EventRegistration!]
   registrationsCount(where: EventRegistrationWhereInput! = {}): Int
+  creator: Member
   createdAt: DateTime
   updatedAt: DateTime
   createdBy: User
@@ -3203,6 +3229,7 @@ input EventWhereInput {
   checkInEndAt: DateTimeNullableFilter
   capacity: IntNullableFilter
   registrations: EventRegistrationManyRelationFilter
+  creator: MemberWhereInput
   createdAt: DateTimeNullableFilter
   updatedAt: DateTimeNullableFilter
   createdBy: UserWhereInput
@@ -3259,6 +3286,7 @@ input EventUpdateInput {
   checkInEndAt: DateTime
   capacity: Int
   registrations: EventRegistrationRelateToManyForUpdateInput
+  creator: MemberRelateToOneForUpdateInput
   createdAt: DateTime
   updatedAt: DateTime
   createdBy: UserRelateToOneForUpdateInput
@@ -3290,6 +3318,7 @@ input EventCreateInput {
   checkInEndAt: DateTime
   capacity: Int
   registrations: EventRegistrationRelateToManyForCreateInput
+  creator: MemberRelateToOneForCreateInput
   createdAt: DateTime
   updatedAt: DateTime
   createdBy: UserRelateToOneForCreateInput
@@ -3426,6 +3455,8 @@ type Mutation {
   createMembers(data: [MemberCreateInput!]!): [Member]
   updateMember(where: MemberWhereUniqueInput!, data: MemberUpdateInput!): Member
   updateMembers(data: [MemberUpdateArgs!]!): [Member]
+  deleteMember(where: MemberWhereUniqueInput!): Member
+  deleteMembers(where: [MemberWhereUniqueInput!]!): [Member]
   createOfficialMapping(data: OfficialMappingCreateInput!): OfficialMapping
   createOfficialMappings(data: [OfficialMappingCreateInput!]!): [OfficialMapping]
   updateOfficialMapping(where: OfficialMappingWhereUniqueInput!, data: OfficialMappingUpdateInput!): OfficialMapping
@@ -3565,8 +3596,6 @@ type Mutation {
   redeemUserPasswordResetToken(email: String!, token: String!, password: String!): RedeemUserPasswordResetTokenResult
   changeMyPassword(data: ChangeMyPasswordInput!): ChangeMyPasswordResult!
   authenticateMemberWithFirebase(data: AuthenticateMemberWithFirebaseInput!): AuthenticateMemberWithFirebaseResult!
-  deleteMember(where: MemberWhereUniqueInput!): Member
-  deleteMembers(where: [MemberWhereUniqueInput!]!): [Member]
   registerForEvent(data: RegisterForEventInput!): MemberEventRegistrationResult!
   issueEventCheckInQrToken(registrationId: ID!): EventCheckInQrTokenResult!
   confirmEventCheckIn(token: String!): EventCheckInPreviewResult!

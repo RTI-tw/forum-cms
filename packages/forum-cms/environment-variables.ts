@@ -76,7 +76,7 @@ export default {
       DATABASE_PROVIDER === 'sqlite'
         ? DatabaseProvider.Sqlite
         : DatabaseProvider.Postgres,
-    url: DATABASE_URL || 'postgres://username:password@localhost:5432/forum-cms',
+    url: DATABASE_URL || 'postgresql://hcchien@localhost:5432/forum-cms',
   },
   session: {
     // [AUTH-001] build 時 Cloud Run secret 尚未注入，給夠長的 placeholder 讓 Keystone 不報錯；

@@ -1,5 +1,6 @@
 import { utils } from '@mirrormedia/lilith-core'
-import { allowRoles, admin, moderator, editor } from '../utils/access-control'
+import { allowRoles, admin, moderator, editor, partner } from '../utils/access-control'
+import { connectedId, getPartnerMemberId, isPartnerSession, isPartnerUiSession, partnerOwnsPost, requirePartnerMemberId } from '../utils/partner-access'
 import { list } from '@keystone-6/core'
 import { text, integer, relationship, timestamp } from '@keystone-6/core/fields'
 import { createMessageServicesTranslationHook } from '../utils/message-services-translation-hook'
@@ -125,6 +126,8 @@ const listConfigurations = list({
       label: '使用者',
       ui: {
         description: '選填：關聯前台會員（Member）。',
+        createView: { fieldMode: (args) => isPartnerUiSession(args) ? 'hidden' : 'edit' },
+        itemView: { fieldMode: (args) => isPartnerUiSession(args) ? 'read' : 'edit' },
       },
     }),
   },
@@ -144,24 +147,48 @@ const listConfigurations = list({
   },
   access: {
     operation: {
-      query: allowRoles(admin, moderator, editor),
-      update: allowRoles(admin, moderator, editor),
-      create: allowRoles(admin, moderator, editor),
+      query: allowRoles(admin, moderator, editor, partner),
+      update: allowRoles(admin, moderator, editor, partner),
+      create: allowRoles(admin, moderator, editor, partner),
       delete: allowRoles(admin, editor),
     },
     filter: {
       // [AC-004] 非 CMS query 只回傳有可見父層文章的 Poll，防止草稿/隱藏投票洩漏。
       query: ({ context }) => {
+        if (isPartnerSession(context)) {
+          return getPartnerMemberId(context).then((memberId) =>
+            memberId == null ? false : { member: { id: { equals: memberId } } }
+          )
+        }
         if (canReadTrustedBackendContent(context)) return true
         const memberId = getAuthenticatedMemberId(context)
         return {
           post: buildPostVisibilityWhere(memberId),
         }
       },
+      update: ({ context }) => {
+        if (!isPartnerSession(context)) return true
+        return getPartnerMemberId(context).then((memberId) =>
+          memberId == null ? false : { member: { id: { equals: memberId } } }
+        )
+      },
     },
   },
   hooks: {
-    resolveInput: ({ resolvedData, operation }) => {
+    resolveInput: async ({ resolvedData, operation, context }) => {
+      if (isPartnerSession(context)) {
+        const data = { ...resolvedData }
+        const memberId = await requirePartnerMemberId(context)
+        if (operation === 'create') data.member = { connect: { id: memberId } }
+        if (operation === 'update') delete data.member
+        delete data.totalVotes
+        delete data.voterCount
+        const postId = connectedId(data.post)
+        if (postId != null && !(await partnerOwnsPost(context, postId))) {
+          throw new Error('Partner 只能關聯自己的文章')
+        }
+        return data
+      }
       if (operation === 'update') {
         return applyPollUpdateTranslationOnly(
           resolvedData as Record<string, unknown>

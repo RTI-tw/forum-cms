@@ -1,5 +1,13 @@
 import { utils } from '@mirrormedia/lilith-core'
-import { allowRoles, admin, moderator, editor } from '../utils/access-control'
+import { allowRoles, admin, moderator, editor, partner } from '../utils/access-control'
+import {
+    getPartnerMemberId,
+    connectedIds,
+    isPartnerSession,
+    isPartnerUiSession,
+    partnerOwnsPoll,
+    requirePartnerMemberId,
+} from '../utils/partner-access'
 import { graphql, list } from '@keystone-6/core'
 import {
     text,
@@ -178,6 +186,8 @@ const listConfigurations = list({
             ui: {
                 description:
                     '必填。央廣後台發文若未指定，將預設為 OfficialMapping 對應之會員帳號。',
+                createView: { fieldMode: (args) => isPartnerUiSession(args) ? 'hidden' : 'edit' },
+                itemView: { fieldMode: (args) => isPartnerUiSession(args) ? 'read' : 'edit' },
             },
         }),
         published_date: timestamp({
@@ -235,6 +245,8 @@ const listConfigurations = list({
             ui: {
                 description:
                     '勾選後，該文章會出現在「編輯精選」列表建立文章時的可選清單；實際上榜請至「編輯精選」新增並設定順序。',
+                createView: { fieldMode: (args) => isPartnerUiSession(args) ? 'hidden' : 'edit' },
+                itemView: { fieldMode: (args) => isPartnerUiSession(args) ? 'hidden' : 'edit' },
             },
         }),
         isLifeGuide: checkbox({
@@ -242,6 +254,8 @@ const listConfigurations = list({
             defaultValue: false,
             ui: {
                 description: '生活須知相關旗標（僅標記於文章，供前台或 API 使用）。',
+                createView: { fieldMode: (args) => isPartnerUiSession(args) ? 'hidden' : 'edit' },
+                itemView: { fieldMode: (args) => isPartnerUiSession(args) ? 'hidden' : 'edit' },
             },
         }),
         isRtiChoice: checkbox({
@@ -249,6 +263,8 @@ const listConfigurations = list({
             defaultValue: false,
             ui: {
                 description: '央廣精選相關旗標，供前台集中展示央廣 RSS 匯入文章。',
+                createView: { fieldMode: (args) => isPartnerUiSession(args) ? 'hidden' : 'edit' },
+                itemView: { fieldMode: (args) => isPartnerUiSession(args) ? 'hidden' : 'edit' },
             },
         }),
         isBoost: checkbox({
@@ -257,6 +273,8 @@ const listConfigurations = list({
             ui: {
                 description:
                     '勾選後供前台或 API 將此文優先排序／置頂顯示（實際排序邏輯由前端或查詢決定）。',
+                createView: { fieldMode: (args) => isPartnerUiSession(args) ? 'hidden' : 'edit' },
+                itemView: { fieldMode: (args) => isPartnerUiSession(args) ? 'hidden' : 'edit' },
             },
         }),
         editorChoices: relationship({
@@ -321,6 +339,8 @@ const listConfigurations = list({
             label: '主題分類',
             ui: {
                 description: '選填；僅能單選。',
+                createView: { fieldMode: (args) => isPartnerUiSession(args) ? 'hidden' : 'edit' },
+                itemView: { fieldMode: (args) => isPartnerUiSession(args) ? 'hidden' : 'edit' },
             },
         }),
         status: select({
@@ -354,12 +374,18 @@ const listConfigurations = list({
                     fields: ['sortOrder'],
                 },
                 removeMode: 'disconnect',
+                createView: { fieldMode: (args) => isPartnerUiSession(args) ? 'hidden' : 'edit' },
+                itemView: { fieldMode: (args) => isPartnerUiSession(args) ? 'hidden' : 'edit' },
             },
         }),
         videos: relationship({
             ref: 'Video.post',
             many: true,
             label: '關聯影片',
+            ui: {
+                createView: { fieldMode: (args) => isPartnerUiSession(args) ? 'hidden' : 'edit' },
+                itemView: { fieldMode: (args) => isPartnerUiSession(args) ? 'hidden' : 'edit' },
+            },
         }),
         poll: relationship({
             ref: 'Poll.post',
@@ -434,13 +460,13 @@ const listConfigurations = list({
         operation: {
             query: async (auth) =>
                 isCronServiceRequest(auth.context) ||
-                allowRoles(admin, moderator, editor)(auth),
+                allowRoles(admin, moderator, editor, partner)(auth),
             update: async (auth) =>
                 isCronServiceRequest(auth.context) ||
-                allowRoles(admin, moderator, editor)(auth),
+                allowRoles(admin, moderator, editor, partner)(auth),
             create: async (auth) =>
                 isCronServiceRequest(auth.context) ||
-                allowRoles(admin, moderator, editor)(auth),
+                allowRoles(admin, moderator, editor, partner)(auth),
             delete: allowRoles(admin, editor),
         },
         /**
@@ -454,11 +480,22 @@ const listConfigurations = list({
                 }
                 // CMS users and trusted api-strategy backend services need all
                 // statuses; public/member visibility is handled below.
+                if (isPartnerSession(context)) {
+                    return getPartnerMemberId(context).then((memberId) =>
+                        memberId == null ? false : { author: { id: { equals: memberId } } }
+                    )
+                }
                 if (canReadAllPostStatuses(context)) {
                     return true
                 }
                 const memberId = getAuthenticatedMemberId(context)
                 return buildPostVisibilityWhere(memberId)
+            },
+            update: ({ context }) => {
+                if (!isPartnerSession(context)) return true
+                return getPartnerMemberId(context).then((memberId) =>
+                    memberId == null ? false : { author: { id: { equals: memberId } } }
+                )
             },
         },
     },
@@ -494,6 +531,26 @@ const listConfigurations = list({
             item,
         }) => {
             const data = { ...resolvedData }
+            if (isPartnerSession(context)) {
+                const memberId = await requirePartnerMemberId(context)
+                const allowed = new Set([
+                    'title', 'title_zh', 'title_en', 'title_vi', 'title_id', 'title_th',
+                    'content', 'content_zh', 'content_en', 'content_vi', 'content_id', 'content_th',
+                    'language', 'status', 'published_date', 'poll', 'events',
+                ])
+                for (const key of Object.keys(data)) {
+                    if (!allowed.has(key)) delete (data as Record<string, unknown>)[key]
+                }
+                data.author = { connect: { id: memberId } }
+                if (data.status !== undefined && !['draft', 'pending', 'published'].includes(String(data.status))) {
+                    throw new Error('Partner 不可設定此文章狀態')
+                }
+                for (const pollId of connectedIds(data.poll)) {
+                    if (!(await partnerOwnsPoll(context, pollId))) {
+                        throw new Error('Partner 只能關聯自己的投票')
+                    }
+                }
+            }
             if (operation === 'create') {
                 const isTrustedCronService = isCronServiceRequest(context)
                 const isRssPost = isRssPostInput(
