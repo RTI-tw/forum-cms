@@ -138,6 +138,7 @@ const listConfigurations = list({
         }),
         rssSourceUrl: text({
             label: 'RSS 來源網址',
+            defaultValue: '',
             isIndexed: true,
             ui: {
                 description:
@@ -553,6 +554,7 @@ const listConfigurations = list({
             }
             if (operation === 'create') {
                 if (isPartnerSession(context)) {
+                    data.rssSourceUrl = ''
                     if (data.status === undefined) {
                         data.status = 'draft'
                     }

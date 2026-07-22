@@ -43,3 +43,13 @@ assert.match(
   /operation === 'create'[\s\S]+isPartnerSession\(context\)[\s\S]+data\.status = 'draft'[\s\S]+return data/,
   'Partner post creates should use the dedicated CMS create path'
 )
+assert.match(
+  postSource,
+  /rssSourceUrl: text\(\{[\s\S]*?defaultValue: ''/,
+  'The hidden RSS source field should have a create default'
+)
+assert.match(
+  postSource,
+  /isPartnerSession\(context\)[\s\S]*?data\.rssSourceUrl = ''/,
+  'Partner post creates should always provide the hidden RSS source value'
+)
