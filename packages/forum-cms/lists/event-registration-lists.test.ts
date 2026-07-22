@@ -24,7 +24,7 @@ test('member exposes event registrations relationship', () => {
   assert.ok(fields.eventRegistrations, 'Member should expose eventRegistrations')
 })
 
-test('event registration list displays member nationality', () => {
+test('event registration list displays member custom ID and nationality', () => {
   const fields = (EventRegistration as any).fields
   const initialColumns = (EventRegistration as any).ui.listView.initialColumns
   const schema = fs.readFileSync(
@@ -36,6 +36,14 @@ test('event registration list displays member nationality', () => {
   )?.[0]
 
   assert.ok(
+    fields.memberCustomId,
+    'EventRegistration should expose memberCustomId virtual field'
+  )
+  assert.ok(
+    initialColumns.includes('memberCustomId'),
+    'EventRegistration list should display memberCustomId by default'
+  )
+  assert.ok(
     fields.memberNationality,
     'EventRegistration should expose memberNationality virtual field'
   )
@@ -43,6 +51,7 @@ test('event registration list displays member nationality', () => {
     initialColumns.includes('memberNationality'),
     'EventRegistration list should display memberNationality by default'
   )
+  assert.match(eventRegistrationType ?? '', /memberCustomId: String/)
   assert.match(eventRegistrationType ?? '', /memberNationality: String/)
 })
 

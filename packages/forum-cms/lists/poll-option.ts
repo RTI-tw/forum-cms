@@ -112,7 +112,6 @@ const listConfigurations = list({
         const data = { ...resolvedData }
         delete data.voteCount
         const pollId = connectedId(data.poll)
-        if (operation === 'create' && pollId == null) throw new Error('投票選項必須關聯投票')
         if (pollId != null && !(await partnerOwnsPoll(context, pollId))) {
           throw new Error('Partner 只能關聯自己的投票')
         }

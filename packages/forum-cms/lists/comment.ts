@@ -40,7 +40,11 @@ function toFiniteNumber(value: unknown): number | null {
 
 const listConfigurations = list({
   fields: {
-    content: text({ validation: { isRequired: false }, label: '原文內容' }),
+    content: text({
+      validation: { isRequired: false },
+      label: '原文內容',
+      ui: { displayMode: 'textarea', itemView: { fieldMode: 'edit' } },
+    }),
     language: select({
       label: '原始語言',
       type: 'enum',
@@ -250,6 +254,7 @@ const listConfigurations = list({
         delete noManualCount.reactionCount
         if (isPartnerSession(context)) {
           const allowed = new Set([
+            'content',
             'content_zh', 'content_en', 'content_vi', 'content_id', 'content_th',
             'pauseAutoTranslation',
           ])

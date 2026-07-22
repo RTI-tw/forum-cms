@@ -552,6 +552,15 @@ const listConfigurations = list({
                 }
             }
             if (operation === 'create') {
+                if (isPartnerSession(context)) {
+                    if (data.status === undefined) {
+                        data.status = 'draft'
+                    }
+                    if (!normText(data.ip as string | undefined)) {
+                        data.ip = getClientIpFromKeystoneContext(context)
+                    }
+                    return data
+                }
                 const isTrustedCronService = isCronServiceRequest(context)
                 const isRssPost = isRssPostInput(
                     data as Record<string, unknown>

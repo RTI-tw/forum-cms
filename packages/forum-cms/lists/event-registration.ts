@@ -73,6 +73,26 @@ const listConfigurations = list({
       many: false,
       label: '會員',
     }),
+    memberCustomId: virtual({
+      label: '會員自訂 ID',
+      field: graphql.field({
+        type: graphql.String,
+        resolve: async (item, _args, context) => {
+          const registrationId = Number(item.id)
+
+          if (!Number.isFinite(registrationId)) return null
+
+          const registration =
+            await context.prisma.eventRegistration.findUnique({
+              where: { id: registrationId },
+              select: { member: { select: { customId: true } } },
+            })
+
+          return registration?.member?.customId ?? null
+        },
+      }),
+      ui: readOnlyInCmsUi,
+    }),
     memberNationality: virtual({
       label: '會員國籍',
       field: graphql.field({
@@ -195,7 +215,7 @@ const listConfigurations = list({
     listView: {
       initialColumns: [
         'event',
-        'member',
+        'memberCustomId',
         'memberNationality',
         'status',
         'registeredAt',
