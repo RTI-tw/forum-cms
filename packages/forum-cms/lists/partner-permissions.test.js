@@ -34,6 +34,17 @@ assert.doesNotMatch(
   'Inline poll options may be created before the parent Poll has an id'
 )
 assert.match(
+  pollOptionSource,
+  /operation === 'create'[\s\S]*?data\.voteCount = 0/,
+  'Partner poll option creates should provide the server-managed vote count'
+)
+const pollSource = fs.readFileSync(path.join(__dirname, 'poll.ts'), 'utf8')
+assert.match(
+  pollSource,
+  /operation === 'create'[\s\S]*?data\.totalVotes = 0[\s\S]*?data\.voterCount = 0/,
+  'Partner poll creates should provide server-managed aggregate defaults'
+)
+assert.match(
   postSource,
   /data\.author = \{ connect: \{ id: memberId \} \}/,
   'Partner post creates should bind the mapped partner member as author'

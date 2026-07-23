@@ -179,10 +179,16 @@ const listConfigurations = list({
       if (isPartnerSession(context)) {
         const data = { ...resolvedData }
         const memberId = await requirePartnerMemberId(context)
-        if (operation === 'create') data.member = { connect: { id: memberId } }
-        if (operation === 'update') delete data.member
-        delete data.totalVotes
-        delete data.voterCount
+        if (operation === 'create') {
+          data.member = { connect: { id: memberId } }
+          data.totalVotes = 0
+          data.voterCount = 0
+        }
+        if (operation === 'update') {
+          delete data.member
+          delete data.totalVotes
+          delete data.voterCount
+        }
         const postId = connectedId(data.post)
         if (postId != null && !(await partnerOwnsPost(context, postId))) {
           throw new Error('Partner 只能關聯自己的文章')

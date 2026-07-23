@@ -110,7 +110,11 @@ const listConfigurations = list({
     resolveInput: async ({ resolvedData, operation, context }) => {
       if (isPartnerSession(context)) {
         const data = { ...resolvedData }
-        delete data.voteCount
+        if (operation === 'create') {
+          data.voteCount = 0
+        } else {
+          delete data.voteCount
+        }
         const pollId = connectedId(data.poll)
         if (pollId != null && !(await partnerOwnsPoll(context, pollId))) {
           throw new Error('Partner 只能關聯自己的投票')
