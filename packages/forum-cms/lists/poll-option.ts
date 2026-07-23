@@ -5,11 +5,27 @@ import { list } from '@keystone-6/core'
 import { text, integer, relationship } from '@keystone-6/core/fields'
 import { createMessageServicesTranslationHook } from '../utils/message-services-translation-hook'
 import { applyPollOptionUpdateTranslationOnly } from '../utils/cms-content-moderation'
+import { getSessionUserId } from '../utils/official-member-from-session'
 import {
   buildPostVisibilityWhere,
   canReadTrustedBackendContent,
   getAuthenticatedMemberId,
 } from '../utils/post-visibility'
+
+async function partnerPollOptionFilter(context: Parameters<typeof getPartnerMemberId>[0]) {
+  const [memberId, userId] = await Promise.all([
+    getPartnerMemberId(context),
+    Promise.resolve(getSessionUserId(context)),
+  ])
+  if (memberId == null || userId == null) return false
+
+  return {
+    OR: [
+      { poll: { member: { id: { equals: memberId } } } },
+      { createdBy: { id: { equals: userId } } },
+    ],
+  }
+}
 
 /**
  * 欄位規格：
@@ -86,9 +102,7 @@ const listConfigurations = list({
       // [AC-004] 非 CMS query 只回傳有可見父層 Poll（及其 Post）的選項，防止草稿選項洩漏。
       query: ({ context }) => {
         if (isPartnerSession(context)) {
-          return getPartnerMemberId(context).then((memberId) =>
-            memberId == null ? false : { poll: { member: { id: { equals: memberId } } } }
-          )
+          return partnerPollOptionFilter(context)
         }
         if (canReadTrustedBackendContent(context)) return true
         const memberId = getAuthenticatedMemberId(context)
@@ -100,9 +114,7 @@ const listConfigurations = list({
       },
       update: ({ context }) => {
         if (!isPartnerSession(context)) return true
-        return getPartnerMemberId(context).then((memberId) =>
-          memberId == null ? false : { poll: { member: { id: { equals: memberId } } } }
-        )
+        return partnerPollOptionFilter(context)
       },
     },
   },

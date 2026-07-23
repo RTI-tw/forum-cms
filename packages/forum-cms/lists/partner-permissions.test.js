@@ -38,6 +38,11 @@ assert.match(
   /operation === 'create'[\s\S]*?data\.voteCount = 0/,
   'Partner poll option creates should provide the server-managed vote count'
 )
+assert.match(
+  pollOptionSource,
+  /createdBy: \{ id: \{ equals: userId \} \}/,
+  'Partners should be able to reconnect PollOptions they just created'
+)
 const pollSource = fs.readFileSync(path.join(__dirname, 'poll.ts'), 'utf8')
 assert.match(
   pollSource,
