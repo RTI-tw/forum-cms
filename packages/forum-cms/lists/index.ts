@@ -22,30 +22,41 @@ import RssKeyword from './rss-keyword'
 import RssTopicMapping from './rss-topic-mapping'
 import Event from './event'
 import EventRegistration from './event-registration'
+import { isPartnerUiSession } from '../utils/partner-access'
+
+function hiddenFromPartner<T extends { ui?: Record<string, unknown> }>(config: T): T {
+  return {
+    ...config,
+    ui: {
+      ...config.ui,
+      isHidden: isPartnerUiSession,
+    },
+  }
+}
 
 export const listDefinition = {
-  User,
-  Member,
-  OfficialMapping,
+  User: hiddenFromPartner(User),
+  Member: hiddenFromPartner(Member),
+  OfficialMapping: hiddenFromPartner(OfficialMapping),
   Post,
-  Topic,
-  EditorChoice,
+  Topic: hiddenFromPartner(Topic),
+  EditorChoice: hiddenFromPartner(EditorChoice),
   Comment,
-  Reaction,
-  Bookmark,
+  Reaction: hiddenFromPartner(Reaction),
+  Bookmark: hiddenFromPartner(Bookmark),
   Poll,
   PollOption,
   PollVote,
-  Content,
-  Report,
-  ForbiddenKeyword,
-  Video,
-  Photo: Image,
-  Ad,
-  AdSlide,
-  HomepageImage,
-  RssKeyword,
-  RssTopicMapping,
+  Content: hiddenFromPartner(Content),
+  Report: hiddenFromPartner(Report),
+  ForbiddenKeyword: hiddenFromPartner(ForbiddenKeyword),
+  Video: hiddenFromPartner(Video),
+  Photo: hiddenFromPartner(Image),
+  Ad: hiddenFromPartner(Ad),
+  AdSlide: hiddenFromPartner(AdSlide),
+  HomepageImage: hiddenFromPartner(HomepageImage),
+  RssKeyword: hiddenFromPartner(RssKeyword),
+  RssTopicMapping: hiddenFromPartner(RssTopicMapping),
   Event,
   EventRegistration,
 }

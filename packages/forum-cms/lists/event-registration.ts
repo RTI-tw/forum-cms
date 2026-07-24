@@ -1,5 +1,16 @@
 import { utils } from '@mirrormedia/lilith-core'
-import { allowRoles, admin, moderator, editor } from '../utils/access-control'
+import {
+  allowRoles,
+  admin,
+  moderator,
+  editor,
+  partner,
+} from '../utils/access-control'
+import {
+  getPartnerMemberId,
+  isPartnerSession,
+  isPartnerUiSession,
+} from '../utils/partner-access'
 import { graphql, list } from '@keystone-6/core'
 import {
   relationship,
@@ -61,6 +72,26 @@ const listConfigurations = list({
       ref: 'Member.eventRegistrations',
       many: false,
       label: '會員',
+    }),
+    memberCustomId: virtual({
+      label: '會員自訂 ID',
+      field: graphql.field({
+        type: graphql.String,
+        resolve: async (item, _args, context) => {
+          const registrationId = Number(item.id)
+
+          if (!Number.isFinite(registrationId)) return null
+
+          const registration =
+            await context.prisma.eventRegistration.findUnique({
+              where: { id: registrationId },
+              select: { member: { select: { customId: true } } },
+            })
+
+          return registration?.member?.customId ?? null
+        },
+      }),
+      ui: readOnlyInCmsUi,
     }),
     memberNationality: virtual({
       label: '會員國籍',
@@ -176,10 +207,15 @@ const listConfigurations = list({
   },
   ui: {
     label: '活動報名',
+    hideCreate: isPartnerUiSession,
+    hideDelete: isPartnerUiSession,
+    itemView: {
+      defaultFieldMode: (args) => isPartnerUiSession(args) ? 'read' : 'edit',
+    },
     listView: {
       initialColumns: [
         'event',
-        'member',
+        'memberCustomId',
         'memberNationality',
         'status',
         'registeredAt',
@@ -191,10 +227,18 @@ const listConfigurations = list({
   },
   access: {
     operation: {
-      query: allowRoles(admin, moderator, editor),
+      query: allowRoles(admin, moderator, editor, partner),
       update: allowRoles(admin, moderator, editor),
       create: allowRoles(admin, moderator, editor),
       delete: allowRoles(admin, editor),
+    },
+    filter: {
+      query: ({ context }) => {
+        if (!isPartnerSession(context)) return true
+        return getPartnerMemberId(context).then((memberId) =>
+          memberId == null ? false : { event: { creator: { id: { equals: memberId } } } }
+        )
+      },
     },
   },
 })

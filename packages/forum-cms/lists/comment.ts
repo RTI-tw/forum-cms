@@ -1,5 +1,6 @@
 import { utils } from '@mirrormedia/lilith-core'
-import { allowRoles, admin, moderator, editor } from '../utils/access-control'
+import { allowRoles, admin, moderator, editor, partner } from '../utils/access-control'
+import { getPartnerMemberId, isPartnerSession, isPartnerUiSession } from '../utils/partner-access'
 import { list } from '@keystone-6/core';
 import {
   text,
@@ -39,7 +40,11 @@ function toFiniteNumber(value: unknown): number | null {
 
 const listConfigurations = list({
   fields: {
-    content: text({ validation: { isRequired: false }, label: '原文內容' }),
+    content: text({
+      validation: { isRequired: false },
+      label: '原文內容',
+      ui: { displayMode: 'textarea', itemView: { fieldMode: 'edit' } },
+    }),
     language: select({
       label: '原始語言',
       type: 'enum',
@@ -53,23 +58,23 @@ const listConfigurations = list({
     }),
     content_zh: text({
       label: '內容（中文）',
-      ui: { displayMode: 'textarea' },
+      ui: { displayMode: 'textarea', itemView: { fieldMode: 'edit' } },
     }),
     content_en: text({
       label: '內容（英文）',
-      ui: { displayMode: 'textarea' },
+      ui: { displayMode: 'textarea', itemView: { fieldMode: 'edit' } },
     }),
     content_vi: text({
       label: '內容（越南文）',
-      ui: { displayMode: 'textarea' },
+      ui: { displayMode: 'textarea', itemView: { fieldMode: 'edit' } },
     }),
     content_id: text({
       label: '內容（印尼文）',
-      ui: { displayMode: 'textarea' },
+      ui: { displayMode: 'textarea', itemView: { fieldMode: 'edit' } },
     }),
     content_th: text({
       label: '內容（泰文）',
-      ui: { displayMode: 'textarea' },
+      ui: { displayMode: 'textarea', itemView: { fieldMode: 'edit' } },
     }),
     pauseAutoTranslation: checkbox({
       label: '暫停自動翻譯',
@@ -130,6 +135,11 @@ const listConfigurations = list({
   },
   ui: {
     label: '留言',
+    hideCreate: isPartnerUiSession,
+    hideDelete: isPartnerUiSession,
+    itemView: {
+      defaultFieldMode: (args) => isPartnerUiSession(args) ? 'read' : 'edit',
+    },
     listView: {
       initialColumns: [
         'content',
@@ -143,8 +153,8 @@ const listConfigurations = list({
   },
   access: {
     operation: {
-      query: allowRoles(admin, moderator, editor),
-      update: allowRoles(admin, moderator, editor),
+      query: allowRoles(admin, moderator, editor, partner),
+      update: allowRoles(admin, moderator, editor, partner),
       create: allowRoles(admin, moderator, editor),
       delete: allowRoles(admin, editor),
     },
@@ -152,6 +162,11 @@ const listConfigurations = list({
       // [AC-001] 非 CMS query 只回傳 published 留言；若有登入，也補上自己的 archived 留言。
       // 防止 hidden/rejected 留言透過 API 洩漏給不應看見的人。
       query: ({ context }) => {
+        if (isPartnerSession(context)) {
+          return getPartnerMemberId(context).then((memberId) =>
+            memberId == null ? false : { post: { author: { id: { equals: memberId } } } }
+          )
+        }
         if (canReadTrustedBackendContent(context)) return true
         const memberId = getAuthenticatedMemberId(context)
         const visibilityConditions = memberId
@@ -166,6 +181,12 @@ const listConfigurations = list({
           post: buildPostVisibilityWhere(memberId),
           ...visibilityConditions,
         }
+      },
+      update: ({ context }) => {
+        if (!isPartnerSession(context)) return true
+        return getPartnerMemberId(context).then((memberId) =>
+          memberId == null ? false : { post: { author: { id: { equals: memberId } } } }
+        )
       },
     },
   },
@@ -231,6 +252,16 @@ const listConfigurations = list({
       if (operation === 'update') {
         const noManualCount = { ...data } as Record<string, unknown>
         delete noManualCount.reactionCount
+        if (isPartnerSession(context)) {
+          const allowed = new Set([
+            'content',
+            'content_zh', 'content_en', 'content_vi', 'content_id', 'content_th',
+            'pauseAutoTranslation',
+          ])
+          for (const key of Object.keys(noManualCount)) {
+            if (!allowed.has(key)) delete noManualCount[key]
+          }
+        }
         const moderated = await applyCommentUpdateCmsRules(
           context,
           operation,
