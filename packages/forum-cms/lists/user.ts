@@ -51,6 +51,10 @@ const listConfigurations = list({
                     label: "Editor",
                     value: "editor",
                 },
+                {
+                    label: "Partner",
+                    value: "partner",
+                },
             ],
             validation: { isRequired: true },
         }),
@@ -63,6 +67,14 @@ const listConfigurations = list({
             label: "官方帳號授權",
             ref: "OfficialMapping.cmsUser",
             many: true,
+        }),
+        partnerMember: relationship({
+            label: "連結前台會員帳號",
+            ref: "Member.partnerUser",
+            many: false,
+            ui: {
+                description: "Partner 必須連結一個啟用中的前台會員帳號。",
+            },
         }),
         isProtected: checkbox({
             label: "受保護",
@@ -146,6 +158,37 @@ const listConfigurations = list({
             inputData,
         }) => {
             const data = { ...resolvedData };
+
+            const nextRole = data.role ?? item?.role;
+            const nextPartnerMember = data.partnerMember;
+            if (nextRole === "partner") {
+                const connectedMemberId = (nextPartnerMember as any)?.connect?.id;
+                let currentMemberId: number | null = null;
+                if (item?.id) {
+                    const current = await context.sudo().prisma.user.findUnique({
+                        where: { id: Number(item.id) },
+                        select: { partnerMember: { select: { id: true } } },
+                    });
+                    currentMemberId = current?.partnerMember?.id ?? null;
+                }
+                const currentHasMember = currentMemberId != null;
+                const connectsMember = connectedMemberId != null;
+                const disconnectsMember = Boolean((nextPartnerMember as any)?.disconnect);
+                if ((!currentHasMember && !connectsMember) || disconnectsMember) {
+                    throw new Error("Partner 必須連結前台會員帳號");
+                }
+                const memberId = connectedMemberId ?? currentMemberId;
+                const member = memberId == null ? null : await context.sudo().prisma.member.findUnique({
+                    where: { id: Number(memberId) },
+                    select: { status: true, partnerUserId: true },
+                });
+                if (!member || member.status !== "active") {
+                    throw new Error("Partner 只能連結啟用中的前台會員帳號");
+                }
+                if (member.partnerUserId != null && member.partnerUserId !== Number(item?.id)) {
+                    throw new Error("此前台會員帳號已連結其他 Partner");
+                }
+            }
 
             // Get plain text password from inputData (before KeystoneJS hashes it)
             const plainTextPassword = inputData?.password;

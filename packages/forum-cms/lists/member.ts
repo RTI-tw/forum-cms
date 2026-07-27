@@ -138,6 +138,18 @@ const listConfigurations = list({
       ref: 'EventRegistration.member',
       many: true,
     }),
+    partnerUser: relationship({
+      label: 'Partner CMS 使用者',
+      ref: 'User.partnerMember',
+      many: false,
+      ui: hiddenFromCmsUi,
+    }),
+    partnerEvents: relationship({
+      label: 'Partner 建立活動',
+      ref: 'Event.creator',
+      many: true,
+      ui: hiddenFromCmsUi,
+    }),
     reactions: relationship({
       label: '反應',
       ref: 'Reaction.member',

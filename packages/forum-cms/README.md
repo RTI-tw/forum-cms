@@ -16,6 +16,30 @@ cloud runs:
 - [read-mesh-gql](https://console.cloud.google.com/run/detail/asia-east1/readr-mesh-gql?project=mirrormedia-1470651750304)
 
 ## Getting started on local environment
+
+## Partner CMS role
+
+Partner 使用既有 Keystone Admin UI，部署時維持
+`ACCESS_CONTROL_STRATEGY=cms`；`partner` 是 CMS 使用者角色，不是另一種
+access-control strategy。
+
+建立 Partner 帳號時，管理員必須在「使用者」將角色設為 `Partner`，並透過
+「連結前台會員帳號」指定一個狀態為 `active` 的 Member。同一個 Member 只能連結
+一個 Partner 使用者；缺少有效連結時，Partner 對內容的存取會 fail closed。
+
+Partner 後台權限：
+
+- 文章：只可查詢及編輯作者為連結 Member 的文章；建立時作者由後端強制帶入。
+- 留言：只可查詢自己文章的留言，並只可編輯五語翻譯與暫停自動翻譯設定。
+- 投票、投票選項、投票紀錄：只可存取連結 Member 所建立的投票資料；投票紀錄唯讀。
+- 活動、活動報名：只可存取自己建立的活動及其報名資料。
+- 活動報到：登入 Partner 可使用既有 QR code 報到功能處理所有活動。
+- 其他管理清單不顯示，且 GraphQL operation access 也不授權 Partner。
+
+Admin UI 的隱藏設定只負責畫面呈現；實際權限由 list operation/filter、ownership
+驗證與 resolve hooks 共同強制執行。請勿以 `ACCESS_CONTROL_STRATEGY=api` 提供
+Partner 後台存取。
+
 ### Start postgres instance
 在起 lilith-mesh 服務前，需要在 local 端先起 postgres database。
 而我們可以透過 [Docker](https://docs.docker.com/) 快速起 postgres database。

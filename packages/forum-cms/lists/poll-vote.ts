@@ -1,5 +1,6 @@
 import { utils } from '@mirrormedia/lilith-core'
-import { allowRoles, admin, moderator, editor } from '../utils/access-control'
+import { allowRoles, admin, moderator, editor, partner } from '../utils/access-control'
+import { getPartnerMemberId, isPartnerSession, isPartnerUiSession } from '../utils/partner-access'
 import { list } from '@keystone-6/core'
 import { relationship } from '@keystone-6/core/fields'
 import {
@@ -32,13 +33,18 @@ const listConfigurations = list({
   },
   ui: {
     label: '投票紀錄',
+    hideCreate: isPartnerUiSession,
+    hideDelete: isPartnerUiSession,
+    itemView: {
+      defaultFieldMode: (args) => isPartnerUiSession(args) ? 'read' : 'edit',
+    },
     listView: {
       initialColumns: ['poll', 'option', 'member'],
     },
   },
   access: {
     operation: {
-      query: allowRoles(admin, moderator, editor),
+      query: allowRoles(admin, moderator, editor, partner),
       update: allowRoles(admin, moderator, editor),
       create: allowRoles(admin, moderator, editor),
       delete: allowRoles(admin, editor),
@@ -46,6 +52,11 @@ const listConfigurations = list({
     filter: {
       // [AC-003] 非 CMS query 限制只能看自己的投票，且拒絕未登入存取。
       query: ({ context }) => {
+        if (isPartnerSession(context)) {
+          return getPartnerMemberId(context).then((memberId) =>
+            memberId == null ? false : { poll: { member: { id: { equals: memberId } } } }
+          )
+        }
         if (isCmsRequest(context)) return true
         const memberId = getAuthenticatedMemberId(context)
         if (!memberId) return false

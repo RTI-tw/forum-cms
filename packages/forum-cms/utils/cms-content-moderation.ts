@@ -1,6 +1,6 @@
 /**
  * CMS 角色與內容審核規則（Admin / Editor）：
- * - 非目前 CMS 使用者 OfficialMapping 對應前台會員之貼文／留言：
+ * - 非目前 CMS 使用者 OfficialMapping 或 Partner 對應前台會員之貼文／留言：
  *   **不可**透過後台修改使用者貼上的**原文標題與內文**
  *   （Post：`title`、`content`；Comment：`content`）；譯文、原始語言、狀態、旗標、主圖、關聯等其餘欄位可更新。
  * - 投票：僅可改譯文與截止時間，不可改說明／選項原文／票數（仍以白名單實作）。
@@ -15,6 +15,7 @@ import {
   getOfficialMemberIdForSessionUser,
   getSessionUserId,
 } from './official-member-from-session'
+import { getPartnerMemberId } from './partner-access'
 
 /** 與 `environment-variables` 的 `accessControlStrategy` 一致：僅 `cms` 時啟用本檔審核邏輯 */
 function isCmsContentModerationActive(): boolean {
@@ -84,7 +85,12 @@ async function canEditMappedMemberContent(
   }
 
   const officialMemberId = await getOfficialMemberIdForSessionUser(context)
-  return officialMemberId != null && officialMemberId === member.id
+  if (officialMemberId != null && officialMemberId === member.id) {
+    return true
+  }
+
+  const partnerMemberId = await getPartnerMemberId(context)
+  return partnerMemberId != null && partnerMemberId === member.id
 }
 
 export async function applyPostUpdateCmsRules(

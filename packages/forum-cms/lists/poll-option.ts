@@ -1,14 +1,31 @@
 import { utils } from '@mirrormedia/lilith-core'
-import { allowRoles, admin, moderator, editor } from '../utils/access-control'
+import { allowRoles, admin, moderator, editor, partner } from '../utils/access-control'
+import { connectedId, getPartnerMemberId, isPartnerSession, isPartnerUiSession, partnerOwnsPoll } from '../utils/partner-access'
 import { list } from '@keystone-6/core'
 import { text, integer, relationship } from '@keystone-6/core/fields'
 import { createMessageServicesTranslationHook } from '../utils/message-services-translation-hook'
 import { applyPollOptionUpdateTranslationOnly } from '../utils/cms-content-moderation'
+import { getSessionUserId } from '../utils/official-member-from-session'
 import {
   buildPostVisibilityWhere,
   canReadTrustedBackendContent,
   getAuthenticatedMemberId,
 } from '../utils/post-visibility'
+
+async function partnerPollOptionFilter(context: Parameters<typeof getPartnerMemberId>[0]) {
+  const [memberId, userId] = await Promise.all([
+    getPartnerMemberId(context),
+    Promise.resolve(getSessionUserId(context)),
+  ])
+  if (memberId == null || userId == null) return false
+
+  return {
+    OR: [
+      { poll: { member: { id: { equals: memberId } } } },
+      { createdBy: { id: { equals: userId } } },
+    ],
+  }
+}
 
 /**
  * 欄位規格：
@@ -53,6 +70,7 @@ const listConfigurations = list({
       ui: {
         description:
           '由「投票紀錄」建立／變更／刪除時自動重算；與該選項之 PollVote 筆數一致。',
+        itemView: { fieldMode: (args) => isPartnerUiSession(args) ? 'read' : 'edit' },
       },
     }),
     sortOrder: integer({
@@ -75,14 +93,17 @@ const listConfigurations = list({
   },
   access: {
     operation: {
-      query: allowRoles(admin, moderator, editor),
-      update: allowRoles(admin, moderator, editor),
-      create: allowRoles(admin, moderator, editor),
+      query: allowRoles(admin, moderator, editor, partner),
+      update: allowRoles(admin, moderator, editor, partner),
+      create: allowRoles(admin, moderator, editor, partner),
       delete: allowRoles(admin, editor),
     },
     filter: {
       // [AC-004] 非 CMS query 只回傳有可見父層 Poll（及其 Post）的選項，防止草稿選項洩漏。
       query: ({ context }) => {
+        if (isPartnerSession(context)) {
+          return partnerPollOptionFilter(context)
+        }
         if (canReadTrustedBackendContent(context)) return true
         const memberId = getAuthenticatedMemberId(context)
         return {
@@ -91,10 +112,28 @@ const listConfigurations = list({
           },
         }
       },
+      update: ({ context }) => {
+        if (!isPartnerSession(context)) return true
+        return partnerPollOptionFilter(context)
+      },
     },
   },
   hooks: {
-    resolveInput: ({ resolvedData, operation }) => {
+    resolveInput: async ({ resolvedData, operation, context }) => {
+      if (isPartnerSession(context)) {
+        const data = { ...resolvedData }
+        if (operation === 'create') {
+          data.voteCount = 0
+        } else {
+          delete data.voteCount
+        }
+        const pollId = connectedId(data.poll)
+        if (pollId != null && !(await partnerOwnsPoll(context, pollId))) {
+          throw new Error('Partner 只能關聯自己的投票')
+        }
+        if (operation === 'update') delete data.poll
+        return data
+      }
       if (operation === 'update') {
         return applyPollOptionUpdateTranslationOnly(
           resolvedData as Record<string, unknown>

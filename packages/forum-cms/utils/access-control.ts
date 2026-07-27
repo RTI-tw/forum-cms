@@ -52,6 +52,8 @@ export const moderator = core.moderator
 export const editor = core.editor
 export const contributor = core.contributor
 export const owner = core.owner
+export const partner: ACLCheckFunction = (auth) =>
+  auth?.session?.data?.role === 'partner'
 
 export const allowRoles: ListACLFunction = (...args) => {
   if (process.env.ACCESS_CONTROL_STRATEGY === 'api') {
