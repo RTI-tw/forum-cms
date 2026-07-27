@@ -8,6 +8,7 @@ const pollOptionSource = fs.readFileSync(
   path.join(__dirname, 'poll-option.ts'),
   'utf8'
 )
+const eventSource = fs.readFileSync(path.join(__dirname, 'event.ts'), 'utf8')
 const moderationSource = fs.readFileSync(
   path.join(__dirname, '../utils/cms-content-moderation.ts'),
   'utf8'
@@ -48,6 +49,16 @@ assert.match(
   pollSource,
   /operation === 'create'[\s\S]*?data\.totalVotes = 0[\s\S]*?data\.voterCount = 0/,
   'Partner poll creates should provide server-managed aggregate defaults'
+)
+assert.match(
+  eventSource,
+  /isPromoted: checkbox\(\{[\s\S]*?isPartnerUiSession\(args\) \? 'hidden' : 'edit'/,
+  'Event isPromoted should be hidden from partners in the Admin UI'
+)
+assert.match(
+  eventSource,
+  /operation === 'create'[\s\S]*?data\.isPromoted = false[\s\S]*?delete data\.isPromoted/,
+  'Partners should not be able to set Event isPromoted through GraphQL'
 )
 assert.match(
   postSource,

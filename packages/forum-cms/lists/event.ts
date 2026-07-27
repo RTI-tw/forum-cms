@@ -1,6 +1,6 @@
 import { utils } from '@mirrormedia/lilith-core'
 import { allowRoles, admin, moderator, editor, partner } from '../utils/access-control'
-import { connectedId, getPartnerMemberId, isPartnerSession, partnerOwnsPost, requirePartnerMemberId } from '../utils/partner-access'
+import { connectedId, getPartnerMemberId, isPartnerSession, isPartnerUiSession, partnerOwnsPost, requirePartnerMemberId } from '../utils/partner-access'
 import { graphql, list } from '@keystone-6/core'
 import {
   checkbox,
@@ -63,6 +63,17 @@ const listConfigurations = list({
     isPromoted: checkbox({
       label: '是否推廣',
       defaultValue: false,
+      ui: {
+        createView: {
+          fieldMode: (args) => isPartnerUiSession(args) ? 'hidden' : 'edit',
+        },
+        itemView: {
+          fieldMode: (args) => isPartnerUiSession(args) ? 'hidden' : 'edit',
+        },
+        listView: {
+          fieldMode: (args) => isPartnerUiSession(args) ? 'hidden' : 'read',
+        },
+      },
     }),
     notice: text({
       label: '活動須知',
@@ -259,8 +270,10 @@ const listConfigurations = list({
       if (operation === 'create') {
         const memberId = await requirePartnerMemberId(context)
         data.creator = { connect: { id: memberId } }
+        data.isPromoted = false
       } else {
         delete data.creator
+        delete data.isPromoted
       }
       return data
     },
