@@ -63,3 +63,18 @@ export async function softDeleteMemberByWhere(
     data: { status: 'deleted' },
   })) as MemberRecord | null
 }
+
+/**
+ * 前台「刪除帳號」：只認 member session token 裡的會員本人，改成 deleted（軟刪除）。
+ * 後台（CMS）仍保留 Keystone 產生的 deleteMember／deleteMembers 硬刪除，方便央廣清測試帳號。
+ */
+export async function softDeleteAuthenticatedMemberAccount(
+  context: KeystoneContext
+) {
+  const memberId = getAuthenticatedMemberId(context)
+  if (memberId == null) {
+    throw new Error('Member session is required to delete an account')
+  }
+
+  return softDeleteMemberByWhere(context, { id: String(memberId) })
+}
