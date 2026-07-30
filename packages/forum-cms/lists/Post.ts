@@ -680,14 +680,18 @@ const listConfigurations = list({
             }
             const spamScore = toFiniteNumber(row.spamScore)
             const status = typeof row.status === 'string' ? row.status : null
+            // archived 是「作者在前台刪文」的終態，spamScore 不可以再把它翻回
+            // reject／published，否則軟刪除的貼文會重新出現在作者的貼文列表。
             const nextStatus =
-                spamScore != null && spamScore > 0.85
-                    ? 'reject'
-                    : spamScore != null &&
-                        spamScore < 0.7 &&
-                        status === 'pending'
-                      ? 'published'
-                      : null
+                status === 'archived'
+                    ? null
+                    : spamScore != null && spamScore > 0.85
+                      ? 'reject'
+                      : spamScore != null &&
+                          spamScore < 0.7 &&
+                          status === 'pending'
+                        ? 'published'
+                        : null
             const rawId = (item as { id?: unknown })?.id
             const postId =
                 typeof rawId === 'number'
