@@ -2,6 +2,7 @@ import type { Express } from 'express'
 import { randomUUID } from 'crypto'
 import { decryptTotpSecret, encryptTotpSecret, generateRecoveryCodes, generateTotpSecret, passwordFingerprint, recoveryCodeHash, verifyTotp } from './totp'
 import { isPasswordExpired } from './password-policy'
+import { enrollmentQrCode } from './mfa-qr'
 
 const PENDING_MAX_AGE = 5 * 60 * 1000
 const LOCK_DURATION = 15 * 60 * 1000
@@ -75,7 +76,9 @@ export function createCmsMfa(rawSession: any) {
         if ((user.mfaState?.lockedUntil || 0) > Date.now()) return res.status(429).json({ message: '驗證嘗試過多，請於 15 分鐘後再試' })
         const enrollment = !user.mfaState?.secret
         const secret = enrollment ? decryptTotpSecret(candidate.pendingSecret, String(user.id)) : undefined
-        return res.json({ enrollment, secret, email: user.email })
+        // A rendering failure must leave manual enrollment available.
+        const qrCodeDataUrl = secret ? await enrollmentQrCode(secret, user.email).catch(() => undefined) : undefined
+        return res.json({ enrollment, secret, email: user.email, qrCodeDataUrl })
       } catch { return res.status(503).json({ message: '無法載入驗證設定，請稍後再試' }) }
     })
     app.post('/api/cms-mfa', async (req, res) => {

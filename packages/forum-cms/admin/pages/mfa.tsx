@@ -2,7 +2,7 @@ import { FormEvent, useEffect, useState } from 'react'
 import Head from 'next/head'
 
 export default function MfaPage() {
-  const [setup, setSetup] = useState<{ enrollment: boolean; secret?: string; email: string } | null>(null)
+  const [setup, setSetup] = useState<{ enrollment: boolean; secret?: string; email: string; qrCodeDataUrl?: string } | null>(null)
   const [code, setCode] = useState('')
   const [useRecovery, setUseRecovery] = useState(false)
   const [message, setMessage] = useState('')
@@ -52,10 +52,14 @@ export default function MfaPage() {
           <button type="button" disabled={!saved} onClick={() => window.location.replace(redirect)}>繼續進入後台</button>
         </> : setup ? <form onSubmit={submit}>
           {setup.enrollment ? <>
-            <p>在 Google Authenticator 或 Microsoft Authenticator 新增帳戶，選擇手動輸入設定金鑰。</p>
-            <p>帳戶：{setup.email}<br />類型：時間型（TOTP）</p>
-            <p>設定金鑰：</p><code style={{ display: 'block', background: '#f5f7fa', padding: 12, userSelect: 'all' }}>{setup.secret}</code>
-            <p>加入後，輸入驗證器顯示的六位數驗證碼完成綁定。請勿分享設定金鑰。</p>
+            <p>開啟 Google Authenticator 或 Microsoft Authenticator，新增帳戶並選擇掃描 QR Code。</p>
+            {setup.qrCodeDataUrl ? <img src={setup.qrCodeDataUrl} alt="用驗證器 App 掃描此 QR Code 以綁定 CMS 帳戶" width={300} height={300} style={{ display: 'block', width: '100%', maxWidth: 300, height: 'auto', margin: '0 auto' }} /> : <p>QR Code 無法載入，請使用下方設定金鑰手動新增帳戶。</p>}
+            <details>
+              <summary>無法掃描？手動輸入設定金鑰</summary>
+              <p>帳戶：{setup.email}<br />類型：時間型（TOTP）</p>
+              <p>設定金鑰：</p><code style={{ display: 'block', background: '#f5f7fa', padding: 12, userSelect: 'all' }}>{setup.secret}</code>
+            </details>
+            <p>加入後，輸入驗證器顯示的六位數驗證碼完成綁定。請勿分享 QR Code 或設定金鑰。</p>
           </> : <p>{useRecovery ? '輸入一組尚未使用的復原碼。' : '請輸入驗證器 App 目前顯示的六位數驗證碼。'}</p>}
           <label htmlFor="mfa-code">{useRecovery ? '復原碼' : '驗證碼'}</label>
           <input id="mfa-code" value={code} onChange={e => setCode(e.target.value)} autoComplete="one-time-code" inputMode={useRecovery ? 'text' : 'numeric'} pattern={useRecovery ? undefined : '[0-9]{6}'} maxLength={useRecovery ? 64 : 6} required style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: 12, margin: '8px 0 16px', fontSize: 20 }} />
