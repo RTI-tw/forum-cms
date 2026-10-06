@@ -41,6 +41,9 @@ import {
 import { eventRegistrationSchemaExtension } from "./utils/event-registration-gql";
 import { memberSoftDeleteSchemaExtension } from "./utils/member-soft-delete-gql";
 import { createGraphqlResourceLimitRule } from "./utils/graphql-resource-limits";
+import { createCmsMfa } from "./utils/cms-mfa";
+import { mfaEncryptionKey } from "./utils/totp";
+import { isPasswordChangeOperationAllowed } from "./utils/password-change-access";
 
 // 获取 createLoginLoggingPlugin 函数（兼容新旧版本）
 // const createLoginLoggingPlugin =
@@ -87,7 +90,8 @@ const { withAuth } = createAuth({
     },
 });
 
-const session = statelessSessions(envVar.session);
+const cmsMfa = createCmsMfa(statelessSessions(envVar.session));
+const session = cmsMfa.strategy;
 
 const CHANGE_PASSWORD_PATH = "/change-password";
 const ACCOUNT_LOCKED_PATH = "/account-locked";
@@ -1859,7 +1863,6 @@ export default function SigninPage() {
       });
 
       const headerLocked = response.headers?.get('X-Account-Locked') === 'true';
-      const requirePasswordChange = response.headers?.get('X-Require-Password-Change') === 'true';
       const failureHeader = response.headers?.get('X-Login-Failure-Message');
       const recaptchaFailed = response.headers?.get('X-Recaptcha-Failed') === 'true';
 
@@ -1879,15 +1882,10 @@ export default function SigninPage() {
         return;
       }
 
-      if (requirePasswordChange) {
-        redirect('${CHANGE_PASSWORD_PATH}');
-        return;
-      }
-
       const authResult = result.data?.authenticateUserWithPassword;
 
       if (authResult?.__typename === 'UserAuthenticationWithPasswordSuccess') {
-        redirect('/');
+        redirect('/mfa');
         return;
       }
 
@@ -2115,6 +2113,11 @@ export default function SigninPage() {
 const customAdminAdditionalFiles = async () => [
   {
     mode: 'copy' as const,
+    inputPath: path.join(process.cwd(), 'admin/pages/mfa.tsx'),
+    outputPath: 'pages/mfa.tsx',
+  },
+  {
+    mode: 'copy' as const,
     inputPath: path.join(process.cwd(), 'admin/pages/event-checkin.tsx'),
     outputPath: 'pages/event-checkin.tsx',
   },
@@ -2256,10 +2259,8 @@ const passwordEnforcerClientScript = `
             typeof value === 'object' &&
             value.__typename === 'UserAuthenticationWithPasswordSuccess'
           ) {
-            if (value.item && (value.item.mustChangePassword || value.item.requirePasswordChange)) {
-              redirectTo(CHANGE_PATH);
-              return;
-            }
+            redirectTo('/mfa');
+            return;
           }
         }
       } catch (err) {}
@@ -2279,7 +2280,7 @@ const passwordEnforcerClientScript = `
     }
     checking = true;
     var path = currentPath();
-    if (path === '/signin' || path.indexOf('/signin') === 0) {
+    if (path === '/mfa' || path === '/init' || path === '/signin' || path.indexOf('/signin') === 0) {
       checking = false;
       return;
     }
@@ -2482,6 +2483,7 @@ const baseKeystoneConfig = config({
         isAccessAllowed: (context) => {
             const { session, req } = context;
             const path = req?.url || "";
+            if (path === "/mfa" || path.startsWith("/mfa?")) return true;
 
             // Allow access to change password page if user needs to change password
             if (
@@ -2560,6 +2562,7 @@ const baseKeystoneConfig = config({
         // 需調整時請同步修改 image.ts 的 maxFileSize 與 reverse proxy 設定。
         maxFileSize: 20 * 1024 * 1024,
         extendExpressApp: (app, context) => {
+            mfaEncryptionKey();
             // [AUTH-001] Server 啟動時驗證必要 secret，缺少或強度不足則中止。
             // 此處執行而非 module import 時執行，是為了讓 `keystone build` /
             // `keystone postinstall` 在 build container（無 Cloud Run secret）時能正常完成。
@@ -2645,6 +2648,7 @@ const baseKeystoneConfig = config({
             // small backend cap as defense-in-depth before parsing/validation.
             app.use("/api/graphql", express.json({ limit: "256kb" }));
             app.use(express.json({ limit: "10mb" }));
+            cmsMfa.mount(app, context);
 
             // [AUTH-004] Server-side 強制：mustChangePassword 的 session 只允許改密碼相關操作。
             // 純靠 client-side redirect 會讓攻擊者繞過政策直接打 GraphQL API。
@@ -2653,30 +2657,9 @@ const baseKeystoneConfig = config({
                     const keystoneCtx = await context.withRequest(req, res)
                     const sess = keystoneCtx.session as any
                     if (sess?.data) {
-                        const needsChange =
-                            sess.data.mustChangePassword ||
-                            (sess.data.passwordUpdatedAt &&
-                                isPasswordExpired({
-                                    passwordUpdatedAt: sess.data.passwordUpdatedAt,
-                                }))
+                        const needsChange = isPasswordExpired(sess.data)
                         if (needsChange) {
-                            const query =
-                                typeof (req.body as any)?.query === "string"
-                                    ? (req.body as any).query as string
-                                    : ""
-                            const allowed = [
-                                "updateUser",
-                                "endSession",
-                                "authenticateUserWithPassword",
-                                "sendUserPasswordResetLink",
-                                "redeemUserPasswordResetToken",
-                            ]
-                            // [NEW-002] 改用 word-boundary regex，防止 fragment/comment 中
-                            // 包含允許關鍵字作為子字串而誤判通過。
-                            const isAllowed = allowed.some((op) =>
-                                new RegExp(`\\b${op}\\b`).test(query)
-                            )
-                            if (!isAllowed) {
+                            if (!isPasswordChangeOperationAllowed(req.body)) {
                                 return res.status(403).json({
                                     errors: [
                                         {
@@ -2690,7 +2673,7 @@ const baseKeystoneConfig = config({
                         }
                     }
                 } catch {
-                    // session 解析失敗不阻擋請求（未登入狀態）
+                    return res.status(503).json({ errors: [{ message: "暫時無法確認登入狀態，請稍後再試" }] })
                 }
                 next()
             });
@@ -2772,6 +2755,7 @@ const baseKeystoneConfig = config({
                         path === FORGOT_PASSWORD_PATH ||
                         path === RESET_PASSWORD_PATH ||
                         path === "/signin" ||
+                        path === "/mfa" ||
                         path === "/init" ||
                         path === "/health_check" ||
                         path.startsWith("/api") ||

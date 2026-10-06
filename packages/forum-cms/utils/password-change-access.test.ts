@@ -1,0 +1,18 @@
+import assert from 'assert'
+import { isPasswordChangeOperationAllowed as allowed } from './password-change-access'
+assert.equal(allowed({ query: 'mutation Change($data: ChangeMyPasswordInput!) { changeMyPassword(data: $data) { success message } }' }), true)
+assert.equal(allowed({ query: '{ authenticatedItem { ... on User { id passwordUpdatedAt mustChangePassword } } }' }), true)
+assert.equal(allowed({ query: '{ keystone { adminMeta { lists { key } } } }' }), true)
+assert.equal(allowed({ query: 'mutation { goodbye: endSession }' }), true)
+assert.equal(allowed({ query: 'mutation { changeMyPassword(data: {}) { success } deletePost(where: {id: "1"}) {id} }' }), false)
+assert.equal(allowed({ query: 'mutation { endSession: deletePost(where: {id: "1"}) {id} }' }), false)
+assert.equal(allowed({ query: '# endSession\n mutation { deleteUser(where: {id: "1"}) {id} }' }), false)
+assert.equal(allowed({ query: 'mutation { ...Danger } fragment Danger on Mutation { deleteUser(where: {id: "1"}) {id} }' }), false)
+assert.equal(allowed({ query: 'mutation { ...Safe } fragment Safe on Mutation { endSession }' }), true)
+assert.equal(allowed({ query: 'mutation { ...Loop } fragment Loop on Mutation { ...Loop }' }), false)
+assert.equal(allowed({ query: 'mutation { updateUser(where: {id: "2"}, data: {role: "admin"}) {id} }' }), false)
+assert.equal(allowed({ query: 'query Safe { authenticatedItem { __typename } } query Other { users {id} }', operationName: 'Other' }), false)
+assert.equal(allowed({ query: 'query Safe { authenticatedItem { __typename } } query Other { users {id} }', operationName: 'Safe' }), true)
+assert.equal(allowed([{ query: 'mutation { endSession }' }]), false)
+assert.equal(allowed({ query: 'not GraphQL' }), false)
+console.log('Expired-password change/status access and alias, fragment, mixed-operation bypass checks passed')
