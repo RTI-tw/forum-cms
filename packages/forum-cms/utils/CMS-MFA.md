@@ -63,7 +63,7 @@ node node_modules/@keystone-6/core/bin/cli.js build
 | Secret 權限 | 確認 Cloud Run 執行身分可讀取指定的 secret version；若缺少權限，只授予目標 secret 必要的存取權。建置身分與服務執行身分可能不同。 |
 | 同環境多個服務 | 此程式在伺服器啟動時強制檢查金鑰。同一映像若同時部署 CMS、GraphQL 或其他服務，每個服務都必須配置金鑰；共用含 MFA 狀態的同一資料庫者須使用相同金鑰。只部署 CMS 時，限制部署服務清單為 CMS。 |
 | 既有設定 | 保留既有 `DATABASE_URL`、`SESSION_SECRET`、`MEMBER_SESSION_SECRET`、reCAPTCHA 與儲存設定；不要用一組新環境變數覆蓋整份服務設定。 |
-| 建置參數 | 核對 `_TARGET_PACKAGE=forum-cms`、`_IMAGE_NAME`、`_CLOUD_RUN_SERVICE_NAMES`、環境對應的 reCAPTCHA 參數及 `_SBOM_BUCKET`。 |
+| 建置參數 | 核對 `_TARGET_PACKAGE=forum-cms`、`_IMAGE_NAME`、`_CLOUD_RUN_SERVICE_NAMES`、環境對應的 reCAPTCHA 參數。軟體組成清單產生與上傳步驟已移除；`_SBOM_BUCKET` 僅保留供既有 trigger 相容，不再使用。 |
 | Migration | 確認目標資料庫備份及待執行 migrations。容器 `run.sh` 會先執行 `yarn db-migrate` 再啟動服務，會套用所有未套用的 migrations，不只本次 TOTP migration。 |
 | 流量 | 建立 revision 後確認 Ready，再明確切換至指定 revision；本次 dev 建置成功後仍保留舊流量設定，需另行切換 100%。 |
 
