@@ -132,17 +132,6 @@ const listConfigurations = list({
                 listView: { fieldMode: "read" },
             },
         }),
-        mfaState: json({
-            graphql: { omit: true },
-            access: { read: () => false, create: () => false, update: () => false },
-            ui: { createView: { fieldMode: "hidden" }, itemView: { fieldMode: "hidden" } },
-        }),
-        mfaRevision: integer({
-            defaultValue: 0,
-            graphql: { omit: true },
-            access: { read: () => false, create: () => false, update: () => false },
-            ui: { createView: { fieldMode: "hidden" }, itemView: { fieldMode: "hidden" } },
-        }),
         // posts: relationship({ ref: 'Post.author', many: true }),
     },
 
