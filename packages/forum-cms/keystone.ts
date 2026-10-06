@@ -43,6 +43,7 @@ import { memberSoftDeleteSchemaExtension } from "./utils/member-soft-delete-gql"
 import { createGraphqlResourceLimitRule } from "./utils/graphql-resource-limits";
 import { createCmsMfa } from "./utils/cms-mfa";
 import { mfaEncryptionKey } from "./utils/totp";
+import { isPasswordChangeOperationAllowed } from "./utils/password-change-access";
 
 // 获取 createLoginLoggingPlugin 函数（兼容新旧版本）
 // const createLoginLoggingPlugin =
@@ -2656,30 +2657,9 @@ const baseKeystoneConfig = config({
                     const keystoneCtx = await context.withRequest(req, res)
                     const sess = keystoneCtx.session as any
                     if (sess?.data) {
-                        const needsChange =
-                            sess.data.mustChangePassword ||
-                            (sess.data.passwordUpdatedAt &&
-                                isPasswordExpired({
-                                    passwordUpdatedAt: sess.data.passwordUpdatedAt,
-                                }))
+                        const needsChange = isPasswordExpired(sess.data)
                         if (needsChange) {
-                            const query =
-                                typeof (req.body as any)?.query === "string"
-                                    ? (req.body as any).query as string
-                                    : ""
-                            const allowed = [
-                                "updateUser",
-                                "endSession",
-                                "authenticateUserWithPassword",
-                                "sendUserPasswordResetLink",
-                                "redeemUserPasswordResetToken",
-                            ]
-                            // [NEW-002] 改用 word-boundary regex，防止 fragment/comment 中
-                            // 包含允許關鍵字作為子字串而誤判通過。
-                            const isAllowed = allowed.some((op) =>
-                                new RegExp(`\\b${op}\\b`).test(query)
-                            )
-                            if (!isAllowed) {
+                            if (!isPasswordChangeOperationAllowed(req.body)) {
                                 return res.status(403).json({
                                     errors: [
                                         {
@@ -2693,7 +2673,7 @@ const baseKeystoneConfig = config({
                         }
                     }
                 } catch {
-                    // session 解析失敗不阻擋請求（未登入狀態）
+                    return res.status(503).json({ errors: [{ message: "暫時無法確認登入狀態，請稍後再試" }] })
                 }
                 next()
             });

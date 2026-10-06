@@ -64,7 +64,10 @@ async function main() {
     assert.equal((await verify(enrolled.recoveryCodes[1], true)).status, 429)
     assert.equal((await request('/api/cms-mfa')).status, 429)
     user.mfaState.lockedUntil = Date.now() - 1
-    assert.equal((await verify(enrolled.recoveryCodes[1], true)).status, 200)
+    user.passwordUpdatedAt = new Date(Date.now() - 180 * 86400000)
+    const expiredPasswordResult = await verify(enrolled.recoveryCodes[1], true)
+    assert.equal(expiredPasswordResult.status, 200)
+    assert.equal((await expiredPasswordResult.json()).redirect, '/change-password')
     cookie = verifiedCookie; user.password = 'changed-password'
     assert.equal((await request('/protected')).status, 401)
     assert.equal(isPendingMfaSession({ listKey: 'User', mfaVerified: false, pendingSince: Date.now() - 300000 }, user), false)

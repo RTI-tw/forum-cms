@@ -31,6 +31,7 @@
 node node_modules/ts-node/dist/bin.js --transpile-only --compiler-options '{"module":"CommonJS"}' utils/totp.test.ts
 node node_modules/ts-node/dist/bin.js --transpile-only --compiler-options '{"module":"CommonJS"}' utils/cms-mfa.test.ts
 node node_modules/ts-node/dist/bin.js --transpile-only --compiler-options '{"module":"CommonJS"}' utils/password-policy.test.ts
+node node_modules/ts-node/dist/bin.js --transpile-only --compiler-options '{"module":"CommonJS"}' utils/password-change-access.test.ts
 node node_modules/typescript/bin/tsc --noEmit
 node node_modules/@keystone-6/core/bin/cli.js build
 ```
