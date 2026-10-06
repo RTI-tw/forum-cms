@@ -26,6 +26,8 @@ model User {
   accountLockedUntil                 DateTime?
   lastFailedLoginAt                  DateTime?
   passwordHistory                    Json?
+  mfaState                           Json?
+  mfaRevision                        Int?                @default(0)
   passwordResetToken                 String?
   passwordResetIssuedAt              DateTime?
   passwordResetRedeemedAt            DateTime?

@@ -132,6 +132,17 @@ const listConfigurations = list({
                 listView: { fieldMode: "read" },
             },
         }),
+        mfaState: json({
+            graphql: { omit: true },
+            access: { read: () => false, create: () => false, update: () => false },
+            ui: { createView: { fieldMode: "hidden" }, itemView: { fieldMode: "hidden" } },
+        }),
+        mfaRevision: integer({
+            defaultValue: 0,
+            graphql: { omit: true },
+            access: { read: () => false, create: () => false, update: () => false },
+            ui: { createView: { fieldMode: "hidden" }, itemView: { fieldMode: "hidden" } },
+        }),
         // posts: relationship({ ref: 'Post.author', many: true }),
     },
 
@@ -194,9 +205,7 @@ const listConfigurations = list({
             const plainTextPassword = inputData?.password;
             const isPasswordBeingUpdated =
                 typeof plainTextPassword === "string" &&
-                plainTextPassword.length > 0 &&
-                !plainTextPassword.startsWith("$2a$") &&
-                !plainTextPassword.startsWith("$2b$");
+                plainTextPassword.length > 0;
 
             if (isPasswordBeingUpdated) {
                 // Validate password strength using plain text
@@ -267,11 +276,12 @@ const listConfigurations = list({
                         ) {
                             throw error;
                         }
-                        // For other errors, log and continue (don't block password update)
+                        // Fail closed: a database/hash error must not bypass password history.
                         console.error(
                             "Error checking password history in hook:",
                             error
                         );
+                        throw new Error("無法驗證密碼歷史記錄，請稍後再試");
                     }
                 }
 

@@ -1,0 +1,69 @@
+import { FormEvent, useEffect, useState } from 'react'
+import Head from 'next/head'
+
+export default function MfaPage() {
+  const [setup, setSetup] = useState<{ enrollment: boolean; secret?: string; email: string } | null>(null)
+  const [code, setCode] = useState('')
+  const [useRecovery, setUseRecovery] = useState(false)
+  const [message, setMessage] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [recoveryCodes, setRecoveryCodes] = useState<string[]>([])
+  const [redirect, setRedirect] = useState('/')
+  const [saved, setSaved] = useState(false)
+  useEffect(() => {
+    fetch('/api/cms-mfa', { credentials: 'include', cache: 'no-store' })
+      .then(async response => {
+        const data = await response.json()
+        if (!response.ok) throw new Error(data.message)
+        if (data.authenticated) { window.location.replace('/'); return }
+        setSetup(data)
+      }).catch(error => setMessage(error.message || '無法載入驗證設定'))
+  }, [])
+  async function submit(event: FormEvent) {
+    event.preventDefault(); setBusy(true); setMessage('')
+    try {
+      const response = await fetch('/api/cms-mfa', {
+        method: 'POST', credentials: 'include',
+        headers: { 'Content-Type': 'application/json', 'X-CMS-MFA': '1' },
+        body: JSON.stringify({ code, useRecovery }),
+      })
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.message)
+      if (data.recoveryCodes?.length) {
+        setRecoveryCodes(data.recoveryCodes); setRedirect(data.redirect); setCode('')
+      } else window.location.replace(data.redirect)
+    } catch (error) { setMessage(error instanceof Error ? error.message : '驗證失敗，請稍後再試') }
+    finally { setBusy(false) }
+  }
+  return <>
+    <Head><title>兩步驟驗證｜CMS</title><meta name="robots" content="noindex,nofollow" /><meta name="referrer" content="no-referrer" /></Head>
+    <main style={{ minHeight: '100vh', background: '#f5f7fa', display: 'flex', justifyContent: 'center', alignItems: 'center', padding: 24 }}>
+      <section style={{ width: '100%', maxWidth: 480, background: 'white', padding: 32, borderRadius: 12, boxShadow: '0 4px 24px #0001', overflowWrap: 'anywhere' }}>
+        <h1>{recoveryCodes.length ? '請保存復原碼' : setup?.enrollment ? '設定兩步驟驗證' : '兩步驟驗證'}</h1>
+        {message && <p role="alert" style={{ color: '#b42318' }}>{message}</p>}
+        {recoveryCodes.length ? <>
+          <p>驗證器已綁定。每組復原碼只能使用一次，可在手機遺失時配合密碼登入。復原碼僅顯示這一次，請存放於安全的位置。</p>
+          <pre style={{ background: '#f5f7fa', padding: 16, lineHeight: 1.7 }}>{recoveryCodes.join('\n')}</pre>
+          <button type="button" onClick={() => {
+            const url = URL.createObjectURL(new Blob(['CMS 復原碼\n' + recoveryCodes.join('\n')], { type: 'text/plain;charset=utf-8' }))
+            const link = document.createElement('a'); link.href = url; link.download = 'cms-recovery-codes.txt'; link.click(); URL.revokeObjectURL(url)
+          }}>下載復原碼</button>
+          <p><label><input type="checkbox" checked={saved} onChange={e => setSaved(e.target.checked)} /> 我已安全保存復原碼</label></p>
+          <button type="button" disabled={!saved} onClick={() => window.location.replace(redirect)}>繼續進入後台</button>
+        </> : setup ? <form onSubmit={submit}>
+          {setup.enrollment ? <>
+            <p>在 Google Authenticator 或 Microsoft Authenticator 新增帳戶，選擇手動輸入設定金鑰。</p>
+            <p>帳戶：{setup.email}<br />類型：時間型（TOTP）</p>
+            <p>設定金鑰：</p><code style={{ display: 'block', background: '#f5f7fa', padding: 12, userSelect: 'all' }}>{setup.secret}</code>
+            <p>加入後，輸入驗證器顯示的六位數驗證碼完成綁定。請勿分享設定金鑰。</p>
+          </> : <p>{useRecovery ? '輸入一組尚未使用的復原碼。' : '請輸入驗證器 App 目前顯示的六位數驗證碼。'}</p>}
+          <label htmlFor="mfa-code">{useRecovery ? '復原碼' : '驗證碼'}</label>
+          <input id="mfa-code" value={code} onChange={e => setCode(e.target.value)} autoComplete="one-time-code" inputMode={useRecovery ? 'text' : 'numeric'} pattern={useRecovery ? undefined : '[0-9]{6}'} maxLength={useRecovery ? 64 : 6} required style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: 12, margin: '8px 0 16px', fontSize: 20 }} />
+          <button type="submit" disabled={busy}>{busy ? '驗證中…' : setup.enrollment ? '確認綁定' : '驗證並登入'}</button>
+          {!setup.enrollment && <p><button type="button" onClick={() => { setUseRecovery(!useRecovery); setCode(''); setMessage('') }}>{useRecovery ? '使用驗證器驗證碼' : '改用復原碼'}</button></p>}
+        </form> : !message && <p>載入中…</p>}
+        {!recoveryCodes.length && <p><a href="/signin">重新登入</a></p>}
+      </section>
+    </main>
+  </>
+}
