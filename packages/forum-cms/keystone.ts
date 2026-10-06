@@ -39,6 +39,7 @@ import {
     verifyMemberSession,
 } from "./utils/member-session";
 import { eventRegistrationSchemaExtension } from "./utils/event-registration-gql";
+import { memberSoftDeleteSchemaExtension } from "./utils/member-soft-delete-gql";
 import { createGraphqlResourceLimitRule } from "./utils/graphql-resource-limits";
 import { createCmsMfa } from "./utils/cms-mfa";
 import { mfaEncryptionKey } from "./utils/totp";
@@ -2459,6 +2460,9 @@ const graphqlConfig = {
         schema = passwordSchemaExtension(schema);
         schema = memberAuthSchemaExtension(schema);
         schema = eventRegistrationSchemaExtension(schema);
+        // 前台軟刪除（archiveMyPost / deleteMyAccount）；
+        // 後台產生的 deletePost / deleteMember 硬刪除保持不變。
+        schema = memberSoftDeleteSchemaExtension(schema);
         return schema;
     },
 };
