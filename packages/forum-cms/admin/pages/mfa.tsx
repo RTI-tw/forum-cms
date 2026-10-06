@@ -61,9 +61,12 @@ export default function MfaPage() {
             </details>
             <p>加入後，輸入驗證器顯示的六位數驗證碼完成綁定。請勿分享 QR Code 或設定金鑰。</p>
           </> : <p>{useRecovery ? '輸入一組尚未使用的復原碼。' : '請輸入驗證器 App 目前顯示的六位數驗證碼。'}</p>}
-          <label htmlFor="mfa-code">{useRecovery ? '復原碼' : '驗證碼'}</label>
-          <input id="mfa-code" value={code} onChange={e => setCode(e.target.value)} autoComplete="one-time-code" inputMode={useRecovery ? 'text' : 'numeric'} pattern={useRecovery ? undefined : '[0-9]{6}'} maxLength={useRecovery ? 64 : 6} required style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: 12, margin: '8px 0 16px', fontSize: 20 }} />
-          <button type="submit" disabled={busy}>{busy ? '驗證中…' : setup.enrollment ? '確認綁定' : '驗證並登入'}</button>
+          <div style={{ background: '#f0f4ff', padding: 20, borderRadius: 8, margin: '20px 0' }}>
+            <label htmlFor="mfa-code" style={{ display: 'block', fontWeight: 700, color: '#172b4d' }}>{useRecovery ? '輸入復原碼' : '輸入六位數驗證碼'}</label>
+            <p id="mfa-code-help" style={{ margin: '8px 0 12px', fontSize: 14, color: '#475569' }}>{useRecovery ? '請填入先前保存的一組復原碼。' : '打開手機上的驗證器 App，將目前顯示的六位數字填入下方欄位。'}</p>
+            <input id="mfa-code" type="text" value={code} onChange={e => setCode(e.target.value)} placeholder={useRecovery ? '請輸入復原碼' : '請輸入 6 位數字'} aria-describedby="mfa-code-help" autoComplete="one-time-code" inputMode={useRecovery ? 'text' : 'numeric'} pattern={useRecovery ? undefined : '[0-9]{6}'} maxLength={useRecovery ? 64 : 6} required style={{ display: 'block', width: '100%', boxSizing: 'border-box', minHeight: 56, padding: 14, border: '2px solid #64748b', borderRadius: 8, background: '#fff', color: '#172b4d', fontSize: 22, letterSpacing: useRecovery ? 'normal' : '0.12em' }} />
+          </div>
+          <button type="submit" disabled={busy} style={{ display: 'block', width: '100%', padding: 14, border: 0, borderRadius: 8, background: '#1d4ed8', color: '#fff', fontSize: 16, fontWeight: 700, cursor: busy ? 'wait' : 'pointer', opacity: busy ? 0.65 : 1 }}>{busy ? '驗證中…' : setup.enrollment ? '確認綁定' : '驗證並登入'}</button>
           {!setup.enrollment && <p><button type="button" onClick={() => { setUseRecovery(!useRecovery); setCode(''); setMessage('') }}>{useRecovery ? '使用驗證器驗證碼' : '改用復原碼'}</button></p>}
         </form> : !message && <p>載入中…</p>}
         {!recoveryCodes.length && <p><a href="/signin">重新登入</a></p>}
