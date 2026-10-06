@@ -432,7 +432,7 @@ export const createLoginLoggingPlugin = () => {
                         }
 
                         // If user needs to change password, modify the response
-                        if (needsPasswordUpdate && !isAuthRequest && requestContext.contextValue?.res) {
+                        if (needsPasswordUpdate && requestContext.contextValue?.res) {
                           const res = requestContext.contextValue.res
                           res.setHeader('X-Require-Password-Change', 'true')
 
@@ -464,7 +464,7 @@ export const createLoginLoggingPlugin = () => {
                         };
 
                         // If user needs to change password, modify the response
-                        if (needsPasswordUpdate && !isAuthRequest && requestContext.contextValue?.res) {
+                        if (needsPasswordUpdate && requestContext.contextValue?.res) {
                           const res = requestContext.contextValue.res
                           res.setHeader('X-Require-Password-Change', 'true')
 
@@ -481,10 +481,10 @@ export const createLoginLoggingPlugin = () => {
                   const log = {
                     severity: isSuccess ? 'INFO' : 'WARNING',
                     message: isSuccess
-                      ? 'User password verified; MFA required'
+                      ? 'User logged in successfully'
                       : 'User login failed',
                     type: 'LOGIN',
-                    status: isSuccess ? 'password_verified' : 'failure',
+                    status: isSuccess ? 'success' : 'failure',
                     timestamp: new Date().toISOString(),
                     remoteIp: clientIp,
                     ...(isSuccess

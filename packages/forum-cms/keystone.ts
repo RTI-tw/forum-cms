@@ -1,3 +1,4 @@
+import { recaptchaClientTemplate } from "./utils/recaptcha-client-template";
 import "dotenv/config";
 import { config, graphql } from "@keystone-6/core";
 import path from "path";
@@ -41,8 +42,6 @@ import {
 import { eventRegistrationSchemaExtension } from "./utils/event-registration-gql";
 import { memberSoftDeleteSchemaExtension } from "./utils/member-soft-delete-gql";
 import { createGraphqlResourceLimitRule } from "./utils/graphql-resource-limits";
-import { createCmsMfa } from "./utils/cms-mfa";
-import { mfaEncryptionKey } from "./utils/totp";
 import { isPasswordChangeOperationAllowed } from "./utils/password-change-access";
 
 // 获取 createLoginLoggingPlugin 函数（兼容新旧版本）
@@ -90,8 +89,7 @@ const { withAuth } = createAuth({
     },
 });
 
-const cmsMfa = createCmsMfa(statelessSessions(envVar.session));
-const session = cmsMfa.strategy;
+const session = statelessSessions(envVar.session);
 
 const CHANGE_PASSWORD_PATH = "/change-password";
 const ACCOUNT_LOCKED_PATH = "/account-locked";
@@ -1104,17 +1102,10 @@ export default function ChangePasswordPage() {
 `;
 
 const forgotPasswordPageTemplate = `
-import { FormEvent, useState, useEffect } from 'react';
+import { FormEvent, useState, useEffect, useRef } from 'react';
 import Head from 'next/head';
 
-declare global {
-  interface Window {
-    grecaptcha: {
-      ready: (callback: () => void) => void;
-      execute: (siteKey: string, options: { action: string }) => Promise<string>;
-    };
-  }
-}
+${recaptchaClientTemplate}
 
 const RECAPTCHA_ENABLED = ${RECAPTCHA_ENABLED};
 const RECAPTCHA_SITE_KEY = ${JSON.stringify(RECAPTCHA_SITE_KEY)}; // [XSS-003] JSON.stringify 防止特殊字元造成 script injection
@@ -1125,66 +1116,13 @@ const REQUEST_PASSWORD_RESET_MUTATION = ${JS_BACKTICK}
   }
 ${JS_BACKTICK};
 
-async function getRecaptchaToken(): Promise<string | null> {
-  if (!RECAPTCHA_ENABLED || !RECAPTCHA_SITE_KEY) {
-    return null;
-  }
-
-  try {
-    if (typeof window !== 'undefined' && window.grecaptcha) {
-      return await new Promise((resolve) => {
-        window.grecaptcha.ready(async () => {
-          try {
-            const token = await window.grecaptcha.execute(RECAPTCHA_SITE_KEY, { action: 'forgot_password' });
-            resolve(token);
-          } catch (error) {
-            console.error('reCAPTCHA execute error:', error);
-            resolve(null);
-          }
-        });
-      });
-    }
-  } catch (error) {
-    console.error('reCAPTCHA error:', error);
-  }
-  return null;
-}
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
   const [status, setStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [message, setMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [recaptchaLoaded, setRecaptchaLoaded] = useState(!RECAPTCHA_ENABLED);
-
-  useEffect(() => {
-    if (!RECAPTCHA_ENABLED || !RECAPTCHA_SITE_KEY) {
-      setRecaptchaLoaded(true);
-      return;
-    }
-
-    // Check if script is already loaded
-    if (window.grecaptcha) {
-      setRecaptchaLoaded(true);
-      return;
-    }
-
-    // Load reCAPTCHA script
-    const script = document.createElement('script');
-    script.src = ${JS_BACKTICK}https://www.google.com/recaptcha/api.js?render=${DOLLAR}{RECAPTCHA_SITE_KEY}${JS_BACKTICK};
-    script.async = true;
-    script.defer = true;
-    script.onload = () => {
-      window.grecaptcha.ready(() => {
-        setRecaptchaLoaded(true);
-      });
-    };
-    script.onerror = () => {
-      console.error('Failed to load reCAPTCHA script');
-      setRecaptchaLoaded(true);
-    };
-    document.head.appendChild(script);
-  }, []);
+  const { containerRef, recaptchaLoaded, recaptchaError, recaptchaToken, resetRecaptcha } = useRecaptchaChallenge();
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -1202,7 +1140,11 @@ export default function ForgotPasswordPage() {
 
     try {
       // Get reCAPTCHA token if enabled
-      const recaptchaToken = await getRecaptchaToken();
+      if (RECAPTCHA_ENABLED && !recaptchaToken) {
+        setStatus('error');
+        setMessage('請先勾選並完成人機驗證');
+        return;
+      }
 
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
@@ -1244,6 +1186,7 @@ export default function ForgotPasswordPage() {
       setStatus('error');
       setMessage('寄送失敗，請稍後再試。');
     } finally {
+      resetRecaptcha();
       setIsSubmitting(false);
     }
   };
@@ -1315,9 +1258,13 @@ export default function ForgotPasswordPage() {
                 {message}
               </div>
             )}
+            {RECAPTCHA_ENABLED && <div style={{ margin: '16px 0' }}>
+              <div ref={containerRef} />
+              {recaptchaError && <p role="alert" style={{ color: '#dc2626' }}>{recaptchaError}</p>}
+            </div>}
             <button
               type="submit"
-              disabled={isSubmitting || !recaptchaLoaded}
+              disabled={isSubmitting || !recaptchaLoaded || (RECAPTCHA_ENABLED && !recaptchaToken)}
               style={{
                 width: '100%',
                 padding: '14px',
@@ -1327,8 +1274,8 @@ export default function ForgotPasswordPage() {
                 color: '#ffffff',
                 fontSize: '16px',
                 fontWeight: 600,
-                cursor: (isSubmitting || !recaptchaLoaded) ? 'not-allowed' : 'pointer',
-                opacity: (isSubmitting || !recaptchaLoaded) ? 0.7 : 1,
+                cursor: (isSubmitting || !recaptchaLoaded || (RECAPTCHA_ENABLED && !recaptchaToken)) ? 'not-allowed' : 'pointer',
+                opacity: (isSubmitting || !recaptchaLoaded || (RECAPTCHA_ENABLED && !recaptchaToken)) ? 0.7 : 1,
                 transition: 'opacity 0.2s',
               }}
             >
@@ -1686,17 +1633,10 @@ export default function ResetPasswordPage() {
 `;
 
 const signinPageTemplate = `
-import { FormEvent, useState, useEffect } from 'react';
+import { FormEvent, useState, useEffect, useRef } from 'react';
 import Head from 'next/head';
 
-declare global {
-  interface Window {
-    grecaptcha: {
-      ready: (callback: () => void) => void;
-      execute: (siteKey: string, options: { action: string }) => Promise<string>;
-    };
-  }
-}
+${recaptchaClientTemplate}
 
 const RECAPTCHA_ENABLED = ${RECAPTCHA_ENABLED};
 const RECAPTCHA_SITE_KEY = ${JSON.stringify(RECAPTCHA_SITE_KEY)}; // [XSS-003] JSON.stringify 防止特殊字元造成 script injection
@@ -1757,30 +1697,6 @@ function hasRecaptchaError(result: any) {
   return false;
 }
 
-async function getRecaptchaToken(): Promise<string | null> {
-  if (!RECAPTCHA_ENABLED || !RECAPTCHA_SITE_KEY) {
-    return null;
-  }
-
-  try {
-    if (typeof window !== 'undefined' && window.grecaptcha) {
-      return await new Promise((resolve) => {
-        window.grecaptcha.ready(async () => {
-          try {
-            const token = await window.grecaptcha.execute(RECAPTCHA_SITE_KEY, { action: 'login' });
-            resolve(token);
-          } catch (error) {
-            console.error('reCAPTCHA execute error:', error);
-            resolve(null);
-          }
-        });
-      });
-    }
-  } catch (error) {
-    console.error('reCAPTCHA error:', error);
-  }
-  return null;
-}
 
 export default function SigninPage() {
   const [email, setEmail] = useState('');
@@ -1788,40 +1704,7 @@ export default function SigninPage() {
   const [status, setStatus] = useState<'idle' | 'error'>('idle');
   const [message, setMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [recaptchaLoaded, setRecaptchaLoaded] = useState(!RECAPTCHA_ENABLED);
-
-  useEffect(() => {
-    if (!RECAPTCHA_ENABLED || !RECAPTCHA_SITE_KEY) {
-      setRecaptchaLoaded(true);
-      return;
-    }
-
-    // Check if script is already loaded
-    if (window.grecaptcha) {
-      setRecaptchaLoaded(true);
-      return;
-    }
-
-    // Load reCAPTCHA script
-    const script = document.createElement('script');
-    script.src = ${JS_BACKTICK}https://www.google.com/recaptcha/api.js?render=${DOLLAR}{RECAPTCHA_SITE_KEY}${JS_BACKTICK};
-    script.async = true;
-    script.defer = true;
-    script.onload = () => {
-      window.grecaptcha.ready(() => {
-        setRecaptchaLoaded(true);
-      });
-    };
-    script.onerror = () => {
-      console.error('Failed to load reCAPTCHA script');
-      setRecaptchaLoaded(true); // Allow form submission even if reCAPTCHA fails to load
-    };
-    document.head.appendChild(script);
-
-    return () => {
-      // Cleanup is not needed as script should persist
-    };
-  }, []);
+  const { containerRef, recaptchaLoaded, recaptchaError, recaptchaToken, resetRecaptcha } = useRecaptchaChallenge();
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -1841,7 +1724,11 @@ export default function SigninPage() {
 
     try {
       // Get reCAPTCHA token if enabled
-      const recaptchaToken = await getRecaptchaToken();
+      if (RECAPTCHA_ENABLED && !recaptchaToken) {
+        setStatus('error');
+        setMessage('請先勾選並完成人機驗證');
+        return;
+      }
 
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
@@ -1885,7 +1772,7 @@ export default function SigninPage() {
       const authResult = result.data?.authenticateUserWithPassword;
 
       if (authResult?.__typename === 'UserAuthenticationWithPasswordSuccess') {
-        redirect('/mfa');
+        redirect(response.headers?.get('X-Require-Password-Change') === 'true' ? '${CHANGE_PASSWORD_PATH}' : '/');
         return;
       }
 
@@ -1902,6 +1789,7 @@ export default function SigninPage() {
       setStatus('error');
       setMessage('登入失敗，請稍後再試。');
     } finally {
+      resetRecaptcha();
       setIsSubmitting(false);
     }
   };
@@ -2013,9 +1901,13 @@ export default function SigninPage() {
                 {message}
               </div>
             )}
+            {RECAPTCHA_ENABLED && <div style={{ margin: '16px 0' }}>
+              <div ref={containerRef} />
+              {recaptchaError && <p role="alert" style={{ color: '#dc2626' }}>{recaptchaError}</p>}
+            </div>}
             <button
               type="submit"
-              disabled={isSubmitting || !recaptchaLoaded}
+              disabled={isSubmitting || !recaptchaLoaded || (RECAPTCHA_ENABLED && !recaptchaToken)}
               style={{
                 width: '100%',
                 padding: '14px',
@@ -2025,8 +1917,8 @@ export default function SigninPage() {
                 color: '#ffffff',
                 fontSize: '16px',
                 fontWeight: 600,
-                cursor: (isSubmitting || !recaptchaLoaded) ? 'not-allowed' : 'pointer',
-                opacity: (isSubmitting || !recaptchaLoaded) ? 0.7 : 1,
+                cursor: (isSubmitting || !recaptchaLoaded || (RECAPTCHA_ENABLED && !recaptchaToken)) ? 'not-allowed' : 'pointer',
+                opacity: (isSubmitting || !recaptchaLoaded || (RECAPTCHA_ENABLED && !recaptchaToken)) ? 0.7 : 1,
                 transition: 'opacity 0.2s',
               }}
             >
@@ -2111,11 +2003,6 @@ export default function SigninPage() {
 `;
 
 const customAdminAdditionalFiles = async () => [
-  {
-    mode: 'copy' as const,
-    inputPath: path.join(process.cwd(), 'admin/pages/mfa.tsx'),
-    outputPath: 'pages/mfa.tsx',
-  },
   {
     mode: 'copy' as const,
     inputPath: path.join(process.cwd(), 'admin/pages/event-checkin.tsx'),
@@ -2259,8 +2146,10 @@ const passwordEnforcerClientScript = `
             typeof value === 'object' &&
             value.__typename === 'UserAuthenticationWithPasswordSuccess'
           ) {
-            redirectTo('/mfa');
-            return;
+            if (value.item && (value.item.mustChangePassword || value.item.requirePasswordChange)) {
+              redirectTo(CHANGE_PATH);
+              return;
+            }
           }
         }
       } catch (err) {}
@@ -2280,7 +2169,7 @@ const passwordEnforcerClientScript = `
     }
     checking = true;
     var path = currentPath();
-    if (path === '/mfa' || path === '/init' || path === '/signin' || path.indexOf('/signin') === 0) {
+    if (path === '/init' || path === '/signin' || path.indexOf('/signin') === 0) {
       checking = false;
       return;
     }
@@ -2483,7 +2372,6 @@ const baseKeystoneConfig = config({
         isAccessAllowed: (context) => {
             const { session, req } = context;
             const path = req?.url || "";
-            if (path === "/mfa" || path.startsWith("/mfa?")) return true;
 
             // Allow access to change password page if user needs to change password
             if (
@@ -2562,7 +2450,6 @@ const baseKeystoneConfig = config({
         // 需調整時請同步修改 image.ts 的 maxFileSize 與 reverse proxy 設定。
         maxFileSize: 20 * 1024 * 1024,
         extendExpressApp: (app, context) => {
-            mfaEncryptionKey();
             // [AUTH-001] Server 啟動時驗證必要 secret，缺少或強度不足則中止。
             // 此處執行而非 module import 時執行，是為了讓 `keystone build` /
             // `keystone postinstall` 在 build container（無 Cloud Run secret）時能正常完成。
@@ -2648,7 +2535,6 @@ const baseKeystoneConfig = config({
             // small backend cap as defense-in-depth before parsing/validation.
             app.use("/api/graphql", express.json({ limit: "256kb" }));
             app.use(express.json({ limit: "10mb" }));
-            cmsMfa.mount(app, context);
 
             // [AUTH-004] Server-side 強制：mustChangePassword 的 session 只允許改密碼相關操作。
             // 純靠 client-side redirect 會讓攻擊者繞過政策直接打 GraphQL API。
@@ -2755,7 +2641,6 @@ const baseKeystoneConfig = config({
                         path === FORGOT_PASSWORD_PATH ||
                         path === RESET_PASSWORD_PATH ||
                         path === "/signin" ||
-                        path === "/mfa" ||
                         path === "/init" ||
                         path === "/health_check" ||
                         path.startsWith("/api") ||

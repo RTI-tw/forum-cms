@@ -17,9 +17,9 @@ interface RecaptchaVerifyResult {
 }
 
 /**
- * Verify reCAPTCHA v3 token with Google API
+ * Verify reCAPTCHA v2 checkbox token with Google SiteVerify
  * @param token - The reCAPTCHA token from frontend
- * @param expectedAction - Optional action name to verify (e.g., 'login', 'forgot_password')
+ * @param expectedAction - Operation label for logging only (e.g., 'login', 'forgot_password')
  * @returns Verification result with success status and score
  */
 export async function verifyRecaptchaToken(
@@ -108,7 +108,7 @@ export async function verifyRecaptchaToken(
       })
     )
 
-    if (!result.success) {
+    if (result.success !== true) {
       return {
         success: false,
         score: 0,
@@ -117,50 +117,9 @@ export async function verifyRecaptchaToken(
       }
     }
 
-    // Check action if expected action is provided
-    if (expectedAction && result.action !== expectedAction) {
-      console.warn(
-        JSON.stringify({
-          severity: 'WARNING',
-          message: 'reCAPTCHA action mismatch',
-          type: 'RECAPTCHA_ACTION_MISMATCH',
-          expectedAction,
-          actualAction: result.action,
-          timestamp: new Date().toISOString(),
-        })
-      )
-      return {
-        success: false,
-        score: result.score ?? 0,
-        message: '人機驗證失敗，請重新操作',
-      }
-    }
-
-    const score = result.score ?? 0
-    const threshold = envVar.recaptcha.scoreThreshold
-
-    if (score < threshold) {
-      console.warn(
-        JSON.stringify({
-          severity: 'WARNING',
-          message: 'reCAPTCHA score below threshold',
-          type: 'RECAPTCHA_LOW_SCORE',
-          score,
-          threshold,
-          action: result.action,
-          timestamp: new Date().toISOString(),
-        })
-      )
-      return {
-        success: false,
-        score,
-        message: '偵測到可疑活動，請稍後再試或聯繫管理員',
-      }
-    }
-
     return {
       success: true,
-      score,
+      score: 1,
     }
   } catch (error) {
     console.error(
