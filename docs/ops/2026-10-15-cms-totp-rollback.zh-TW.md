@@ -2,7 +2,7 @@
 
 - 起始日期：2026-10-15
 - 原因：業主不接受 `999be6e`（reCAPTCHA v2 challenge）的登入方式，要求回到 `edacea8` 的 CMS TOTP。
-- 範圍：本階段只推進到 **dev**，供業主驗證。staging、prod 依業主回覆再進行。
+- 範圍：已推進到 **dev**、**staging**，供業主驗證。prod 依業主回覆再進行。
 - 決定事項：
   - 所有環境視為從未綁定 TOTP，使用者一律重新綁定，不從備份還原 `mfaState`。
   - prod 從未上過 TOTP，此次對 prod 是首次上線，不是退版。
@@ -77,6 +77,13 @@ dev trigger 在 2026-07-30 以前的部署清單為 `rti-forum-cms-dev,rti-forum
 | 7 | 2026-10-15 11:09:59 | dev | DB `forum_cms` | gql-dev 啟動時套用 `20261015090000_restore_cms_totp` | `User.mfaState`、`User.mfaRevision`：無 → 已新增 |
 | 8 | 2026-10-15 11:12 | dev | Cloud Run `rti-forum-cms-dev` | runtime reCAPTCHA 改回 v3 | `RECAPTCHA_SITE_KEY`: `6LcpB-ItAAAAAIDFYVSPBVhKPiTz-t6A-2Oqy5yl` → `6Lc6emYsAAAAAPa0IH1EeNf0jamwGAuf7up_3rza`；`RECAPTCHA_SECRET_KEY`: `RECAPTCHA_V2_SECRET_KEY_DEV:1` → `RECAPTCHA_SECRET_KEY:latest`；新 revision `00173-pxf` |
 | 9 | 2026-10-15 11:13 | dev | Cloud Run `rti-forum-cms-dev` 流量 | 流量由固定 revision 改為跟隨 latest | 100% `00171-q8l` → 100% LATEST（`00173-pxf`） |
+| 10 | 2026-10-15 11:21 | dev/staging | Cloud SQL `rti-forum-cms-db` | staging 部署前 on-demand 備份 | 備份 ID `1792063274241` |
+| 11 | 2026-10-15 11:22 | staging | Cloud Build trigger `rti-forum-cms-staging` | build 用 site key 改回 v3（其他欄位不變） | `_RECAPTCHA_SITE_KEY`: `6LdiNeItAAAAAPHTxNqbJISgWhRMwcNaD76CQyka` → `6Lc6emYsAAAAAPa0IH1EeNf0jamwGAuf7up_3rza` |
+| 12 | 2026-10-15 11:22 | staging | Git `staging` | 合併 main（merge commit `782b058`，內容與 main `c93fe49` 相同），觸發 staging build | `staging`: `0af31a4` → `782b058` |
+| 13 | 2026-10-15 11:23–11:25 | staging | Cloud Build `5d21511c-3424-4d3f-bc33-73d54a30ac1d` | 建置並部署 `staging_782b058` | 新 revision cms `00040-czm`、gql `00041-nr8`（流量仍固定在舊 revision，未啟動容器） |
+| 14 | 2026-10-15 11:27 | staging | Cloud Run `rti-forum-cms-staging`、`rti-forum-gql-staging` | runtime reCAPTCHA 改回 v3 | `RECAPTCHA_SITE_KEY`: `6LdiNeItAAAAAPHTxNqbJISgWhRMwcNaD76CQyka` → `6Lc6emYsAAAAAPa0IH1EeNf0jamwGAuf7up_3rza`；`RECAPTCHA_SECRET_KEY`: `RECAPTCHA_V2_SECRET_KEY_STAGING:1` → `RECAPTCHA_SECRET_KEY:latest`；新 revision cms `00041-492`、gql `00042-r5h` |
+| 15 | 2026-10-15 11:28 | staging | Cloud Run 流量 | 切換流量，維持固定 revision 方式 | cms: `00039-wtk` → `00041-492`；gql: `00040-wd9` → `00042-r5h` |
+| 16 | 2026-10-15 11:28:23 | staging | DB `forum_cms_staging` | gql-staging 啟動時套用 `20261015090000_restore_cms_totp` | `User.mfaState`、`User.mfaRevision`：無 → 已新增 |
 
 ### 部署時發現：Cloud Run 流量固定在指定 revision
 
@@ -97,6 +104,26 @@ dev trigger 在 2026-07-30 以前的部署清單為 `rti-forum-cms-dev,rti-forum
 | cms-dev、gql-dev ERROR log（11:09 起） | 無 |
 | **CMS 實際登入、TOTP 首次綁定（QR）、驗證碼登入、復原碼、忘記密碼（v3）** | **待以實際帳號驗證** |
 
+### staging 驗證結果（2026-10-15 11:29 後）
+
+| 項目 | 結果 |
+|---|---|
+| Cloud Build | SUCCESS |
+| Migration log | gql-staging 套用 `20261015090000_restore_cms_totp`；cms-staging 隨後顯示 `No pending migrations to apply.` |
+| cms-staging `/health_check`、`/signin`、`/mfa` | 200 |
+| cms-staging `/api/cms-mfa`（無 pending cookie） | 401，符合預期 |
+| cms-staging signin bundle | 含 v3 site key `6Lc6emYs…`，不含 v2 key |
+| gql-staging | invoker 僅限 compute service account（原本即如此，非本次變更），未帶身分的請求回 403 屬預期；無法以該身分直接查詢，尚未觀察到前台實際請求 |
+| cms-staging、gql-staging ERROR log | 無 |
+| **CMS 實際登入、TOTP 首次綁定、驗證碼登入、復原碼、忘記密碼（v3）；前台經 gql-staging 的功能** | **待以實際帳號驗證** |
+
+### staging 回復方式（必要時）
+
+```
+gcloud run services update-traffic rti-forum-cms-staging --region asia-east1 --to-revisions rti-forum-cms-staging-00039-wtk=100
+gcloud run services update-traffic rti-forum-gql-staging --region asia-east1 --to-revisions rti-forum-gql-staging-00040-wd9=100
+```
+
 ### dev 回復方式（必要時）
 
 新增的欄位對 v2 版程式無影響，可直接切回舊 revision，不需動 DB：
@@ -110,6 +137,5 @@ gcloud run services update-traffic rti-forum-gql-dev --region asia-east1 --to-re
 
 ## 四、尚未進行（待業主回覆）
 
-- staging：trigger `_RECAPTCHA_SITE_KEY` 改回 v3、Cloud Run `RECAPTCHA_SITE_KEY`／`RECAPTCHA_SECRET_KEY` 改回 v3、合併 main 至 `staging`；部署後切換 cms-staging、gql-staging 流量（目前固定 revision）。
 - prod：建立 `CMS_MFA_ENCRYPTION_KEY_PROD`（獨立金鑰）並掛到 cms-prod、gql-prod；trigger 與 Cloud Run reCAPTCHA 改回 v3；部署前 on-demand 備份；部署後切換 cms-prod、gql-prod 流量（目前固定 revision）；通知 CMS 使用者首次登入需綁定 TOTP。
 - 建議：`rti-forum-cms-db` 開啟自動備份。
