@@ -142,7 +142,8 @@ dev trigger 在 2026-07-30 以前的部署清單為 `rti-forum-cms-dev,rti-forum
 | gql-prod 切換後實際請求 | 17 筆，全部 200 |
 | frontend-prod 首頁 | 200 |
 | cms-prod、gql-prod ERROR log | 無 |
-| **CMS 實際首次綁定（同時驗證 `CMS_MFA_ENCRYPTION_KEY_PROD` 格式）、TOTP 再登入、復原碼、忘記密碼（v3）** | **待實際帳號驗證** |
+| CMS 實際首次綁定（同時驗證 `CMS_MFA_ENCRYPTION_KEY_PROD` 可用） | 通過：userId 11 於 02:58:26 綁定成功（02:58:00 第一次送出回 400，第二次成功） |
+| **TOTP 再登入、復原碼、忘記密碼（v3）** | **待實際帳號驗證** |
 
 ### prod 回復方式（必要時）
 
