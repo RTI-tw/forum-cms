@@ -1,4 +1,4 @@
-FROM node:20-slim
+FROM node:24.22.1-slim
 
 ## Install system dependencies, `gcsfuse` in particular.
 ## [SC-002] 改用 signed-by keyring 方式加入 Google apt key，取代已棄用的 apt-key add -，
