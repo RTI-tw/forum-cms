@@ -2,7 +2,7 @@
 
 - 起始日期：2026-10-15
 - 原因：業主不接受 `999be6e`（reCAPTCHA v2 challenge）的登入方式，要求回到 `edacea8` 的 CMS TOTP。
-- 範圍：已推進到 **dev**、**staging**，供業主驗證。prod 依業主回覆再進行。
+- 範圍：dev、staging 於 2026-10-15 上線；業主確認後，prod 於 2026-10-19 上線。
 - 決定事項：
   - 所有環境視為從未綁定 TOTP，使用者一律重新綁定，不從備份還原 `mfaState`。
   - prod 從未上過 TOTP，此次對 prod 是首次上線，不是退版。
@@ -84,6 +84,15 @@ dev trigger 在 2026-07-30 以前的部署清單為 `rti-forum-cms-dev,rti-forum
 | 14 | 2026-10-15 11:27 | staging | Cloud Run `rti-forum-cms-staging`、`rti-forum-gql-staging` | runtime reCAPTCHA 改回 v3 | `RECAPTCHA_SITE_KEY`: `6LdiNeItAAAAAPHTxNqbJISgWhRMwcNaD76CQyka` → `6Lc6emYsAAAAAPa0IH1EeNf0jamwGAuf7up_3rza`；`RECAPTCHA_SECRET_KEY`: `RECAPTCHA_V2_SECRET_KEY_STAGING:1` → `RECAPTCHA_SECRET_KEY:latest`；新 revision cms `00041-492`、gql `00042-r5h` |
 | 15 | 2026-10-15 11:28 | staging | Cloud Run 流量 | 切換流量，維持固定 revision 方式 | cms: `00039-wtk` → `00041-492`；gql: `00040-wd9` → `00042-r5h` |
 | 16 | 2026-10-15 11:28:23 | staging | DB `forum_cms_staging` | gql-staging 啟動時套用 `20261015090000_restore_cms_totp` | `User.mfaState`、`User.mfaRevision`：無 → 已新增 |
+| 17 | 2026-10-19 02:24 | prod | Cloud SQL `rtitalk-prod` | prod 部署前 on-demand 備份 | 備份 ID `1792376666180` |
+| 18 | 2026-10-19 02:26 | prod | Secret Manager | 建立 prod 專用 MFA 金鑰（`openssl rand -hex 32` 直接寫入，值未輸出） | 無 → `CMS_MFA_ENCRYPTION_KEY_PROD` version 1（automatic replication） |
+| 19 | 2026-10-19 02:26 | prod | Cloud Build trigger `rti-forum-cms-prod` | build 用 site key 改回 v3（其他欄位不變） | `_RECAPTCHA_SITE_KEY`: `6LfL8OItAAAAAPN79YSvHZw_qHgw4IUzc2hTfuw_` → `6Lc6emYsAAAAAPa0IH1EeNf0jamwGAuf7up_3rza` |
+| 20 | 2026-10-19 02:26 | prod | Git `prod` | 合併 main（merge commit `ef433ef`，內容與 main `2d7b967` 相同），觸發 prod build | `prod`: `dc325d2` → `ef433ef` |
+| 21 | 2026-10-19 02:27–02:29 | prod | Cloud Build `df2afbce-c9f2-48c8-9807-df8a21a0366c` | 建置並部署 `prod_ef433ef`（image digest `sha256:bc8334ce68b7…`，與 dev、staging 相同） | 新 revision cms `00024-bls`、gql `00027-qkw`（流量仍固定在舊 revision） |
+| 22 | 2026-10-19 02:29 | prod | Cloud Run `rti-forum-cms-prod`、`rti-forum-gql-prod` | 掛上 MFA 金鑰、runtime reCAPTCHA 改回 v3 | `CMS_MFA_ENCRYPTION_KEY`：無 → `CMS_MFA_ENCRYPTION_KEY_PROD:1`；`RECAPTCHA_SITE_KEY`: `6LfL8OItAAAAAPN79YSvHZw_qHgw4IUzc2hTfuw_` → `6Lc6emYsAAAAAPa0IH1EeNf0jamwGAuf7up_3rza`；`RECAPTCHA_SECRET_KEY`: `RECAPTCHA_V2_SECRET_KEY_PROD:1` → `RECAPTCHA_SECRET_KEY:latest`；新 revision cms `00025-twt`、gql `00028-k85`（未接流量） |
+| 23 | 2026-10-19 02:49:39 | prod | Cloud Run `rti-forum-gql-prod` 流量 | 切換流量，維持固定 revision 方式 | `00026-wzt` → `00028-k85` |
+| 24 | 2026-10-19 02:49:58 | prod | DB `forum_cms_prod` | gql-prod 啟動時套用 `20261015090000_restore_cms_totp` | `User.mfaState`、`User.mfaRevision`：無 → 已新增 |
+| 25 | 2026-10-19 02:51:42 | prod | Cloud Run `rti-forum-cms-prod` 流量 | 切換流量，維持固定 revision 方式；所有 CMS 使用者需重新登入並首次綁定 TOTP | `00023-nnw` → `00025-twt` |
 
 ### 部署時發現：Cloud Run 流量固定在指定 revision
 
@@ -117,6 +126,32 @@ dev trigger 在 2026-07-30 以前的部署清單為 `rti-forum-cms-dev,rti-forum
 | cms-staging、gql-staging ERROR log | 無 |
 | **CMS 實際登入、TOTP 首次綁定、驗證碼登入、復原碼、忘記密碼（v3）；前台經 gql-staging 的功能** | **待以實際帳號驗證** |
 
+### prod 上線前的 staging 測試紀錄
+
+2026-10-19 依 log 確認 staging 自 10/15 起僅有：userId 4 首次綁定成功（10/15 12:57）；userId 7 兩次通過密碼並開啟驗證碼頁面但未送出（10/16 05:49、05:58）。沒有已綁定後的 TOTP 再登入或復原碼登入成功紀錄。已向負責人說明，負責人表示業主已在 staging 確認，指示直接上線。
+
+### prod 驗證結果（2026-10-19 02:52）
+
+| 項目 | 結果 |
+|---|---|
+| Cloud Build | SUCCESS |
+| Migration log | gql-prod 套用 `20261015090000_restore_cms_totp`；cms-prod 隨後 `No pending migrations to apply.` |
+| cms-prod `/health_check`、`/signin`、`/mfa` | 200 |
+| cms-prod `/api/cms-mfa`（無 pending cookie） | 401，符合預期 |
+| cms-prod signin bundle | 含 v3 site key `6Lc6emYs…`，不含 v2 key |
+| gql-prod 切換後實際請求 | 17 筆，全部 200 |
+| frontend-prod 首頁 | 200 |
+| cms-prod、gql-prod ERROR log | 無 |
+| CMS 實際首次綁定（同時驗證 `CMS_MFA_ENCRYPTION_KEY_PROD` 可用） | 通過：userId 11 於 02:58:26 綁定成功（02:58:00 第一次送出回 400，第二次成功） |
+| **TOTP 再登入、復原碼、忘記密碼（v3）** | **待實際帳號驗證** |
+
+### prod 回復方式（必要時）
+
+```
+gcloud run services update-traffic rti-forum-cms-prod --region asia-east1 --to-revisions rti-forum-cms-prod-00023-nnw=100
+gcloud run services update-traffic rti-forum-gql-prod --region asia-east1 --to-revisions rti-forum-gql-prod-00026-wzt=100
+```
+
 ### staging 回復方式（必要時）
 
 ```
@@ -135,7 +170,7 @@ gcloud run services update-traffic rti-forum-gql-dev --region asia-east1 --to-re
 
 若要讓之後 `main` 的 build 不再部署 gql-dev，或回到 v2 site key，依「二、原始狀態」的 trigger 值改回。
 
-## 四、尚未進行（待業主回覆）
+## 四、尚未進行
 
-- prod：建立 `CMS_MFA_ENCRYPTION_KEY_PROD`（獨立金鑰）並掛到 cms-prod、gql-prod；trigger 與 Cloud Run reCAPTCHA 改回 v3；部署前 on-demand 備份；部署後切換 cms-prod、gql-prod 流量（目前固定 revision）；通知 CMS 使用者首次登入需綁定 TOTP。
+- prod：以實際帳號完成首次綁定、TOTP 再登入、復原碼、忘記密碼（v3）驗證。
 - 建議：`rti-forum-cms-db` 開啟自動備份。
